@@ -1,0 +1,8 @@
+appId: com.zarpa.mobile
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    text: ".*Zarpa.*"
+- takeScreenshot: healthcheck_success
+
