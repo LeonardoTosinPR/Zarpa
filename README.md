@@ -3,6 +3,7 @@
 > **TCC 2** - Tecnologia em Sistemas para Internet | **UTFPR Câmpus Guarapuava**  
 > **Autor**: Leonardo Tosin | **Orientador**: Prof. Dr. Andres Jessé Porfirio  
 > **Período**: 25/08/2026 a 31/10/2026  
+> **Figma UI/UX**: [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
 
 ---
 
@@ -21,6 +22,7 @@ O **Zarpa** é uma plataforma que otimiza entregas urbanas em Guarapuava - PR, o
 ├── .github/workflows/        # Pipelines de CI/CD (GitHub Actions)
 ├── backend/                  # API RESTful em Laravel 13 (PHP 8.3+)
 ├── mobile/                   # App Mobile React Native com Expo (Expo Router)
+│   └── README.md             # Documentação específica da disciplina de Mobile & UI/UX
 ├── docs/                     # Documentação viva de engenharia (Master Plan, Arquitetura, Sprints)
 ├── .maestro/                 # Suíte de Testes End-to-End (E2E) em YAML
 ├── docker-compose.yml        # Orquestração PostgreSQL 16 + PostGIS e Backend
@@ -79,6 +81,8 @@ A API estará disponível em: `http://localhost:8000/api/health`
 
 ### 4. Mobile (React Native / Expo SDK 54)
 
+Consulte o [README do Mobile](file:///d:/Zarpa/mobile/README.md) para detalhes da disciplina de Dispositivos Móveis e protótipo do Figma.
+
 ```bash
 cd mobile
 npm install
@@ -123,7 +127,9 @@ maestro test .maestro/healthcheck.yaml
 ---
 
 ## 📄 Documentação Completa
-Consulte a pasta [`docs/`](file:///d:/Zarpa/docs/):
+Consulte a pasta [`docs/`](file:///d:/Zarpa/docs/) e as documentações específicas dos módulos:
+- 📱 [`mobile/README.md`](file:///d:/Zarpa/mobile/README.md): Documentação da disciplina de Desenvolvimento de Projetos para Dispositivos Móveis e Figma.
+- 🎨 [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f): Telas e fluxos completos de Lojista e Entregador.
 - [`MASTER_PLAN.md`](file:///d:/Zarpa/docs/MASTER_PLAN.md): Cronograma executivo de sprints e matriz MoSCoW/RICE.
 - [`ARQUITETURA.md`](file:///d:/Zarpa/docs/ARQUITETURA.md): Diagramas de fluxo, arquitetura em camadas e modelo de dados DER.
 - [`docs/sprints/sprint_0.md`](file:///d:/Zarpa/docs/sprints/sprint_0.md): Detalhamento da Sprint 0.
