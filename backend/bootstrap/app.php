@@ -12,9 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->alias([
+            'role.client' => \App\Http\Middleware\EnsureUserIsClient::class,
+            'role.courier' => \App\Http\Middleware\EnsureUserIsCourier::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
-
