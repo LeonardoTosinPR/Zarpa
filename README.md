@@ -4,7 +4,21 @@
 > **Autor**: Leonardo Tosin | **Orientador**: Prof. Dr. Andres Jessé Porfirio  
 > **Período de Execução**: 25/08/2026 a 31/10/2026  
 > **Figma UI/UX**: [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Sprint Atual**: **Sprint 1 - Módulo de Atores, Autenticação e Perfis Isolados** (`sprint/1-auth-perfis-atores`)
+> **Branch da Sprint Atual**: [`sprint/1-auth-perfis-atores`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/1-auth-perfis-atores)
+
+---
+
+## 📚 Módulos e Documentações do Projeto
+
+Navegue diretamente pelos módulos de desenvolvimento e documentações especializadas do monorepo:
+
+| Módulo | Descrição do Componente | Documentação Direta |
+| :--- | :--- | :--- |
+| 📱 **Mobile (App)** | Aplicativo React Native com Expo SDK 54, Design System do Figma, DER e Checkpoints da disciplina de Dispositivos Móveis | 👉 [**Acessar README Mobile**](mobile/README.md) |
+| 🐘 **Backend (API)** | API RESTful em Laravel 13, PostgreSQL 16 + PostGIS, Laravel Sanctum e motor de roteamento ORS | 👉 [**Acessar README Backend**](backend/README.md) *(Em breve)* |
+| 📐 **Arquitetura** | Especificação arquitetural do sistema, diagramas de fluxo de dados, políticas de segurança e DER Lógico | 👉 [**Acessar ARQUITETURA.md**](docs/ARQUITETURA.md) |
+| 📅 **Plano Mestre** | Visão executiva, matriz de rastreabilidade MoSCoW/RICE e cronograma consolidado de todas as sprints | 👉 [**Acessar MASTER_PLAN.md**](docs/MASTER_PLAN.md) |
+| 🏁 **Sprint 1 (Atual)** | Especificação de requisitos, backlog técnico, endpoints de autenticação e Definition of Done (DoD) | 👉 [**Acessar sprint_1.md**](docs/sprints/sprint_1.md) |
 
 ---
 
@@ -25,6 +39,7 @@ O **Zarpa** é uma plataforma que otimiza entregas urbanas em Guarapuava - PR, i
 ├── .github/workflows/        # Pipelines de CI/CD (GitHub Actions)
 ├── backend/                  # API RESTful em Laravel 13 (PHP 8.3+) + PostGIS + Sanctum
 ├── mobile/                   # App Mobile React Native com Expo SDK 54 (Expo Router)
+│   └── README.md             # 📱 Documentação Completa do Mobile & Checkpoint 1
 ├── docs/                     # Documentação viva de engenharia
 │   ├── MASTER_PLAN.md        # Visão executiva e matriz MoSCoW/RICE
 │   ├── ARQUITETURA.md        # Especificação arquitetural, fluxos e DER
@@ -69,12 +84,3 @@ O projeto conta com um script único e inteligente para gerenciar todo o ciclo d
 | 🛵 **Entregador Teste** | `entregador@zarpa.com.br` | `entregador123456` | *Carlos Motoboy* (Moto Honda CG 160, Placa `BRA2E19`) |
 
 > 💡 **Atalho no App**: Na tela de Boas-Vindas e Login do App Mobile, você pode clicar nos botões de atalho rápido (**[👑 Admin]**, **[🏪 Lojista]** ou **[🛵 Entregador]**) para entrar instantaneamente sem digitar credenciais.
-
----
-
-## 📄 Documentação de Engenharia
-- 📱 [`mobile/README.md`](file:///d:/Zarpa/mobile/README.md): Especificação de Mobile & UI/UX Figma.
-- 🎨 [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f): Design System e fluxos de telas.
-- [`MASTER_PLAN.md`](file:///d:/Zarpa/docs/MASTER_PLAN.md): Visão executiva e cronograma das sprints.
-- [`ARQUITETURA.md`](file:///d:/Zarpa/docs/ARQUITETURA.md): Arquitetura de software, DER e diagramas de fluxo.
-- [`docs/sprints/sprint_1.md`](file:///d:/Zarpa/docs/sprints/sprint_1.md): Detalhamento e DoD da Sprint 1.
