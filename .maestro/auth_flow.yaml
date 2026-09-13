@@ -1,0 +1,37 @@
+appId: com.zarpa.mobile
+---
+# Scenario 1: Launch App and Verify Welcome Screen
+- launchApp:
+    clearState: true
+- assertVisible: "Zarpa"
+- assertVisible: "Acessar Minha Conta"
+
+# Scenario 2: Login as Merchant (Lojista)
+- tapOn: "Acessar Minha Conta"
+- assertVisible: "Acesse sua conta"
+- tapOn: "🏪 Lojista"
+- assertVisible: "Padaria Central"
+- assertVisible: "Lojista / Comércio"
+- takeScreenshot: client_dashboard_success
+
+# Scenario 3: Logout from Merchant Account
+- scroll
+- tapOn: "Encerrar Sessão (Sair)"
+- assertVisible: "Acessar Minha Conta"
+
+# Scenario 4: Login as Courier (Entregador)
+- tapOn: "Acessar Minha Conta"
+- assertVisible: "Acesse sua conta"
+- tapOn: "🛵 Entregador"
+- assertVisible: "Carlos Motoboy"
+- assertVisible: "Entregador / Condutor"
+- assertVisible: "Disponível no Radar"
+- takeScreenshot: courier_dashboard_success
+
+# Scenario 5: Logout and Admin Access
+- scroll
+- tapOn: "Encerrar Sessão (Sair)"
+- tapOn: "Acessar Minha Conta"
+- tapOn: "👑 Admin"
+- assertVisible: "Admin Master"
+- takeScreenshot: admin_access_success
