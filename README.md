@@ -4,7 +4,21 @@
 > **Autor**: Leonardo Tosin | **Orientador**: Prof. Dr. Andres Jessé Porfirio  
 > **Período de Execução**: 25/08/2026 a 31/10/2026  
 > **Figma UI/UX**: [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Sprint Atual**: **Sprint 1 - Módulo de Atores, Autenticação e Perfis Isolados** (`sprint/1-auth-perfis-atores`)
+> **Branch da Sprint Atual**: [`sprint/1-auth-perfis-atores`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/1-auth-perfis-atores)
+
+---
+
+## 📚 Módulos e Documentações do Projeto
+
+Navegue diretamente pelos módulos de desenvolvimento e documentações especializadas do monorepo:
+
+| Módulo | Descrição do Componente | Documentação Direta |
+| :--- | :--- | :--- |
+| 📱 **Mobile (App)** | Aplicativo React Native com Expo SDK 54, Design System do Figma, DER e Checkpoints da disciplina de Dispositivos Móveis | 👉 [**Acessar README Mobile**](mobile/README.md) |
+| 🐘 **Backend (API)** | API RESTful em Laravel 13, PostgreSQL 16 + PostGIS, Laravel Sanctum e motor de roteamento ORS | 👉 [**Acessar README Backend**](backend/README.md) *(Em breve)* |
+| 📐 **Arquitetura** | Especificação arquitetural do sistema, diagramas de fluxo de dados, políticas de segurança e DER Lógico | 👉 [**Acessar ARQUITETURA.md**](docs/ARQUITETURA.md) |
+| 📅 **Plano Mestre** | Visão executiva, matriz de rastreabilidade MoSCoW/RICE e cronograma consolidado de todas as sprints | 👉 [**Acessar MASTER_PLAN.md**](docs/MASTER_PLAN.md) |
+| 🏁 **Sprint 1 (Atual)** | Especificação de requisitos, backlog técnico, endpoints de autenticação e Definition of Done (DoD) | 👉 [**Acessar sprint_1.md**](docs/sprints/sprint_1.md) |
 
 ---
 
@@ -25,15 +39,12 @@ O **Zarpa** é uma plataforma que otimiza entregas urbanas em Guarapuava - PR, i
 ├── .github/workflows/        # Pipelines de CI/CD (GitHub Actions)
 ├── backend/                  # API RESTful em Laravel 13 (PHP 8.3+) + PostGIS + Sanctum
 ├── mobile/                   # App Mobile React Native com Expo SDK 54 (Expo Router)
-│   └── README.md             # Documentação específica de Mobile & UI/UX Figma
+│   └── README.md             # 📱 Documentação Completa do Mobile & Checkpoint 1
 ├── docs/                     # Documentação viva de engenharia
 │   ├── MASTER_PLAN.md        # Visão executiva e matriz MoSCoW/RICE
 │   ├── ARQUITETURA.md        # Especificação arquitetural, fluxos e DER
 │   └── sprints/              # Detalhamento granular das sprints (sprint_0.md, sprint_1.md...)
-├── scripts/                  # Scripts utilitários de automação (Bash & PowerShell)
-│   ├── dev.sh / dev.ps1      # Inicialização completa do ambiente (Docker + Expo)
-│   ├── db-seed.sh / .ps1     # Reset e população do banco com dados de teste
-│   └── test.sh / .ps1        # Execução completa da suíte de testes (Pest + Jest + TypeScript)
+├── run.ps1 / run.sh          # ⚡ CLI Unificado de Gerenciamento do Projeto
 ├── .maestro/                 # Suíte de Testes End-to-End (E2E) em YAML
 ├── docker-compose.yml        # Orquestração PostgreSQL 16 + PostGIS e Backend
 └── README.md
@@ -41,66 +52,30 @@ O **Zarpa** é uma plataforma que otimiza entregas urbanas em Guarapuava - PR, i
 
 ---
 
-## ⚡ Guia Rápido de Execução
+## ⚡ CLI Unificado de Gerenciamento (`run.ps1` / `run.sh`)
 
-### 1. Pré-requisitos
-- **Docker Desktop** (com engine WSL 2 ativa no Windows);
-- **Node.js** (v20+ ou v22 LTS) e npm;
-- **Expo Go** no smartphone físico (Android/iOS) ou **Emulador Android** configurado.
+O projeto conta com um script único e inteligente para gerenciar todo o ciclo de desenvolvimento, diagnósticos e testes:
 
-> ⚠️ **Importante (Windows)**: Certifique-se de que o **Docker Desktop** está aberto e em execução antes de rodar os comandos. Os scripts verificam automaticamente a engine do Docker.
-
----
-
-### 2. Executando o App via Scripts de Automação (Recomendado)
-
-Na raiz do projeto (`d:\Zarpa`), execute o script correspondente ao seu terminal:
-
-#### 🚀 Iniciar o Aplicativo Completo (Docker + Mobile)
-Sobe os containers do PostgreSQL/PostGIS e do Backend Laravel, exibe as credenciais de teste e inicia o servidor do Expo:
-
-- **No Bash / Git Bash / WSL**:
-  ```bash
-  bash scripts/dev.sh
-  ```
-- **No PowerShell**:
-  ```powershell
-  .\scripts\dev.ps1
-  ```
-
----
-
-#### 🌱 Resetar e Popular o Banco de Dados (Seeders)
-Recria as tabelas e popula o usuário Admin e os usuários de teste de Guarapuava:
-
-- **No Bash / Git Bash**:
-  ```bash
-  bash scripts/db-seed.sh
-  ```
-- **No PowerShell**:
-  ```powershell
-  .\scripts\db-seed.ps1
-  ```
-
----
-
-#### 🧪 Executar Todos os Testes Automatizados
-Roda os testes do Backend (**Pest v3**), checagem de tipos (**TypeScript**) e testes unitários do Mobile (**Jest + RNTL**):
-
-- **No Bash / Git Bash**:
-  ```bash
-  bash scripts/test.sh
-  ```
-- **No PowerShell**:
-  ```powershell
-  .\scripts\test.ps1
-  ```
+| Comando PowerShell | Comando Bash / WSL | Ação Executada |
+| :--- | :--- | :--- |
+| `.\run.ps1 dev` | `./run.sh dev` | Sobe Docker (PostGIS + Backend) e inicia o Expo Mobile |
+| `.\run.ps1 up` | `./run.sh up` | Sobe os containers Docker em segundo plano (`-d`) |
+| `.\run.ps1 down` | `./run.sh down` | Para e remove os containers Docker |
+| `.\run.ps1 restart` | `./run.sh restart` | Reinicia todos os containers Docker |
+| `.\run.ps1 mobile` | `./run.sh mobile` | Inicia apenas o servidor Expo Mobile |
+| `.\run.ps1 db:populate` | `./run.sh db:populate` | Executa migrations e popula usuários de teste |
+| `.\run.ps1 db:reset` | `./run.sh db:reset` | Reseta o banco (`migrate:fresh`) e repopula |
+| `.\run.ps1 test` | `./run.sh test` | Executa todos os testes (Pest + Jest + TypeScript) |
+| `.\run.ps1 test:backend` | `./run.sh test:backend`| Executa testes do backend Laravel (Pest v3) |
+| `.\run.ps1 test:mobile` | `./run.sh test:mobile` | Executa testes unitários do mobile (Jest) |
+| `.\run.ps1 test:e2e` | `./run.sh test:e2e` | Executa testes End-to-End com Maestro |
+| `.\run.ps1 diagnostic` | `./run.sh diagnostic` | Diagnóstico do Docker Desktop, WSL2 e Node.js |
+| `.\run.ps1 users` | `./run.sh users` | Exibe credenciais das contas de teste |
+| `.\run.ps1 help` | `./run.sh help` | Exibe o menu completo de ajuda |
 
 ---
 
 ## 🔑 Usuários de Teste Pré-Configurados (Sprint 1)
-
-O banco de dados é populado com 3 contas prontas para homologação:
 
 | Perfil | E-mail | Senha | Detalhes no Sistema |
 | :--- | :--- | :--- | :--- |
@@ -108,57 +83,4 @@ O banco de dados é populado com 3 contas prontas para homologação:
 | 🏪 **Lojista Teste** | `lojista@zarpa.com.br` | `lojista123456` | *Padaria Central Guarapuava* (CNPJ `12.345.678/0001-90`) |
 | 🛵 **Entregador Teste** | `entregador@zarpa.com.br` | `entregador123456` | *Carlos Motoboy* (Moto Honda CG 160, Placa `BRA2E19`) |
 
-> 💡 **Dica de Usabilidade**: Na tela de Boas-Vindas e Login do App Mobile, você pode clicar nos botões de atalho rápido (**[👑 Admin]**, **[🏪 Lojista]** ou **[🛵 Entregador]**) para entrar instantaneamente sem digitar credenciais.
-
----
-
-## 🛠️ Execução Manual Passo a Passo
-
-Caso prefira rodar cada componente individualmente em terminais separados:
-
-### 1. Subir Infraestrutura Docker
-```bash
-docker compose up -d
-docker exec -i zarpa_backend php artisan migrate:fresh --seed
-```
-- Endpoint de verificação da API: `http://localhost:8000/api/health`
-
-### 2. Iniciar o App Mobile (Expo SDK 54)
-```bash
-cd mobile
-npm install
-npx expo start
-```
-- Pressione **`a`** para rodar no Emulador Android;
-- Ou escaneie o QR Code no app **Expo Go** no celular.
-
----
-
-## 🧪 Suíte de Testes Individuais
-
-### Backend (Pest v3)
-```bash
-docker exec -i zarpa_backend php artisan test
-```
-
-### Mobile (Jest + RNTL)
-```bash
-cd mobile
-npm test
-```
-
-### End-to-End (Maestro)
-Com o emulador Android conectado e o app instalado:
-```bash
-maestro test .maestro/healthcheck.yaml
-maestro test .maestro/auth_flow.yaml
-```
-
----
-
-## 📄 Documentação de Engenharia
-- 📱 [`mobile/README.md`](file:///d:/Zarpa/mobile/README.md): Especificação de Mobile & UI/UX Figma.
-- 🎨 [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f): Design System e fluxos de telas.
-- [`MASTER_PLAN.md`](file:///d:/Zarpa/docs/MASTER_PLAN.md): Visão executiva e cronograma das sprints.
-- [`ARQUITETURA.md`](file:///d:/Zarpa/docs/ARQUITETURA.md): Arquitetura de software, DER e diagramas de fluxo.
-- [`docs/sprints/sprint_1.md`](file:///d:/Zarpa/docs/sprints/sprint_1.md): Detalhamento e DoD da Sprint 1.
+> 💡 **Atalho no App**: Na tela de Boas-Vindas e Login do App Mobile, você pode clicar nos botões de atalho rápido (**[👑 Admin]**, **[🏪 Lojista]** ou **[🛵 Entregador]**) para entrar instantaneamente sem digitar credenciais.
