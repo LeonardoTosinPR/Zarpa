@@ -1,87 +1,20 @@
 # 🚀 ZARPA - Plataforma Inteligente de Intermediação de Entregas Urbanas
 
-> **Trabalho de Conclusão de Curso (TCC 2)**  
-> **Curso**: Tecnologia em Sistemas para Internet | **Instituição**: Universidade Tecnológica Federal do Paraná (UTFPR) – Câmpus Guarapuava  
+> **TCC 2** - Tecnologia em Sistemas para Internet | **UTFPR Câmpus Guarapuava**  
 > **Autor**: Leonardo Tosin | **Orientador**: Prof. Dr. Andres Jessé Porfirio  
-> **Período**: 25/08/2026 a 31/10/2026  
+> **Período de Execução**: 25/08/2026 a 31/10/2026  
+> **Figma UI/UX**: [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
+> **Sprint Atual**: **Sprint 1 - Módulo de Atores, Autenticação e Perfis Isolados** (`sprint/1-auth-perfis-atores`)
 
 ---
 
-## 📌 O que é o Zarpa?
+## 📌 Visão Geral do Sistema
 
-O **Zarpa** é uma plataforma inteligente de intermediação e otimização logística urbana projetada para conectar o **comércio local (lojistas)** a **entregadores autônomos**, tendo como laboratório de validação inicial a malha viária do município de **Guarapuava - PR**.
+O **Zarpa** é uma plataforma que otimiza entregas urbanas em Guarapuava - PR, integrando backend geoespacial (Laravel 13 + PostgreSQL/PostGIS) e aplicativo móvel multiplataforma (React Native / Expo SDK 54):
 
-A plataforma resolve dois dos maiores gargalos das entregas locais: o alto custo de fretes individuais para pequenos lojistas e a remuneração achatada por quilometragem excessiva enfrentada pelos entregadores.
-
-```
-                  ┌────────────────────────────────────────────────────────┐
-                  │                    PLATAFORMA ZARPA                    │
-                  │   (API Laravel 13 + PostGIS + App Expo React Native)   │
-                  └───────────────────────────┬────────────────────────────┘
-                                              │
-                    ┌─────────────────────────┴─────────────────────────┐
-                    ▼                                                   ▼
-       ⚡ MODALIDADE EXPRESSA                             📦 LOTE ECONÔMICO (BATCH)
-  ┌─────────────────────────────────┐                 ┌─────────────────────────────────┐
-  │ • Demanda em tempo real         │                 │ • Consolidação de pedidos       │
-  │ • Radar espacial por raio (km)  │                 │ • Clusterização geoespacial     │
-  │ • Trava pessimista anti-conflito│                 │ • Rota multi-pontos ótima (ORS) │
-  │ • Despacho imediato             │                 │ • Rateio Colaborativo 50/50     │
-  └─────────────────────────────────┘                 └─────────────────────────────────┘
-```
-
----
-
-## 💡 Proposta de Valor e Modalidades de Frete
-
-O Zarpa opera com **dois modelos complementares de frete**:
-
-### 1. ⚡ Entrega Expressa (On-Demand)
-- **Foco**: Pedidos urgentes com atendimento imediato.
-- **Funcionamento**: O lojista cadastra o pedido e o sistema dispara um **radar geoespacial** por raio de proximidade utilizando queries espaciais (`PostGIS`).
-- **Segurança Transacional**: Emprega controle de concorrência com **bloqueio pessimista** (`lockForUpdate`), garantindo que apenas um entregador consiga aceitar a corrida em tempo real, eliminando *race conditions*.
-
-### 2. 📦 Lote Econômico com Rateio Dinâmico 50/50 (O Grande Diferencial)
-- **Foco**: Entregas programadas e não urgentes com foco em eficiência de custo e rota.
-- **Funcionamento**: Ao longo do expediente, pedidos são agrupados por proximidade geográfica via algoritmos espaciais e integração com **OpenRouteService (ORS)**, gerando rotas multi-paradas otimizadas.
-- **Mecanismo de Rateio 50/50**:
-  - Calcula-se o custo base somado dos fretes como se cada pedido fosse entregue de forma individual e isolada ($C_{individual}$).
-  - Calcula-se o custo real da rota otimizada consolidada ($C_{lote}$).
-  - A economia gerada ($\Delta E = C_{individual} - C_{lote}$) é rateada de forma justa e transparente:
-    - **50% da economia** é devolvida aos lojistas na forma de desconto percentual sobre o valor do frete.
-    - **50% da economia** é convertida em bônus financeiro de produtividade para o entregador responsável pela rota agrupada.
-
----
-
-## 👥 Atores do Sistema
-
-| Ator | Funcionalidades Principais no Aplicativo |
-| :--- | :--- |
-| 🏪 **Lojista (Cliente)** | • Postagem ágil de pedidos com geocodificação automática de endereço.<br>• Escolha entre entrega **Expressa** ou inclusão no **Lote Econômico**.<br>• Acompanhamento do status de entrega em tempo real no mapa.<br>• Extrato de pedidos com visualização clara do desconto auferido por rateio. |
-| 🛵 **Entregador (Courier)** | • Radar de oportunidades expressas nas proximidades.<br>• Agenda de lotes econômicos atribuídos com rota sequencial multi-pontos.<br>• Transbordamento para navegação externa nativa (Google Maps / Waze).<br>• Extrato financeiro transparente com detalhamento de corridas e bônus de rateio. |
-
----
-
-## 🛠️ Stack Tecnológica
-
-### Backend & Dados
-- **Framework**: [Laravel 13](https://laravel.com/) (PHP 8.3+)
-- **Banco de Dados**: [PostgreSQL 16](https://www.postgresql.org/) com extensão espacial **[PostGIS](https://postgis.net/)** (`SRID 4326` e índices espaciais `GIST`)
-- **Autenticação**: Laravel Sanctum com perfis segregados (`client`, `courier`, `admin`)
-- **Serviços Geoespaciais & Roteamento**: [OpenRouteService (ORS)](https://openrouteservice.org/) (Geocoding Pelias, Directions e Matrix API)
-- **Testes Automatizados**: [Pest PHP v3](https://pestphp.com/) (Feature e Unit Tests)
-
-### Frontend Mobile
-- **Framework**: [React Native](https://reactnative.dev/) com [Expo SDK 54](https://expo.dev/) (Expo Router baseado em arquivos)
-- **Linguagem**: TypeScript
-- **Gerenciamento de Estado & Cache**: TanStack React Query + Axios
-- **Mapas & GPS**: `react-native-maps`, `expo-location` e deep linking com Google Maps / Waze
-- **Armazenamento Seguro**: `expo-secure-store`
-- **Testes Automatizados**: Jest + React Native Testing Library (RNTL)
-
-### Qualidade & E2E
-- **Testes End-to-End**: [Maestro](https://maestro.mobile.dev/)
-- **Integração Contínua (CI)**: GitHub Actions rodando linters, testes de backend e frontend em todo PR e push.
+1. **Entrega Expressa**: Atendimento imediato sob demanda com radar espacial por proximidade e bloqueio pessimista de concorrência (`lockForUpdate()`).
+2. **Lote Econômico com Rateio Dinâmico 50/50**: Agrupamento noturno de pedidos por proximidade geográfica (PostGIS + OpenRouteService), repassando 50% da economia como desconto aos lojistas e 50% como bônus aos entregadores.
+3. **Módulo de Atores e Perfis**: Segmentação estrita entre Lojista (`client`), Entregador (`courier`) e Administrador (`admin`) com autenticação via Laravel Sanctum e armazenamento seguro em `expo-secure-store`.
 
 ---
 
@@ -90,121 +23,58 @@ O Zarpa opera com **dois modelos complementares de frete**:
 ```
 / (raiz do repositório)
 ├── .github/workflows/        # Pipelines de CI/CD (GitHub Actions)
-├── backend/                  # API RESTful em Laravel 13 (PHP 8.3+)
-│   ├── app/                  # Controllers, Models, Services, Policies, Jobs
-│   ├── database/             # Migrations com suporte a PostGIS, Seeders, Factories
-│   ├── routes/               # Rotas da API (/api/v1)
-│   └── tests/                # Testes automatizados com Pest v3
-├── mobile/                   # App Mobile React Native com Expo (Expo Router)
-│   ├── app/                  # Rotas e Telas (Lojista / Entregador)
-│   ├── src/                  # Componentes, Hooks, Services e Tipos TypeScript
-│   └── __tests__/            # Testes unitários Jest / RNTL
-├── docs/                     # Documentação viva de engenharia de software
-│   ├── MASTER_PLAN.md        # Cronograma executivo de sprints e matriz MoSCoW/RICE
-│   ├── ARQUITETURA.md        # Arquitetura em camadas, diagramas de fluxo e DER
-│   └── sprints/              # Especificações granulares por sprint
+├── backend/                  # API RESTful em Laravel 13 (PHP 8.3+) + PostGIS + Sanctum
+├── mobile/                   # App Mobile React Native com Expo SDK 54 (Expo Router)
+├── docs/                     # Documentação viva de engenharia
+│   ├── MASTER_PLAN.md        # Visão executiva e matriz MoSCoW/RICE
+│   ├── ARQUITETURA.md        # Especificação arquitetural, fluxos e DER
+│   └── sprints/              # Detalhamento granular das sprints (sprint_0.md, sprint_1.md...)
+├── run.ps1 / run.sh          # ⚡ CLI Unificado de Gerenciamento do Projeto
 ├── .maestro/                 # Suíte de Testes End-to-End (E2E) em YAML
 ├── docker-compose.yml        # Orquestração PostgreSQL 16 + PostGIS e Backend
-└── README.md                 # Visão geral e guia de inicialização
+└── README.md
 ```
 
 ---
 
-## ⚡ Guia Rápido de Inicialização
+## ⚡ CLI Unificado de Gerenciamento (`run.ps1` / `run.sh`)
 
-### 1. Pré-requisitos
-- [Docker](https://www.docker.com/) e Docker Compose
-- [Node.js](https://nodejs.org/) (v20+ ou v22 LTS) e npm
-- [Expo CLI](https://docs.expo.dev/) / Expo Go no dispositivo físico ou Emulador Android com Google Play Services
+O projeto conta com um script único e inteligente para gerenciar todo o ciclo de desenvolvimento, diagnósticos e testes:
 
----
-
-### 2. Infraestrutura e Banco de Dados (PostgreSQL 16 + PostGIS)
-
-Suba o container com o banco geoespacial:
-```bash
-docker compose up -d postgres
-```
-
-Para verificar o status dos containers:
-```bash
-docker compose ps
-```
-
----
-
-### 3. Backend (Laravel 13)
-
-Você pode rodar o backend via Docker ou localmente:
-
-#### Opção A: Execução via Docker Compose (Recomendado)
-```bash
-docker compose up -d backend
-docker compose exec backend php artisan migrate
-docker compose exec backend php artisan test
-```
-
-#### Opção B: Execução Local
-```bash
-cd backend
-cp .env.example .env
-composer install
-php artisan key:generate
-php artisan migrate
-php artisan serve
-```
-
-A API estará disponível em: `http://localhost:8000/api/health`
+| Comando PowerShell | Comando Bash / WSL | Ação Executada |
+| :--- | :--- | :--- |
+| `.\run.ps1 dev` | `./run.sh dev` | Sobe Docker (PostGIS + Backend) e inicia o Expo Mobile |
+| `.\run.ps1 up` | `./run.sh up` | Sobe os containers Docker em segundo plano (`-d`) |
+| `.\run.ps1 down` | `./run.sh down` | Para e remove os containers Docker |
+| `.\run.ps1 restart` | `./run.sh restart` | Reinicia todos os containers Docker |
+| `.\run.ps1 mobile` | `./run.sh mobile` | Inicia apenas o servidor Expo Mobile |
+| `.\run.ps1 db:populate` | `./run.sh db:populate` | Executa migrations e popula usuários de teste |
+| `.\run.ps1 db:reset` | `./run.sh db:reset` | Reseta o banco (`migrate:fresh`) e repopula |
+| `.\run.ps1 test` | `./run.sh test` | Executa todos os testes (Pest + Jest + TypeScript) |
+| `.\run.ps1 test:backend` | `./run.sh test:backend`| Executa testes do backend Laravel (Pest v3) |
+| `.\run.ps1 test:mobile` | `./run.sh test:mobile` | Executa testes unitários do mobile (Jest) |
+| `.\run.ps1 test:e2e` | `./run.sh test:e2e` | Executa testes End-to-End com Maestro |
+| `.\run.ps1 diagnostic` | `./run.sh diagnostic` | Diagnóstico do Docker Desktop, WSL2 e Node.js |
+| `.\run.ps1 users` | `./run.sh users` | Exibe credenciais das contas de teste |
+| `.\run.ps1 help` | `./run.sh help` | Exibe o menu completo de ajuda |
 
 ---
 
-### 4. Mobile (React Native / Expo SDK 54)
+## 🔑 Usuários de Teste Pré-Configurados (Sprint 1)
 
-```bash
-cd mobile
-npm install
-npx expo start
-```
-- Pressione `a` para abrir no **Emulador Android**;
-- Ou escaneie o QR Code no aplicativo **Expo Go** em seu smartphone (Android/iOS).
+| Perfil | E-mail | Senha | Detalhes no Sistema |
+| :--- | :--- | :--- | :--- |
+| 👑 **Admin Master** | `admin@zarpa.com.br` | `admin123456` | Acesso total e alternância entre painéis |
+| 🏪 **Lojista Teste** | `lojista@zarpa.com.br` | `lojista123456` | *Padaria Central Guarapuava* (CNPJ `12.345.678/0001-90`) |
+| 🛵 **Entregador Teste** | `entregador@zarpa.com.br` | `entregador123456` | *Carlos Motoboy* (Moto Honda CG 160, Placa `BRA2E19`) |
 
----
-
-## 🧪 Execução de Testes Automatizados
-
-### Backend (Pest v3)
-```bash
-# Via Docker
-docker compose exec backend php artisan test
-
-# Ou Localmente
-cd backend
-php artisan test
-```
-
-### Mobile (Jest + React Native Testing Library)
-```bash
-cd mobile
-npm test
-```
-
-### End-to-End (Maestro)
-Com o emulador Android ativo e o app instalado:
-```bash
-maestro test .maestro/healthcheck.yaml
-```
+> 💡 **Atalho no App**: Na tela de Boas-Vindas e Login do App Mobile, você pode clicar nos botões de atalho rápido (**[👑 Admin]**, **[🏪 Lojista]** ou **[🛵 Entregador]**) para entrar instantaneamente sem digitar credenciais.
 
 ---
 
-## 📋 Checklist do Emulador Android
-- [ ] Android SDK configurado (`ANDROID_HOME` e variáveis em `$PATH`);
-- [ ] Pelo menos 1 AVD configurado (`emulator -list-avds`) com imagem Google Play APIs (Android 14/15);
-- [ ] Dispositivo reconhecido pelo ADB (`adb devices`).
-
----
-
-## 📄 Documentação Completa
-Consulte os documentos detalhados na pasta [`docs/`](file:///d:/Zarpa/docs/):
-- [`MASTER_PLAN.md`](file:///d:/Zarpa/docs/MASTER_PLAN.md): Cronograma executivo de sprints e matriz MoSCoW/RICE.
-- [`ARQUITETURA.md`](file:///d:/Zarpa/docs/ARQUITETURA.md): Diagramas de fluxo, arquitetura em camadas e modelo de dados DER.
-- [`docs/sprints/sprint_0.md`](file:///d:/Zarpa/docs/sprints/sprint_0.md): Detalhamento da Sprint 0.
+## 📄 Documentação de Engenharia
+- 📱 [`mobile/README.md`](file:///d:/Zarpa/mobile/README.md): Especificação de Mobile & UI/UX Figma.
+- 🎨 [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f): Design System e fluxos de telas.
+- [`MASTER_PLAN.md`](file:///d:/Zarpa/docs/MASTER_PLAN.md): Visão executiva e cronograma das sprints.
+- [`ARQUITETURA.md`](file:///d:/Zarpa/docs/ARQUITETURA.md): Arquitetura de software, DER e diagramas de fluxo.
+- [`docs/sprints/sprint_1.md`](file:///d:/Zarpa/docs/sprints/sprint_1.md): Detalhamento e DoD da Sprint 1.
