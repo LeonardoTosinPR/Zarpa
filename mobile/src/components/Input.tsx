@@ -8,11 +8,13 @@ import {
   TextInputProps,
   ViewStyle,
 } from 'react-native';
-import { COLORS, RADIUS, SPACING } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string | null;
+  iconName?: keyof typeof Ionicons.glyphMap;
   icon?: string;
   isPassword?: boolean;
   containerStyle?: ViewStyle;
@@ -21,6 +23,7 @@ interface InputProps extends TextInputProps {
 export function Input({
   label,
   error,
+  iconName,
   icon,
   isPassword = false,
   containerStyle,
@@ -40,7 +43,16 @@ export function Input({
           !!error && styles.inputError,
         ]}
       >
-        {icon && <Text style={styles.icon}>{icon}</Text>}
+        {iconName ? (
+          <Ionicons
+            name={iconName}
+            size={18}
+            color={isFocused ? COLORS.primary : COLORS.textMuted}
+            style={styles.iconPrefix}
+          />
+        ) : icon ? (
+          <Text style={styles.legacyIcon}>{icon}</Text>
+        ) : null}
 
         <TextInput
           style={styles.input}
@@ -56,8 +68,13 @@ export function Input({
             style={styles.eyeButton}
             onPress={() => setHidePassword(!hidePassword)}
             activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.eyeIcon}>{hidePassword ? '👁️' : '🔒'}</Text>
+            <Ionicons
+              name={hidePassword ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={COLORS.textSecondary}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -69,12 +86,12 @@ export function Input({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
     width: '100%',
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: TYPOGRAPHY.size.sm,
+    fontWeight: TYPOGRAPHY.weight.semibold,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
@@ -85,7 +102,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.border,
     borderRadius: RADIUS.md,
-    height: 52,
+    height: 50,
     paddingHorizontal: SPACING.md,
   },
   inputFocused: {
@@ -96,26 +113,27 @@ const styles = StyleSheet.create({
     borderColor: COLORS.danger,
     backgroundColor: COLORS.dangerLight,
   },
-  icon: {
-    fontSize: 16,
+  iconPrefix: {
+    marginRight: SPACING.sm,
+  },
+  legacyIcon: {
+    fontSize: TYPOGRAPHY.size.md,
     marginRight: SPACING.sm,
   },
   input: {
     flex: 1,
     height: '100%',
     color: COLORS.text,
-    fontSize: 15,
+    fontSize: TYPOGRAPHY.size.md,
   },
   eyeButton: {
     padding: SPACING.xs,
   },
-  eyeIcon: {
-    fontSize: 16,
-  },
   errorText: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.size.xs,
     color: COLORS.danger,
     marginTop: SPACING.xs,
     marginLeft: SPACING.xs,
+    fontWeight: TYPOGRAPHY.weight.medium,
   },
 });

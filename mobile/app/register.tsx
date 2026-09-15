@@ -3,19 +3,24 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  SafeAreaView,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, RADIUS, SPACING } from '../src/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Input } from '../src/components/Input';
 import { Button } from '../src/components/Button';
 import { RoleSelector } from '../src/components/RoleSelector';
+import { AlertBanner } from '../src/components/AlertBanner';
+import { ScreenContainer } from '../src/components/ScreenContainer';
 import { VehicleType } from '../src/types/auth';
+
+const VEHICLES = [
+  { type: 'motorcycle' as const, label: 'Moto', iconName: 'bicycle-outline' as const },
+  { type: 'bicycle' as const, label: 'Bicicleta', iconName: 'walk-outline' as const },
+  { type: 'car' as const, label: 'Carro', iconName: 'car-outline' as const },
+];
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -104,274 +109,249 @@ export default function RegisterScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <ScreenContainer scrollable withKeyboardAvoid contentContainerStyle={styles.scrollContent}>
+      {/* Header Back Button */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+        activeOpacity={0.7}
+        testID="register-back-button"
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-            testID="register-back-button"
-          >
-            <Text style={styles.backText}>← Voltar</Text>
-          </TouchableOpacity>
+        <Ionicons name="arrow-back" size={18} color={COLORS.primary} style={styles.backIcon} />
+        <Text style={styles.backText}>Voltar</Text>
+      </TouchableOpacity>
 
-          {/* Title Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Crie sua conta</Text>
-            <Text style={styles.subtitle}>
-              Junte-se à rede Zarpa para envio e entrega inteligente em Guarapuava.
-            </Text>
-          </View>
+      {/* Title Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Crie sua conta</Text>
+        <Text style={styles.subtitle}>
+          Junte-se à rede Zarpa para envio e entrega inteligente em Guarapuava.
+        </Text>
+      </View>
 
-          {/* Role Selector */}
-          <RoleSelector selectedRole={role} onSelect={setRole} />
+      {/* Role Selector */}
+      <RoleSelector selectedRole={role} onSelect={setRole} />
 
-          {/* Error Banner */}
-          {errorMessage && (
-            <View style={styles.errorBanner} testID="register-error-banner">
-              <Text style={styles.errorIcon}>⚠️</Text>
-              <Text style={styles.errorBannerText}>{errorMessage}</Text>
-            </View>
-          )}
+      {/* Error Banner */}
+      {errorMessage && (
+        <AlertBanner
+          message={errorMessage}
+          type="error"
+          testID="register-error-banner"
+        />
+      )}
 
-          {/* Common Account Fields */}
+      {/* Common Account Fields */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>1. Informações de Acesso</Text>
+      </View>
+
+      <Input
+        label="Nome Completo *"
+        placeholder="Seu nome ou responsável"
+        iconName="person-outline"
+        value={name}
+        onChangeText={setName}
+        testID="register-name-input"
+      />
+
+      <Input
+        label="E-mail de Acesso *"
+        placeholder="seuemail@zarpa.com.br"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        iconName="mail-outline"
+        value={email}
+        onChangeText={setEmail}
+        testID="register-email-input"
+      />
+
+      <Input
+        label="Senha de Acesso (mínimo 6 dígitos) *"
+        placeholder="Crie uma senha segura"
+        isPassword
+        iconName="lock-closed-outline"
+        value={password}
+        onChangeText={setPassword}
+        testID="register-password-input"
+      />
+
+      <Input
+        label="Telefone / WhatsApp"
+        placeholder="(42) 99999-0000"
+        keyboardType="phone-pad"
+        iconName="call-outline"
+        value={phone}
+        onChangeText={setPhone}
+        testID="register-phone-input"
+      />
+
+      {/* Conditional Actor Fields */}
+      {role === 'client' ? (
+        <View style={styles.actorSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>1. Informações de Acesso</Text>
+            <Text style={styles.sectionTitle}>2. Dados do Comércio (Lojista)</Text>
           </View>
 
           <Input
-            label="Nome Completo *"
-            placeholder="Seu nome ou responsável"
-            icon="👤"
-            value={name}
-            onChangeText={setName}
-            testID="register-name-input"
+            label="Nome Fantasia / Razão Social *"
+            placeholder="ex: Padaria Central Guarapuava"
+            iconName="business-outline"
+            value={businessName}
+            onChangeText={setBusinessName}
+            testID="register-business-name-input"
           />
 
           <Input
-            label="E-mail de Acesso *"
-            placeholder="seuemail@zarpa.com.br"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            icon="✉️"
-            value={email}
-            onChangeText={setEmail}
-            testID="register-email-input"
+            label="CNPJ ou CPF *"
+            placeholder="00.000.000/0001-00"
+            keyboardType="numeric"
+            iconName="card-outline"
+            value={cnpjCpf}
+            onChangeText={setCnpjCpf}
+            testID="register-cnpj-input"
           />
 
           <Input
-            label="Senha de Acesso (mínimo 6 dígitos) *"
-            placeholder="Crie uma senha segura"
-            isPassword
-            icon="🔒"
-            value={password}
-            onChangeText={setPassword}
-            testID="register-password-input"
+            label="Endereço Padrão de Coleta (Opcional)"
+            placeholder="Rua Saldanha Marinho, 1200 - Centro"
+            iconName="location-outline"
+            value={defaultAddress}
+            onChangeText={setDefaultAddress}
+            testID="register-address-input"
           />
+        </View>
+      ) : (
+        <View style={styles.actorSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>2. Dados de Condutor (Entregador)</Text>
+          </View>
 
           <Input
-            label="Telefone / WhatsApp"
-            placeholder="(42) 99999-0000"
-            keyboardType="phone-pad"
-            icon="📱"
-            value={phone}
-            onChangeText={setPhone}
-            testID="register-phone-input"
+            label="Número da CNH *"
+            placeholder="Número da Carteira Nacional de Habilitação"
+            keyboardType="numeric"
+            iconName="id-card-outline"
+            value={cnh}
+            onChangeText={setCnh}
+            testID="register-cnh-input"
           />
 
-          {/* Conditional Actor Fields */}
-          {role === 'client' ? (
-            <View style={styles.actorSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>2. Dados do Comércio (Lojista)</Text>
-              </View>
-
-              <Input
-                label="Nome Fantasia / Razão Social *"
-                placeholder="ex: Padaria Central Guarapuava"
-                icon="🏪"
-                value={businessName}
-                onChangeText={setBusinessName}
-                testID="register-business-name-input"
-              />
-
-              <Input
-                label="CNPJ ou CPF *"
-                placeholder="00.000.000/0001-00"
-                keyboardType="numeric"
-                icon="📄"
-                value={cnpjCpf}
-                onChangeText={setCnpjCpf}
-                testID="register-cnpj-input"
-              />
-
-              <Input
-                label="Endereço Padrão de Coleta (Opcional)"
-                placeholder="Rua Saldanha Marinho, 1200 - Centro"
-                icon="📍"
-                value={defaultAddress}
-                onChangeText={setDefaultAddress}
-                testID="register-address-input"
-              />
-            </View>
-          ) : (
-            <View style={styles.actorSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>2. Dados de Condutor (Entregador)</Text>
-              </View>
-
-              <Input
-                label="Número da CNH *"
-                placeholder="Número da Carteira Nacional de Habilitação"
-                keyboardType="numeric"
-                icon="🪪"
-                value={cnh}
-                onChangeText={setCnh}
-                testID="register-cnh-input"
-              />
-
-              {/* Vehicle Type Selector */}
-              <Text style={styles.fieldLabel}>Tipo de Veículo *</Text>
-              <View style={styles.vehicleRow}>
-                {(
-                  [
-                    { type: 'motorcycle', label: 'Moto', icon: '🛵' },
-                    { type: 'bicycle', label: 'Bicicleta', icon: '🚲' },
-                    { type: 'car', label: 'Carro', icon: '🚗' },
-                  ] as const
-                ).map((v) => (
-                  <TouchableOpacity
-                    key={v.type}
+          {/* Vehicle Type Selector */}
+          <Text style={styles.fieldLabel}>Tipo de Veículo *</Text>
+          <View style={styles.vehicleRow}>
+            {VEHICLES.map((v) => {
+              const isSelected = vehicleType === v.type;
+              return (
+                <TouchableOpacity
+                  key={v.type}
+                  style={[
+                    styles.vehiclePill,
+                    isSelected && styles.vehiclePillSelected,
+                  ]}
+                  onPress={() => setVehicleType(v.type)}
+                  activeOpacity={0.7}
+                  testID={`vehicle-option-${v.type}`}
+                >
+                  <Ionicons
+                    name={v.iconName}
+                    size={20}
+                    color={isSelected ? COLORS.primary : COLORS.textSecondary}
+                  />
+                  <Text
                     style={[
-                      styles.vehiclePill,
-                      vehicleType === v.type && styles.vehiclePillSelected,
+                      styles.vehicleLabel,
+                      isSelected && styles.vehicleLabelSelected,
                     ]}
-                    onPress={() => setVehicleType(v.type)}
-                    activeOpacity={0.7}
-                    testID={`vehicle-option-${v.type}`}
                   >
-                    <Text style={styles.vehicleIcon}>{v.icon}</Text>
-                    <Text
-                      style={[
-                        styles.vehicleLabel,
-                        vehicleType === v.type && styles.vehicleLabelSelected,
-                      ]}
-                    >
-                      {v.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                    {v.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-              <Input
-                label="Placa do Veículo (se aplicável)"
-                placeholder="ex: BRA2E19"
-                autoCapitalize="characters"
-                icon="🔢"
-                value={vehiclePlate}
-                onChangeText={setVehiclePlate}
-                testID="register-plate-input"
-              />
-
-              <Input
-                label="Raio Máximo de Deslocamento (km)"
-                placeholder="ex: 5.0"
-                keyboardType="numeric"
-                icon="🎯"
-                value={clusterRadius}
-                onChangeText={setClusterRadius}
-                testID="register-radius-input"
-              />
-            </View>
-          )}
-
-          {/* Submit Button */}
-          <Button
-            title={`Criar Conta como ${role === 'client' ? 'Lojista' : 'Entregador'}`}
-            arrow
-            onPress={handleRegister}
-            loading={isLoading}
-            size="lg"
-            style={styles.submitButton}
-            testID="register-submit-button"
+          <Input
+            label="Placa do Veículo (se aplicável)"
+            placeholder="ex: BRA2E19"
+            autoCapitalize="characters"
+            iconName="speedometer-outline"
+            value={vehiclePlate}
+            onChangeText={setVehiclePlate}
+            testID="register-plate-input"
           />
 
-          {/* Footer Login Link */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Já possui uma conta Zarpa? </Text>
-            <TouchableOpacity onPress={() => router.push('/login')} testID="register-to-login-button">
-              <Text style={styles.loginLink}>Entrar agora</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          <Input
+            label="Raio Máximo de Deslocamento (km)"
+            placeholder="ex: 5.0"
+            keyboardType="numeric"
+            iconName="locate-outline"
+            value={clusterRadius}
+            onChangeText={setClusterRadius}
+            testID="register-radius-input"
+          />
+        </View>
+      )}
+
+      {/* Submit Button */}
+      <Button
+        title={`Criar Conta como ${role === 'client' ? 'Lojista' : 'Entregador'}`}
+        arrow
+        onPress={handleRegister}
+        loading={isLoading}
+        size="lg"
+        style={styles.submitButton}
+        testID="register-submit-button"
+      />
+
+      {/* Footer Login Link */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Já possui uma conta Zarpa? </Text>
+        <TouchableOpacity
+          onPress={() => router.push('/login')}
+          testID="register-to-login-button"
+          activeOpacity={0.7}
+        >
+          <Text style={styles.loginLink}>Entrar agora</Text>
+        </TouchableOpacity>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  container: {
-    flex: 1,
-  },
   scrollContent: {
-    padding: SPACING.xxl,
+    padding: SPACING.xl,
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
     paddingVertical: SPACING.xs,
     marginBottom: SPACING.md,
   },
+  backIcon: {
+    marginRight: 4,
+  },
   backText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.base,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.primary,
   },
   header: {
     marginBottom: SPACING.lg,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: TYPOGRAPHY.size.xxxl,
+    fontWeight: TYPOGRAPHY.weight.extrabold,
     color: COLORS.text,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.size.sm,
     color: COLORS.textSecondary,
     marginTop: SPACING.xs,
-    lineHeight: 20,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.dangerLight,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.lg,
-  },
-  errorIcon: {
-    fontSize: 18,
-    marginRight: SPACING.sm,
-  },
-  errorBannerText: {
-    flex: 1,
-    fontSize: 13,
-    color: COLORS.danger,
-    fontWeight: '600',
+    lineHeight: TYPOGRAPHY.lineHeight.normal,
   },
   sectionHeader: {
     marginTop: SPACING.sm,
@@ -381,16 +361,16 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xs,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.base,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.primary,
   },
   actorSection: {
-    marginTop: SPACING.sm,
+    marginTop: SPACING.xs,
   },
   fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: TYPOGRAPHY.size.sm,
+    fontWeight: TYPOGRAPHY.weight.semibold,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
@@ -415,19 +395,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primaryLight,
   },
-  vehicleIcon: {
-    fontSize: 18,
-  },
   vehicleLabel: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.sm,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.textSecondary,
   },
   vehicleLabelSelected: {
     color: COLORS.primary,
   },
   submitButton: {
-    marginTop: SPACING.lg,
+    marginTop: SPACING.md,
     marginBottom: SPACING.xl,
   },
   footer: {
@@ -437,12 +414,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   footerText: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.size.sm,
     color: COLORS.textSecondary,
   },
   loginLink: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.sm,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.primary,
   },
 });

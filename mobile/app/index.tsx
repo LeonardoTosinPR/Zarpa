@@ -3,29 +3,27 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../src/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Button } from '../src/components/Button';
+import { ScreenContainer } from '../src/components/ScreenContainer';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { user, role, isAuthenticated, isLoading, quickLogin } = useAuth();
+  const { role, isAuthenticated, isLoading, quickLogin } = useAuth();
 
   // Automatic routing if already authenticated
   useEffect(() => {
     if (!isLoading && isAuthenticated && role) {
-      if (role === 'client') {
+      if (role === 'client' || role === 'admin') {
         router.replace('/(client)/dashboard');
       } else if (role === 'courier') {
         router.replace('/(courier)/dashboard');
-      } else if (role === 'admin') {
-        router.replace('/(client)/dashboard');
       }
     }
   }, [isLoading, isAuthenticated, role]);
@@ -40,107 +38,110 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoIcon}>⚡</Text>
-          </View>
-          <Text style={styles.brandTitle}>Zarpa</Text>
-          <Text style={styles.brandSubtitle}>
-            Intermediação Inteligente de Entregas Urbanas
-          </Text>
-          <Text style={styles.brandTagline}>
-            Otimização colaborativa de rotas com distribuição dinâmica de frete em Guarapuava.
-          </Text>
+    <ScreenContainer scrollable contentContainerStyle={styles.scrollContent}>
+      {/* Hero Section */}
+      <View style={styles.heroSection}>
+        <View style={styles.logoBadge}>
+          <Ionicons name="flash" size={32} color={COLORS.primary} />
         </View>
+        <Text style={styles.brandTitle}>Zarpa</Text>
+        <Text style={styles.brandSubtitle}>
+          Intermediação Inteligente de Entregas Urbanas
+        </Text>
+        <Text style={styles.brandTagline}>
+          Otimização colaborativa de rotas com distribuição dinâmica de frete em Guarapuava.
+        </Text>
+      </View>
 
-        {/* Feature Highlights */}
-        <View style={styles.featuresContainer}>
-          <View style={[styles.featureCard, SHADOWS.sm]}>
-            <Text style={styles.featureIcon}>🏪</Text>
-            <View style={styles.featureTextContainer}>
-              <Text style={styles.featureTitle}>Para Comércios & Lojistas</Text>
-              <Text style={styles.featureDesc}>
-                Envio expresso sob demanda e lote econômico com rateio colaborativo.
-              </Text>
-            </View>
+      {/* Feature Highlights */}
+      <View style={styles.featuresContainer}>
+        <View style={[styles.featureCard, SHADOWS.sm]}>
+          <View style={styles.featureIconBox}>
+            <Ionicons name="storefront-outline" size={24} color={COLORS.primary} />
           </View>
-
-          <View style={[styles.featureCard, SHADOWS.sm]}>
-            <Text style={styles.featureIcon}>🛵</Text>
-            <View style={styles.featureTextContainer}>
-              <Text style={styles.featureTitle}>Para Entregadores & Condutores</Text>
-              <Text style={styles.featureDesc}>
-                Radar de entregas imediatas e lotes organizados com bônus de produtividade.
-              </Text>
-            </View>
+          <View style={styles.featureTextContainer}>
+            <Text style={styles.featureTitle}>Para Comércios & Lojistas</Text>
+            <Text style={styles.featureDesc}>
+              Envio expresso sob demanda e lote econômico com rateio colaborativo.
+            </Text>
           </View>
         </View>
 
-        {/* Primary Action Buttons */}
-        <View style={styles.actionsContainer}>
-          <Button
-            title="Acessar Minha Conta"
-            arrow
-            onPress={() => router.push('/login')}
-            size="lg"
-            testID="welcome-login-button"
-          />
-
-          <Button
-            title="Cadastrar Novo Perfil"
-            variant="outline"
-            onPress={() => router.push('/register')}
-            size="lg"
-            style={styles.registerButton}
-            testID="welcome-register-button"
-          />
-        </View>
-
-        {/* Quick Demo Credentials for Fast Testing */}
-        <View style={styles.demoSection}>
-          <Text style={styles.demoTitle}>⚡ Acesso Rápido para Demonstração (Sprint 1)</Text>
-          <View style={styles.demoButtonsRow}>
-            <TouchableOpacity
-              style={[styles.demoPill, styles.demoAdmin]}
-              onPress={() => quickLogin('admin')}
-              testID="quick-login-admin"
-            >
-              <Text style={styles.demoPillText}>👑 Admin</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.demoPill, styles.demoClient]}
-              onPress={() => quickLogin('client')}
-              testID="quick-login-client"
-            >
-              <Text style={styles.demoPillText}>🏪 Lojista</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.demoPill, styles.demoCourier]}
-              onPress={() => quickLogin('courier')}
-              testID="quick-login-courier"
-            >
-              <Text style={styles.demoPillText}>🛵 Entregador</Text>
-            </TouchableOpacity>
+        <View style={[styles.featureCard, SHADOWS.sm]}>
+          <View style={[styles.featureIconBox, styles.featureIconBoxAccent]}>
+            <Ionicons name="bicycle-outline" size={24} color={COLORS.accentDark} />
+          </View>
+          <View style={styles.featureTextContainer}>
+            <Text style={styles.featureTitle}>Para Entregadores & Condutores</Text>
+            <Text style={styles.featureDesc}>
+              Radar de entregas imediatas e lotes organizados com bônus de produtividade.
+            </Text>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+
+      {/* Primary Action Buttons */}
+      <View style={styles.actionsContainer}>
+        <Button
+          title="Acessar Minha Conta"
+          arrow
+          onPress={() => router.push('/login')}
+          size="lg"
+          testID="welcome-login-button"
+        />
+
+        <Button
+          title="Cadastrar Novo Perfil"
+          variant="outline"
+          onPress={() => router.push('/register')}
+          size="lg"
+          testID="welcome-register-button"
+        />
+      </View>
+
+      {/* Quick Demo Credentials for Fast Testing */}
+      <View style={[styles.demoSection, SHADOWS.sm]}>
+        <View style={styles.demoHeader}>
+          <Ionicons name="speedometer-outline" size={16} color={COLORS.textSecondary} />
+          <Text style={styles.demoTitle}>Acesso Rápido para Demonstração (Sprint 1)</Text>
+        </View>
+        <View style={styles.demoButtonsRow}>
+          <TouchableOpacity
+            style={[styles.demoPill, styles.demoAdmin]}
+            onPress={() => quickLogin('admin')}
+            testID="quick-login-admin"
+            activeOpacity={0.75}
+          >
+            <Ionicons name="shield-checkmark" size={13} color={COLORS.purpleDark} />
+            <Text style={[styles.demoPillText, styles.demoAdminText]}>Admin</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.demoPill, styles.demoClient]}
+            onPress={() => quickLogin('client')}
+            testID="quick-login-client"
+            activeOpacity={0.75}
+          >
+            <Ionicons name="storefront" size={13} color={COLORS.primary} />
+            <Text style={[styles.demoPillText, styles.demoClientText]}>Lojista</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.demoPill, styles.demoCourier]}
+            onPress={() => quickLogin('courier')}
+            testID="quick-login-courier"
+            activeOpacity={0.75}
+          >
+            <Ionicons name="bicycle" size={13} color={COLORS.accentDark} />
+            <Text style={[styles.demoPillText, styles.demoCourierText]}>Entregador</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -149,16 +150,17 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: SPACING.md,
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.size.base,
     color: COLORS.textSecondary,
+    fontWeight: TYPOGRAPHY.weight.medium,
   },
   scrollContent: {
-    padding: SPACING.xxl,
+    padding: SPACING.xl,
     justifyContent: 'center',
   },
   heroSection: {
     alignItems: 'center',
-    marginTop: SPACING.xl,
+    marginTop: SPACING.lg,
     marginBottom: SPACING.xxl,
   },
   logoBadge: {
@@ -172,29 +174,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.md,
   },
-  logoIcon: {
-    fontSize: 32,
-  },
   brandTitle: {
-    fontSize: 36,
-    fontWeight: '900',
+    fontSize: TYPOGRAPHY.size.hero,
+    fontWeight: TYPOGRAPHY.weight.black,
     color: COLORS.primary,
     letterSpacing: -1,
   },
   brandSubtitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.md,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.text,
     textAlign: 'center',
     marginTop: SPACING.xs,
   },
   brandTagline: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.size.sm,
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: SPACING.sm,
-    lineHeight: 18,
-    maxWidth: 300,
+    lineHeight: TYPOGRAPHY.lineHeight.normal,
+    maxWidth: 320,
   },
   featuresContainer: {
     gap: SPACING.md,
@@ -209,30 +208,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  featureIcon: {
-    fontSize: 28,
+  featureIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: SPACING.md,
+  },
+  featureIconBoxAccent: {
+    backgroundColor: COLORS.accentLight,
   },
   featureTextContainer: {
     flex: 1,
   },
   featureTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.base,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.text,
     marginBottom: 2,
   },
   featureDesc: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.size.xs,
     color: COLORS.textSecondary,
-    lineHeight: 16,
+    lineHeight: TYPOGRAPHY.lineHeight.tight,
   },
   actionsContainer: {
     gap: SPACING.md,
     marginBottom: SPACING.xxl,
-  },
-  registerButton: {
-    marginTop: 0,
   },
   demoSection: {
     backgroundColor: COLORS.surface,
@@ -242,37 +246,53 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     alignItems: 'center',
   },
-  demoTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
+  demoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
     marginBottom: SPACING.sm,
+  },
+  demoTitle: {
+    fontSize: TYPOGRAPHY.size.xs,
+    fontWeight: TYPOGRAPHY.weight.bold,
+    color: COLORS.textSecondary,
   },
   demoButtonsRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
   },
   demoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingVertical: SPACING.xs,
     paddingHorizontal: SPACING.md,
     borderRadius: RADIUS.full,
     borderWidth: 1,
   },
   demoAdmin: {
-    backgroundColor: '#F5F3FF',
-    borderColor: '#C4B5FD',
+    backgroundColor: COLORS.purpleLight,
+    borderColor: COLORS.purpleBorder,
+  },
+  demoAdminText: {
+    color: COLORS.purpleDark,
   },
   demoClient: {
     backgroundColor: COLORS.primaryLight,
     borderColor: COLORS.primaryBorder,
   },
+  demoClientText: {
+    color: COLORS.primary,
+  },
   demoCourier: {
     backgroundColor: COLORS.accentLight,
-    borderColor: '#A7F3D0',
+    borderColor: COLORS.accentBorder,
+  },
+  demoCourierText: {
+    color: COLORS.accentDark,
   },
   demoPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontSize: TYPOGRAPHY.size.xs,
+    fontWeight: TYPOGRAPHY.weight.bold,
   },
 });

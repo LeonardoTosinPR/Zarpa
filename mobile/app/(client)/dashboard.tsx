@@ -4,14 +4,15 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
-  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
 import { Button } from '../../src/components/Button';
+import { Badge } from '../../src/components/Badge';
+import { ActionCard } from '../../src/components/ActionCard';
 
 export default function ClientDashboardScreen() {
   const router = useRouter();
@@ -38,25 +39,34 @@ export default function ClientDashboardScreen() {
         {/* Merchant Welcome Banner */}
         <View style={[styles.welcomeCard, SHADOWS.md]}>
           <View style={styles.badgeRow}>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>🏪 Lojista / Comércio</Text>
-            </View>
+            <Badge
+              label="Lojista / Comércio"
+              variant="primary"
+              iconName="storefront"
+              size="sm"
+            />
             {user?.role === 'admin' && (
-              <View style={styles.adminBadge}>
-                <Text style={styles.adminBadgeText}>👑 Admin Master</Text>
-              </View>
+              <Badge
+                label="Admin Master"
+                variant="purple"
+                iconName="shield-checkmark"
+                size="sm"
+              />
             )}
           </View>
 
           <Text style={styles.storeName}>{businessName}</Text>
           <Text style={styles.storeDoc}>CNPJ/CPF: {cnpj}</Text>
-          <Text style={styles.storeAddress}>📍 {address}</Text>
+          <View style={styles.addressRow}>
+            <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.storeAddress}>{address}</Text>
+          </View>
         </View>
 
         {/* Section: Sprint 1 Auth Verified Status */}
         <View style={[styles.statusCard, SHADOWS.sm]}>
           <View style={styles.statusHeader}>
-            <Text style={styles.statusIcon}>🛡️</Text>
+            <Ionicons name="shield-checkmark" size={18} color={COLORS.accentDark} />
             <Text style={styles.statusTitle}>Sessão Autenticada com Sucesso</Text>
           </View>
           <Text style={styles.statusDesc}>
@@ -70,44 +80,27 @@ export default function ClientDashboardScreen() {
           <Text style={styles.sectionTitle}>Ações Rápidas (Lojista)</Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.actionCard, SHADOWS.sm]}
-          activeOpacity={0.8}
+        <ActionCard
+          iconName="cube-outline"
+          title="Novo Pedido de Entrega"
+          subtitle="Postagem expressa ou econômica com cubagem e geocodificação."
           testID="client-new-order-preview"
-        >
-          <View style={styles.actionIconBox}>
-            <Text style={styles.actionIcon}>📦</Text>
-          </View>
-          <View style={styles.actionTextBox}>
-            <Text style={styles.actionTitle}>Novo Pedido de Entrega</Text>
-            <Text style={styles.actionSubtitle}>
-              Postagem expressa ou econômica com cubagem e geocodificação.
-            </Text>
-          </View>
-          <Text style={styles.actionArrow}>→</Text>
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity
-          style={[styles.actionCard, SHADOWS.sm]}
-          activeOpacity={0.8}
+        <ActionCard
+          iconName="stats-chart-outline"
+          title="Histórico & Extrato 50/50"
+          subtitle="Acompanhe a economia gerada pelo rateio compartilhado."
           testID="client-history-preview"
-        >
-          <View style={styles.actionIconBox}>
-            <Text style={styles.actionIcon}>📊</Text>
-          </View>
-          <View style={styles.actionTextBox}>
-            <Text style={styles.actionTitle}>Histórico & Extrato 50/50</Text>
-            <Text style={styles.actionSubtitle}>
-              Acompanhe a economia gerada pelo rateio compartilhado.
-            </Text>
-          </View>
-          <Text style={styles.actionArrow}>→</Text>
-        </TouchableOpacity>
+        />
 
         {/* Admin Switcher (If Admin) */}
         {role === 'admin' && (
           <View style={[styles.adminSwitcherCard, SHADOWS.sm]}>
-            <Text style={styles.adminSwitcherTitle}>👑 Painel de Alternância Admin</Text>
+            <View style={styles.adminHeader}>
+              <Ionicons name="shield-outline" size={16} color={COLORS.purpleDark} />
+              <Text style={styles.adminSwitcherTitle}>Painel de Alternância Admin</Text>
+            </View>
             <Text style={styles.adminSwitcherDesc}>
               Como administrador, você pode inspecionar o dashboard do entregador.
             </Text>
@@ -125,6 +118,7 @@ export default function ClientDashboardScreen() {
         <Button
           title="Encerrar Sessão (Sair)"
           variant="outline"
+          iconName="log-out-outline"
           onPress={handleLogout}
           style={styles.logoutButton}
           testID="client-logout-button"
@@ -155,140 +149,81 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
     marginBottom: SPACING.sm,
   },
-  roleBadge: {
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
-    alignSelf: 'flex-start',
-  },
-  roleBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  adminBadge: {
-    backgroundColor: '#F5F3FF',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: '#DDD6FE',
-  },
-  adminBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7C3AED',
-  },
   storeName: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: TYPOGRAPHY.size.xxl,
+    fontWeight: TYPOGRAPHY.weight.extrabold,
     color: COLORS.text,
     marginBottom: 4,
   },
   storeDoc: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.size.sm,
     color: COLORS.textSecondary,
     marginBottom: 2,
   },
-  storeAddress: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginTop: SPACING.xs,
+  },
+  storeAddress: {
+    fontSize: TYPOGRAPHY.size.sm,
+    color: COLORS.textSecondary,
   },
   statusCard: {
     backgroundColor: COLORS.accentLight,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: COLORS.accentBorder,
     marginBottom: SPACING.xl,
   },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.xs,
     marginBottom: SPACING.xs,
   },
-  statusIcon: {
-    fontSize: 18,
-    marginRight: SPACING.xs,
-  },
   statusTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.base,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.accentDark,
   },
   statusDesc: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.size.xs,
     color: '#065F46',
-    lineHeight: 16,
+    lineHeight: TYPOGRAPHY.lineHeight.tight,
   },
   sectionHeader: {
     marginBottom: SPACING.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.lg,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.text,
-  },
-  actionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.md,
-  },
-  actionIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.md,
-  },
-  actionIcon: {
-    fontSize: 22,
-  },
-  actionTextBox: {
-    flex: 1,
-  },
-  actionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 2,
-  },
-  actionSubtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  actionArrow: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginLeft: SPACING.sm,
   },
   adminSwitcherCard: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: COLORS.purpleLight,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: '#C4B5FD',
+    borderColor: COLORS.purpleBorder,
     marginTop: SPACING.md,
     marginBottom: SPACING.md,
   },
-  adminSwitcherTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6D28D9',
+  adminHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginBottom: 2,
   },
+  adminSwitcherTitle: {
+    fontSize: TYPOGRAPHY.size.base,
+    fontWeight: TYPOGRAPHY.weight.bold,
+    color: COLORS.purpleDark,
+  },
   adminSwitcherDesc: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.size.xs,
     color: '#4C1D95',
     marginBottom: SPACING.sm,
   },

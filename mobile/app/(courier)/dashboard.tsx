@@ -4,15 +4,17 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
-  TouchableOpacity,
   Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
 import { Button } from '../../src/components/Button';
+import { Badge } from '../../src/components/Badge';
+import { ActionCard } from '../../src/components/ActionCard';
+import { MetricCard } from '../../src/components/MetricCard';
 
 export default function CourierDashboardScreen() {
   const router = useRouter();
@@ -48,13 +50,19 @@ export default function CourierDashboardScreen() {
         {/* Driver Profile Card */}
         <View style={[styles.profileCard, SHADOWS.md]}>
           <View style={styles.badgeRow}>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>🛵 Entregador / Condutor</Text>
-            </View>
+            <Badge
+              label="Entregador / Condutor"
+              variant="accent"
+              iconName="bicycle"
+              size="sm"
+            />
             {user?.role === 'admin' && (
-              <View style={styles.adminBadge}>
-                <Text style={styles.adminBadgeText}>👑 Admin Master</Text>
-              </View>
+              <Badge
+                label="Admin Master"
+                variant="purple"
+                iconName="shield-checkmark"
+                size="sm"
+              />
             )}
           </View>
 
@@ -86,72 +94,49 @@ export default function CourierDashboardScreen() {
             <Switch
               value={isOnline}
               onValueChange={setIsOnline}
-              trackColor={{ false: COLORS.border, true: '#A7F3D0' }}
-              thumbColor={isOnline ? COLORS.accent : '#9CA3AF'}
+              trackColor={{ false: COLORS.border, true: COLORS.accentBorder }}
+              thumbColor={isOnline ? COLORS.accent : COLORS.textMuted}
               testID="courier-online-switch"
             />
           </View>
         </View>
 
-        {/* Route / Earnings Preview (Figma Card Style) */}
-        <View style={[styles.routePreviewCard, SHADOWS.sm]}>
-          <Text style={styles.routePreviewHeader}>Rota Programada de Hoje</Text>
-          <View style={styles.metricsRow}>
-            <View style={styles.metricItem}>
-              <Text style={styles.metricLabel}>Ganhos Estimados</Text>
-              <Text style={styles.metricValuePrimary}>R$ 85,00</Text>
-            </View>
-            <View style={styles.metricDivider} />
-            <View style={styles.metricItem}>
-              <Text style={styles.metricLabel}>Distância Total</Text>
-              <Text style={styles.metricValue}>12 km</Text>
-            </View>
-          </View>
-        </View>
+        {/* Route / Earnings Preview (MetricCard Component) */}
+        <MetricCard
+          title="Rota Programada de Hoje"
+          metrics={[
+            { label: 'Ganhos Estimados', value: 'R$ 85,00', isPrimary: true },
+            { label: 'Distância Total', value: '12 km' },
+          ]}
+        />
 
         {/* Action Shortcuts */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Ações de Despacho (Condutor)</Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.actionCard, SHADOWS.sm]}
-          activeOpacity={0.8}
+        <ActionCard
+          iconName="compass-outline"
+          title="Radar de Entregas Expressas"
+          subtitle="Dispute chamados urgentes com trava anti-conflito."
+          accentIcon
           testID="courier-radar-preview"
-        >
-          <View style={[styles.actionIconBox, { backgroundColor: COLORS.accentLight }]}>
-            <Text style={styles.actionIcon}>🧭</Text>
-          </View>
-          <View style={styles.actionTextBox}>
-            <Text style={styles.actionTitle}>Radar de Entregas Expressas</Text>
-            <Text style={styles.actionSubtitle}>
-              Dispute chamados urgentes com trava anti-conflito.
-            </Text>
-          </View>
-          <Text style={styles.actionArrow}>→</Text>
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity
-          style={[styles.actionCard, SHADOWS.sm]}
-          activeOpacity={0.8}
+        <ActionCard
+          iconName="map-outline"
+          title="Agenda de Lotes & Multi-paradas"
+          subtitle="Visualize itinerários e transborde para Google Maps / Waze."
           testID="courier-routes-preview"
-        >
-          <View style={styles.actionIconBox}>
-            <Text style={styles.actionIcon}>🗺️</Text>
-          </View>
-          <View style={styles.actionTextBox}>
-            <Text style={styles.actionTitle}>Agenda de Lotes & Multi-paradas</Text>
-            <Text style={styles.actionSubtitle}>
-              Visualize itinerários e transborde para Google Maps / Waze.
-            </Text>
-          </View>
-          <Text style={styles.actionArrow}>→</Text>
-        </TouchableOpacity>
+        />
 
         {/* Admin Switcher (If Admin) */}
         {role === 'admin' && (
           <View style={[styles.adminSwitcherCard, SHADOWS.sm]}>
-            <Text style={styles.adminSwitcherTitle}>👑 Painel de Alternância Admin</Text>
+            <View style={styles.adminHeader}>
+              <Ionicons name="shield-outline" size={16} color={COLORS.purpleDark} />
+              <Text style={styles.adminSwitcherTitle}>Painel de Alternância Admin</Text>
+            </View>
             <Text style={styles.adminSwitcherDesc}>
               Como administrador, você pode inspecionar o dashboard do lojista.
             </Text>
@@ -169,6 +154,7 @@ export default function CourierDashboardScreen() {
         <Button
           title="Encerrar Sessão (Sair)"
           variant="outline"
+          iconName="log-out-outline"
           onPress={handleLogout}
           style={styles.logoutButton}
           testID="courier-logout-button"
@@ -191,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: COLORS.accentBorder,
     marginBottom: SPACING.lg,
   },
   badgeRow: {
@@ -199,45 +185,20 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
     marginBottom: SPACING.sm,
   },
-  roleBadge: {
-    backgroundColor: COLORS.accentLight,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
-    alignSelf: 'flex-start',
-  },
-  roleBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.accentDark,
-  },
-  adminBadge: {
-    backgroundColor: '#F5F3FF',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: '#DDD6FE',
-  },
-  adminBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7C3AED',
-  },
   courierName: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: TYPOGRAPHY.size.xxl,
+    fontWeight: TYPOGRAPHY.weight.extrabold,
     color: COLORS.text,
     marginBottom: 4,
   },
   vehicleInfo: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: TYPOGRAPHY.size.sm,
+    fontWeight: TYPOGRAPHY.weight.semibold,
     color: COLORS.textSecondary,
     marginBottom: 2,
   },
   cnhInfo: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.size.sm,
     color: COLORS.textMuted,
   },
   statusToggleRow: {
@@ -263,11 +224,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   statusDotOffline: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: COLORS.textMuted,
   },
   statusText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.sm,
+    fontWeight: TYPOGRAPHY.weight.bold,
   },
   statusTextOnline: {
     color: COLORS.accentDark,
@@ -275,114 +236,36 @@ const styles = StyleSheet.create({
   statusTextOffline: {
     color: COLORS.textMuted,
   },
-  routePreviewCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.xl,
-  },
-  routePreviewHeader: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.text,
-    marginBottom: SPACING.md,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  metricItem: {
-    alignItems: 'center',
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
-  },
-  metricValuePrimary: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.accent,
-  },
-  metricValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
-  metricDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: COLORS.border,
-  },
   sectionHeader: {
     marginBottom: SPACING.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.lg,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.text,
-  },
-  actionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.md,
-  },
-  actionIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.md,
-  },
-  actionIcon: {
-    fontSize: 22,
-  },
-  actionTextBox: {
-    flex: 1,
-  },
-  actionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 2,
-  },
-  actionSubtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  actionArrow: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginLeft: SPACING.sm,
   },
   adminSwitcherCard: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: COLORS.purpleLight,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: '#C4B5FD',
+    borderColor: COLORS.purpleBorder,
     marginTop: SPACING.md,
     marginBottom: SPACING.md,
   },
-  adminSwitcherTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6D28D9',
+  adminHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginBottom: 2,
   },
+  adminSwitcherTitle: {
+    fontSize: TYPOGRAPHY.size.base,
+    fontWeight: TYPOGRAPHY.weight.bold,
+    color: COLORS.purpleDark,
+  },
   adminSwitcherDesc: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.size.xs,
     color: '#4C1D95',
     marginBottom: SPACING.sm,
   },

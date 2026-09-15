@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import WelcomeScreen from '../app/index';
 import { AuthProvider } from '../src/context/AuthContext';
 
@@ -18,15 +18,20 @@ jest.mock('expo-secure-store', () => ({
 
 describe('WelcomeScreen', () => {
   it('renders Zarpa brand title, subtitle and action buttons', async () => {
-    const { findByText, findByTestId } = render(
+    const { getByText, getByTestId, queryByText } = render(
       <AuthProvider>
         <WelcomeScreen />
       </AuthProvider>
     );
 
-    expect(await findByText('Zarpa')).toBeTruthy();
-    expect(await findByText('Intermediação Inteligente de Entregas Urbanas')).toBeTruthy();
-    expect(await findByTestId('welcome-login-button')).toBeTruthy();
-    expect(await findByTestId('welcome-register-button')).toBeTruthy();
+    // Wait until loading state resolves
+    await waitFor(() => {
+      expect(queryByText('Carregando sessão Zarpa...')).toBeNull();
+    });
+
+    expect(getByText('Zarpa')).toBeTruthy();
+    expect(getByText('Intermediação Inteligente de Entregas Urbanas')).toBeTruthy();
+    expect(getByTestId('welcome-login-button')).toBeTruthy();
+    expect(getByTestId('welcome-register-button')).toBeTruthy();
   });
 });

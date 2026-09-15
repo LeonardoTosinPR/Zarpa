@@ -8,16 +8,21 @@ import {
   TextStyle,
   View,
 } from 'react-native';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'accent' | 'outline' | 'text' | 'danger';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'text';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
   arrow?: boolean;
+  iconName?: keyof typeof Ionicons.glyphMap;
   icon?: string;
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -32,6 +37,7 @@ export function Button({
   loading = false,
   disabled = false,
   arrow = false,
+  iconName,
   icon,
   style,
   textStyle,
@@ -41,6 +47,22 @@ export function Button({
   const isText = variant === 'text';
   const isAccent = variant === 'accent';
   const isSecondary = variant === 'secondary';
+  const isDanger = variant === 'danger';
+
+  const getIconColor = () => {
+    if (isOutline || isText) return COLORS.primary;
+    if (isSecondary) return COLORS.primary;
+    if (isDanger) return COLORS.surface;
+    return COLORS.surface;
+  };
+
+  const getArrowColor = () => {
+    if (isOutline || isText) return COLORS.primary;
+    if (isSecondary) return COLORS.primary;
+    return COLORS.surface;
+  };
+
+  const iconSize = size === 'sm' ? 16 : size === 'lg' ? 20 : 18;
 
   return (
     <TouchableOpacity
@@ -51,6 +73,7 @@ export function Button({
         isSecondary && styles.secondary,
         isOutline && styles.outline,
         isText && styles.textVariant,
+        isDanger && styles.danger,
         !isOutline && !isText && SHADOWS.md,
         (disabled || loading) && styles.disabled,
         style,
@@ -67,11 +90,22 @@ export function Button({
         />
       ) : (
         <View style={styles.content}>
-          {icon ? <Text style={styles.icon}>{icon} </Text> : null}
+          {iconName ? (
+            <Ionicons
+              name={iconName}
+              size={iconSize}
+              color={getIconColor()}
+              style={styles.iconPrefix}
+            />
+          ) : icon ? (
+            <Text style={styles.icon}>{icon} </Text>
+          ) : null}
+
           <Text
             style={[
               styles.textBase,
               styles[`${size}Text`],
+              isSecondary && styles.secondaryText,
               isOutline && styles.outlineText,
               isText && styles.textVariantText,
               textStyle,
@@ -79,16 +113,14 @@ export function Button({
           >
             {title}
           </Text>
+
           {arrow && (
-            <Text
-              style={[
-                styles.arrow,
-                isOutline && styles.outlineText,
-                isText && styles.textVariantText,
-              ]}
-            >
-              {' →'}
-            </Text>
+            <Ionicons
+              name="arrow-forward"
+              size={iconSize}
+              color={getArrowColor()}
+              style={styles.arrowIcon}
+            />
           )}
         </View>
       )}
@@ -109,11 +141,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
   },
   md: {
-    height: 52,
+    height: 50,
     paddingHorizontal: SPACING.xl,
   },
   lg: {
-    height: 58,
+    height: 56,
     paddingHorizontal: SPACING.xxl,
   },
   accent: {
@@ -133,6 +165,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.sm,
   },
+  danger: {
+    backgroundColor: COLORS.danger,
+  },
   disabled: {
     opacity: 0.6,
   },
@@ -141,34 +176,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconPrefix: {
+    marginRight: SPACING.xs,
+  },
   icon: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.size.md,
     marginRight: 4,
   },
   textBase: {
     color: COLORS.surface,
-    fontWeight: '700',
+    fontWeight: TYPOGRAPHY.weight.bold,
     textAlign: 'center',
   },
   smText: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.size.sm,
   },
   mdText: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.size.md,
   },
   lgText: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.size.lg,
+  },
+  secondaryText: {
+    color: COLORS.primary,
   },
   outlineText: {
     color: COLORS.primary,
   },
   textVariantText: {
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: TYPOGRAPHY.weight.semibold,
   },
-  arrow: {
-    color: COLORS.surface,
-    fontSize: 18,
-    fontWeight: 'bold',
+  arrowIcon: {
+    marginLeft: SPACING.xs,
   },
 });

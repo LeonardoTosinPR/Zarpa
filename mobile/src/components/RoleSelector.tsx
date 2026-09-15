@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 interface RoleOption {
   role: 'client' | 'courier';
   title: string;
   subtitle: string;
-  icon: string;
+  iconName: keyof typeof Ionicons.glyphMap;
   badgeText: string;
 }
 
@@ -20,14 +21,14 @@ const OPTIONS: RoleOption[] = [
     role: 'client',
     title: 'Lojista / Estabelecimento',
     subtitle: 'Envie pacotes e encomendas com rastreamento e frete inteligente.',
-    icon: '🏪',
+    iconName: 'storefront-outline',
     badgeText: 'Lojista',
   },
   {
     role: 'courier',
     title: 'Entregador / Condutor',
     subtitle: 'Receba chamados expressos e rotas otimizadas com rateio 50/50.',
-    icon: '🛵',
+    iconName: 'bicycle-outline',
     badgeText: 'Entregador',
   },
 ];
@@ -56,13 +57,27 @@ export function RoleSelector({ selectedRole, onSelect }: RoleSelectorProps) {
               activeOpacity={0.8}
               testID={`role-option-${opt.role}`}
             >
-              {/* Header inside Card: Icon + Radio indicator */}
+              {/* Header inside Card: Vector Icon + Radio indicator */}
               <View style={styles.cardHeader}>
-                <View style={[styles.iconBox, isSelected && styles.iconBoxSelected]}>
-                  <Text style={styles.iconText}>{opt.icon}</Text>
+                <View
+                  style={[
+                    styles.iconBox,
+                    isSelected ? styles.iconBoxSelected : styles.iconBoxUnselected,
+                  ]}
+                >
+                  <Ionicons
+                    name={opt.iconName}
+                    size={22}
+                    color={isSelected ? COLORS.primary : COLORS.textSecondary}
+                  />
                 </View>
 
-                <View style={styles.radioOuter}>
+                <View
+                  style={[
+                    styles.radioOuter,
+                    isSelected && styles.radioOuterSelected,
+                  ]}
+                >
                   {isSelected && <View style={styles.radioInner} />}
                 </View>
               </View>
@@ -93,13 +108,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: TYPOGRAPHY.size.xl,
+    fontWeight: TYPOGRAPHY.weight.extrabold,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.size.sm,
     color: COLORS.textSecondary,
     marginBottom: SPACING.md,
   },
@@ -127,15 +142,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  iconBoxUnselected: {
+    backgroundColor: COLORS.background,
+  },
   iconBoxSelected: {
     backgroundColor: '#FFFFFF',
-  },
-  iconText: {
-    fontSize: 22,
   },
   radioOuter: {
     width: 22,
@@ -147,6 +161,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface,
   },
+  radioOuterSelected: {
+    borderColor: COLORS.primary,
+  },
   radioInner: {
     width: 12,
     height: 12,
@@ -154,8 +171,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.size.md,
+    fontWeight: TYPOGRAPHY.weight.bold,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
@@ -163,9 +180,9 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.size.sm,
     color: COLORS.textSecondary,
-    lineHeight: 18,
+    lineHeight: TYPOGRAPHY.lineHeight.normal,
     marginBottom: SPACING.md,
   },
   badge: {
@@ -179,8 +196,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accentLight,
   },
   badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: TYPOGRAPHY.size.xs,
+    fontWeight: TYPOGRAPHY.weight.semibold,
     color: COLORS.textMuted,
   },
   badgeTextSelected: {

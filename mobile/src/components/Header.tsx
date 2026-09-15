@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
-import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
@@ -31,17 +32,19 @@ export function Header({
               activeOpacity={0.7}
               testID="header-menu-button"
             >
-              <Text style={styles.menuIcon}>≡</Text>
+              <Ionicons name="menu-outline" size={26} color={COLORS.text} />
             </TouchableOpacity>
           )}
         </View>
 
         {/* Center: Brand Logo */}
         <View style={styles.centerContainer}>
-          <Text style={styles.brandTitle}>
-            <Text style={styles.bolt}>⚡ </Text>
-            Zarpa
-          </Text>
+          <View style={styles.brandRow}>
+            <View style={styles.miniLogoBadge}>
+              <Ionicons name="flash" size={14} color={COLORS.primary} />
+            </View>
+            <Text style={styles.brandTitle}>Zarpa</Text>
+          </View>
         </View>
 
         {/* Right: Profile Avatar / Role Badge */}
@@ -54,13 +57,19 @@ export function Header({
               testID="header-profile-button"
             >
               <View style={styles.avatarCircle}>
-                <Text style={styles.avatarIcon}>👤</Text>
+                <Ionicons name="person" size={16} color={COLORS.primary} />
               </View>
               {user?.role && (
-                <View style={[
-                  styles.roleDot,
-                  user.role === 'admin' ? styles.adminDot : user.role === 'courier' ? styles.courierDot : styles.clientDot
-                ]} />
+                <View
+                  style={[
+                    styles.roleDot,
+                    user.role === 'admin'
+                      ? styles.adminDot
+                      : user.role === 'courier'
+                      ? styles.courierDot
+                      : styles.clientDot,
+                  ]}
+                />
               )}
             </TouchableOpacity>
           )}
@@ -106,20 +115,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: RADIUS.sm,
   },
-  menuIcon: {
-    fontSize: 26,
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    lineHeight: 28,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  miniLogoBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brandTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: TYPOGRAPHY.size.xxl,
+    fontWeight: TYPOGRAPHY.weight.extrabold,
     color: COLORS.primary,
     letterSpacing: -0.5,
-  },
-  bolt: {
-    color: '#F59E0B', // Amber bolt
   },
   profileButton: {
     position: 'relative',
@@ -134,9 +147,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarIcon: {
-    fontSize: 18,
-  },
   roleDot: {
     position: 'absolute',
     bottom: -1,
@@ -148,7 +158,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.surface,
   },
   adminDot: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: COLORS.purple,
   },
   clientDot: {
     backgroundColor: COLORS.primary,
