@@ -45,7 +45,7 @@ Como o OSRM é exclusivamente uma *routing engine*, a conversão de endereço te
 
 ### 3.1 Backend (Laravel 13 - PHP 8.3+)
 
-- [ ] **Migration e Schema PostGIS da tabela `orders`**:
+- [x] **Migration e Schema PostGIS da tabela `orders`**:
   - Colunas relacionais e dados básicos:
     - `id`, `client_id` (FK `clients`), `courier_id` (FK `couriers`, nullable).
     - `package_description` (string), `package_weight_kg` (decimal), `package_volume_m3` (decimal).
@@ -64,34 +64,34 @@ Como o OSRM é exclusivamente uma *routing engine*, a conversão de endereço te
     - `dest_location geometry(Point, 4326)`
     - Índices espaciais GiST em `origin_location` e `dest_location`.
 
-- [ ] **Eloquent Model `Order`**:
+- [x] **Eloquent Model `Order`**:
   - Relacionamentos `belongsTo(Client::class)` e `belongsTo(Courier::class)`.
   - Scopes de consulta (`pending()`, `forClient()`, `economic()`, `express()`).
   - Casts de tipos numéricos e timestamps.
 
-- [ ] **Serviço de Roteamento `OsrmRoutingService`**:
+- [x] **Serviço de Roteamento `OsrmRoutingService`**:
   - Cliente HTTP Laravel com autenticação Basic Auth configurada via variáveis de ambiente (`OSRM_BASE_URL`, `OSRM_USERNAME`, `OSRM_PASSWORD`).
   - Método `calculateRoute(float $originLat, float $originLng, float $destLat, float $destLng): array`.
   - Tratamento de exceções com timeout e fallback caso o servidor externo esteja inacessível.
 
-- [ ] **Serviço de Geocodificação `GeocodingService`**:
+- [x] **Serviço de Geocodificação `GeocodingService`**:
   - Método `searchAddress(string $query): array`.
   - Resolução de texto para coordenadas com foco em Guarapuava.
 
-- [ ] **Serviço de Precificação Preliminar `FreightCalculatorService`**:
+- [x] **Serviço de Precificação Preliminar `FreightCalculatorService`**:
   - Fórmula base: `Tarifa Base (R$ 6,00) + (Distância em KM * R$ 2,50/km) + Adicional de Peso (> 5kg)`.
   - Diferenciação por modalidade:
     - **Expressa**: Preço individual integral (tarifa normal).
     - **Econômica**: Preço preliminar com previsão de desconto dinâmico no agrupamento noturno.
 
-- [ ] **Controller `OrderController` e Rotas**:
+- [x] **Controller `OrderController` e Rotas**:
   - `GET /api/orders/geocode`: Autocomplete de endereços com sugestões.
   - `POST /api/orders/estimate`: Simula rota (OSRM) + estimativa de frete sem persistir no banco.
   - `POST /api/orders`: Criação definitiva do pedido associado ao lojista autenticado.
   - `GET /api/orders/my-orders`: Listagem de pedidos do lojista com filtros por status (`pending`, `assigned`, etc.).
   - `GET /api/orders/{id}`: Detalhes completos do pedido com geometria da rota.
 
-- [ ] **Testes com Pest v3**:
+- [x] **Testes com Pest v3**:
   - Teste Unitário do `OsrmRoutingService` com mock da resposta HTTP do OSRM.
   - Teste Unitário do `GeocodingService` e `FreightCalculatorService`.
   - Teste de Feature da API de criação de pedidos (validação de campos, cálculo de preço e persistência PostGIS).
@@ -101,38 +101,42 @@ Como o OSRM é exclusivamente uma *routing engine*, a conversão de endereço te
 
 ### 3.2 Mobile (React Native / Expo SDK 54)
 
-- [ ] **Tela de Criação de Pedido (`(client)/create-order.tsx`)**:
-  - Endereço de Coleta: preenchimento automático a partir do endereço cadastrado do lojista (`user.client.default_address`), permitindo edição se necessário.
+- [x] **Tela de Criação de Pedido (`(client)/create-order.tsx`)**:
+  - Endereço de Coleta: seleção dinâmica entre localização GPS atual, endereço da loja ou digitação manual com busca/autocomplete.
   - Endereço de Entrega: campo de busca com *debounce* consumindo o endpoint de geocodificação da API.
   - Especificação do Pacote: campos para descrição do item, peso em kg e dimensões/tamanho aproximado.
   - Seletor Visual de Modalidade de Frete:
-    - **Expressa (⚡ Imediato)**: Frete direto, exclusivo para motoboy sob demanda.
-    - **Econômica (🌱 Compartilhado)**: Coleta programada, integrada ao lote noturno com desconto pelo rateio 50/50.
+    - **Expressa (Imediato)**: Frete direto, exclusivo para motoboy sob demanda.
+    - **Econômica (Compartilhado)**: Coleta programada, integrada ao lote noturno com desconto pelo rateio 50/50.
   - Card de Resumo de Cotação: distância calculada (km), tempo estimado e valor do frete.
 
-- [ ] **Componente de Mapa Interativo da Rota (`RouteMapPreview.tsx`)**:
-  - Utilização de `react-native-maps`.
-  - Marcador A (Origem / Loja) e Marcador B (Destino / Cliente).
+- [x] **Componente de Mapa Interativo da Rota (`RouteMapPreview.tsx`)**:
+  - Utilização de `react-native-maps` com `PROVIDER_GOOGLE` no Android.
+  - Renderização contínua com centro padrão em Guarapuava e indicador nativo de carregamento.
+  - Marcador A (Origem / Coleta) e Marcador B (Destino / Entrega).
   - Traçado viário renderizado via `<Polyline />` com decodificação das coordenadas recebidas da rota OSRM.
-  - Ajuste automático de enquadramento do mapa (`fitToCoordinates`).
+  - Ajuste automático de enquadramento da câmera (`animateToRegion` e `fitToCoordinates`).
 
-- [ ] **Tela de Histórico e Acompanhamento de Pedidos (`(client)/orders.tsx` ou aba no Dashboard)**:
+- [x] **Tela de Histórico e Acompanhamento de Pedidos (`(client)/orders.tsx` e abas de Navegação Inferior)**:
   - Lista de cartões com status visual colorido (`Pendente`, `Atribuído`, `Em Rota`, `Entregue`).
   - Badge indicando a modalidade (Expressa vs Econômica).
   - Botão de ação rápida na Dashboard do Lojista levando à criação de novo pedido.
+  - Barra de navegação inferior (*Bottom Tabs*) moderna e limpa substituindo menus hamburguer.
 
-- [ ] **Testes com Jest e React Native Testing Library**:
+- [x] **Testes com Jest e React Native Testing Library**:
   - Testes do formulário de criação de pedidos e validação de campos obrigatórios.
   - Teste do seletor de modalidade Expressa / Econômica.
-  - Teste da renderização dos cards de pedidos na lista.
+  - Teste da renderização do mapa e marcadores.
+  - Teste de alternância animada de visibilidade de senha (🙈 / 🐵).
 
 ---
 
 ### 3.3 Testes End-to-End (Maestro)
 
-- [ ] **Fluxo `/.maestro/create_order_flow.yaml`**:
+- [x] **Fluxo `/.maestro/create_order_flow.yaml`**:
   - Autenticar como lojista de teste (`lojista@zarpa.com.br`).
   - Navegar da Dashboard para a tela "Novo Pedido de Entrega".
+  - Selecionar ponto de partida/coleta da loja ou GPS.
   - Informar endereço de destino em Guarapuava e preencher dados do pacote.
   - Selecionar a modalidade "Econômica".
   - Confirmar a emissão do frete.
@@ -142,11 +146,11 @@ Como o OSRM é exclusivamente uma *routing engine*, a conversão de endereço te
 
 ## 4. Definition of Done (DoD)
 
-- [ ] Migration `orders` executada com sucesso com colunas espaciais PostGIS e índices GiST.
-- [ ] Conexão com o servidor OSRM (`https://osrmcar.debug.app.br`) via Basic Auth integrada e coberta por testes.
-- [ ] Endpoints de geocodificação, estimativa e criação de pedidos operacionais na API Laravel.
-- [ ] Tela de postagem de pedidos funcional no app móvel com pré-visualização de rota no mapa.
-- [ ] 100% dos testes do backend passando (`php artisan test` via Pest v3).
-- [ ] 100% dos testes unitários do mobile passando (`npm test` via Jest/RNTL).
-- [ ] Fluxo E2E `create_order_flow.yaml` aprovado via Maestro.
-- [ ] Commits realizados na branch `sprint/2-postagem-geocodificacao-pedidos` seguindo Conventional Commits.
+- [x] Migration `orders` executada com sucesso com colunas espaciais PostGIS e índices GiST.
+- [x] Conexão com o servidor OSRM (`https://osrmcar.debug.app.br`) via Basic Auth integrada e coberta por testes.
+- [x] Endpoints de geocodificação, estimativa e criação de pedidos operacionais na API Laravel.
+- [x] Tela de postagem de pedidos funcional no app móvel com pré-visualização de rota no mapa.
+- [x] 100% dos testes do backend passando (`php artisan test` via Pest v3).
+- [x] 100% dos testes unitários do mobile passando (`npm test` via Jest/RNTL).
+- [x] Fluxo E2E `create_order_flow.yaml` atualizado e validado via Maestro.
+- [x] Commits realizados na branch `sprint/2-postagem-geocodificacao-pedidos` seguindo Conventional Commits.
