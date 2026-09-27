@@ -121,6 +121,40 @@ function Assert-DockerReady {
     }
 }
 
+function Setup-AndroidSdk {
+    if (-not $env:ANDROID_HOME) {
+        $defaultPath = "$env:LOCALAPPDATA\Android\Sdk"
+        if (Test-Path -LiteralPath $defaultPath) {
+            $env:ANDROID_HOME = $defaultPath
+            $env:ANDROID_SDK_ROOT = $defaultPath
+            $env:Path = "$env:Path;$defaultPath\platform-tools;$defaultPath\emulator;$defaultPath\cmdline-tools\latest\bin"
+        }
+    }
+}
+
+function Setup-AndroidUsbReverse {
+    Setup-AndroidSdk
+    $adb = Get-Command adb -ErrorAction SilentlyContinue
+    if ($null -ne $adb) {
+        try {
+            $devices = adb devices 2>$null | Where-Object { $_ -match '\tdevice$' }
+            if ($devices) {
+                foreach ($line in $devices) {
+                    $devId = ($line -split '\s+')[0]
+                    if ($devId) {
+                        adb -s $devId reverse tcp:8081 tcp:8081 2>$null | Out-Null
+                        adb -s $devId reverse tcp:8000 tcp:8000 2>$null | Out-Null
+                    }
+                }
+                Write-Success "Dispositivo Android USB detectado! Portas 8081 (Metro) e 8000 (API Laravel) mapeadas via 'adb reverse'."
+                return $true
+            }
+        }
+        catch {}
+    }
+    return $false
+}
+
 function Show-Diagnostics {
     Write-Header "Diagnostico do Ambiente ZARPA (Windows / WSL2 / Docker)"
 
@@ -265,8 +299,10 @@ try {
             Start-Sleep -Seconds 2
             Show-Test-Credentials
             Write-Info "Iniciando aplicativo React Native com Expo..."
+            $hasUsb = Setup-AndroidUsbReverse
+            $expoArgs = if ($hasUsb -and ($CommandArgs.Count -eq 0)) { @('--localhost') } else { $CommandArgs }
             Set-Location -Path "mobile"
-            npx expo start
+            npx expo start @expoArgs
         }
 
         'up' {
@@ -294,9 +330,11 @@ try {
         }
 
         'mobile' {
-            Write-Info "Iniciando apenas o Mobile Expo..."
+            $hasUsb = Setup-AndroidUsbReverse
+            $expoArgs = if ($hasUsb -and ($CommandArgs.Count -eq 0)) { @('--localhost') } else { $CommandArgs }
+            Write-Info "Iniciando apenas o Mobile Expo ($expoArgs)..."
             Set-Location -Path "mobile"
-            npx expo start
+            npx expo start @expoArgs
         }
 
         # ====== BANCO DE DADOS ======

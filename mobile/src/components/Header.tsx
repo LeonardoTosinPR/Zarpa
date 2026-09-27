@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({
-  showMenu = true,
+  showMenu = false,
   showProfile = true,
   onMenuPress,
   onProfilePress,
@@ -38,10 +38,7 @@ export function Header({
 
         {/* Center: Brand Logo */}
         <View style={styles.centerContainer}>
-          <Text style={styles.brandTitle}>
-            <Text style={styles.bolt}>⚡ </Text>
-            Zarpa
-          </Text>
+          <Text style={styles.brandTitle}>Zarpa</Text>
         </View>
 
         {/* Right: Profile Avatar / Role Badge */}
@@ -54,7 +51,9 @@ export function Header({
               testID="header-profile-button"
             >
               <View style={styles.avatarCircle}>
-                <Text style={styles.avatarIcon}>👤</Text>
+                <Text style={styles.avatarInitial}>
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'Z'}
+                </Text>
               </View>
               {user?.role && (
                 <View style={[
@@ -118,9 +117,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     letterSpacing: -0.5,
   },
-  bolt: {
-    color: '#F59E0B', // Amber bolt
-  },
   profileButton: {
     position: 'relative',
   },
@@ -134,8 +130,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarIcon: {
-    fontSize: 18,
+  avatarInitial: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   roleDot: {
     position: 'absolute',

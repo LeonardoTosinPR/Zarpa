@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Input } from '../src/components/Input';
@@ -137,7 +138,7 @@ export default function RegisterScreen() {
           {/* Error Banner */}
           {errorMessage && (
             <View style={styles.errorBanner} testID="register-error-banner">
-              <Text style={styles.errorIcon}>⚠️</Text>
+              <Ionicons name="alert-circle-outline" size={18} color={COLORS.danger} style={{ marginRight: 6 }} />
               <Text style={styles.errorBannerText}>{errorMessage}</Text>
             </View>
           )}
@@ -150,7 +151,7 @@ export default function RegisterScreen() {
           <Input
             label="Nome Completo *"
             placeholder="Seu nome ou responsável"
-            icon="👤"
+            icon="person-outline"
             value={name}
             onChangeText={setName}
             testID="register-name-input"
@@ -161,7 +162,7 @@ export default function RegisterScreen() {
             placeholder="seuemail@zarpa.com.br"
             keyboardType="email-address"
             autoCapitalize="none"
-            icon="✉️"
+            icon="mail-outline"
             value={email}
             onChangeText={setEmail}
             testID="register-email-input"
@@ -171,7 +172,7 @@ export default function RegisterScreen() {
             label="Senha de Acesso (mínimo 6 dígitos) *"
             placeholder="Crie uma senha segura"
             isPassword
-            icon="🔒"
+            icon="lock-closed-outline"
             value={password}
             onChangeText={setPassword}
             testID="register-password-input"
@@ -181,7 +182,7 @@ export default function RegisterScreen() {
             label="Telefone / WhatsApp"
             placeholder="(42) 99999-0000"
             keyboardType="phone-pad"
-            icon="📱"
+            icon="call-outline"
             value={phone}
             onChangeText={setPhone}
             testID="register-phone-input"
@@ -197,7 +198,7 @@ export default function RegisterScreen() {
               <Input
                 label="Nome Fantasia / Razão Social *"
                 placeholder="ex: Padaria Central Guarapuava"
-                icon="🏪"
+                icon="storefront-outline"
                 value={businessName}
                 onChangeText={setBusinessName}
                 testID="register-business-name-input"
@@ -207,7 +208,7 @@ export default function RegisterScreen() {
                 label="CNPJ ou CPF *"
                 placeholder="00.000.000/0001-00"
                 keyboardType="numeric"
-                icon="📄"
+                icon="document-text-outline"
                 value={cnpjCpf}
                 onChangeText={setCnpjCpf}
                 testID="register-cnpj-input"
@@ -216,7 +217,7 @@ export default function RegisterScreen() {
               <Input
                 label="Endereço Padrão de Coleta (Opcional)"
                 placeholder="Rua Saldanha Marinho, 1200 - Centro"
-                icon="📍"
+                icon="location-outline"
                 value={defaultAddress}
                 onChangeText={setDefaultAddress}
                 testID="register-address-input"
@@ -232,7 +233,7 @@ export default function RegisterScreen() {
                 label="Número da CNH *"
                 placeholder="Número da Carteira Nacional de Habilitação"
                 keyboardType="numeric"
-                icon="🪪"
+                icon="card-outline"
                 value={cnh}
                 onChangeText={setCnh}
                 testID="register-cnh-input"
@@ -243,9 +244,9 @@ export default function RegisterScreen() {
               <View style={styles.vehicleRow}>
                 {(
                   [
-                    { type: 'motorcycle', label: 'Moto', icon: '🛵' },
-                    { type: 'bicycle', label: 'Bicicleta', icon: '🚲' },
-                    { type: 'car', label: 'Carro', icon: '🚗' },
+                    { type: 'motorcycle', label: 'Moto', iconName: 'speedometer-outline' },
+                    { type: 'bicycle', label: 'Bicicleta', iconName: 'bicycle-outline' },
+                    { type: 'car', label: 'Carro', iconName: 'car-outline' },
                   ] as const
                 ).map((v) => (
                   <TouchableOpacity
@@ -258,7 +259,12 @@ export default function RegisterScreen() {
                     activeOpacity={0.7}
                     testID={`vehicle-option-${v.type}`}
                   >
-                    <Text style={styles.vehicleIcon}>{v.icon}</Text>
+                    <Ionicons
+                      name={v.iconName as any}
+                      size={18}
+                      color={vehicleType === v.type ? COLORS.primary : COLORS.textSecondary}
+                      style={{ marginRight: 6 }}
+                    />
                     <Text
                       style={[
                         styles.vehicleLabel,
@@ -275,7 +281,7 @@ export default function RegisterScreen() {
                 label="Placa do Veículo (se aplicável)"
                 placeholder="ex: BRA2E19"
                 autoCapitalize="characters"
-                icon="🔢"
+                icon="car-outline"
                 value={vehiclePlate}
                 onChangeText={setVehiclePlate}
                 testID="register-plate-input"
@@ -285,7 +291,7 @@ export default function RegisterScreen() {
                 label="Raio Máximo de Deslocamento (km)"
                 placeholder="ex: 5.0"
                 keyboardType="numeric"
-                icon="🎯"
+                icon="navigate-outline"
                 value={clusterRadius}
                 onChangeText={setClusterRadius}
                 testID="register-radius-input"

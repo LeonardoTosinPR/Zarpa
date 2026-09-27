@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Button } from '../src/components/Button';
@@ -48,7 +49,7 @@ export default function WelcomeScreen() {
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <View style={styles.logoBadge}>
-            <Text style={styles.logoIcon}>⚡</Text>
+            <Ionicons name="flash" size={28} color={COLORS.primary} />
           </View>
           <Text style={styles.brandTitle}>Zarpa</Text>
           <Text style={styles.brandSubtitle}>
@@ -62,7 +63,9 @@ export default function WelcomeScreen() {
         {/* Feature Highlights */}
         <View style={styles.featuresContainer}>
           <View style={[styles.featureCard, SHADOWS.sm]}>
-            <Text style={styles.featureIcon}>🏪</Text>
+            <View style={[styles.featureIconBox, { backgroundColor: COLORS.primaryLight }]}>
+              <Ionicons name="storefront-outline" size={22} color={COLORS.primary} />
+            </View>
             <View style={styles.featureTextContainer}>
               <Text style={styles.featureTitle}>Para Comércios & Lojistas</Text>
               <Text style={styles.featureDesc}>
@@ -72,7 +75,9 @@ export default function WelcomeScreen() {
           </View>
 
           <View style={[styles.featureCard, SHADOWS.sm]}>
-            <Text style={styles.featureIcon}>🛵</Text>
+            <View style={[styles.featureIconBox, { backgroundColor: COLORS.accentLight }]}>
+              <Ionicons name="bicycle-outline" size={22} color={COLORS.accent} />
+            </View>
             <View style={styles.featureTextContainer}>
               <Text style={styles.featureTitle}>Para Entregadores & Condutores</Text>
               <Text style={styles.featureDesc}>
@@ -104,14 +109,18 @@ export default function WelcomeScreen() {
 
         {/* Quick Demo Credentials for Fast Testing */}
         <View style={styles.demoSection}>
-          <Text style={styles.demoTitle}>⚡ Acesso Rápido para Demonstração (Sprint 1)</Text>
+          <View style={styles.demoHeaderRow}>
+            <Ionicons name="flash-outline" size={15} color={COLORS.accent} />
+            <Text style={styles.demoTitle}>Acesso Rápido (Sprint 2)</Text>
+          </View>
           <View style={styles.demoButtonsRow}>
             <TouchableOpacity
               style={[styles.demoPill, styles.demoAdmin]}
               onPress={() => quickLogin('admin')}
               testID="quick-login-admin"
             >
-              <Text style={styles.demoPillText}>👑 Admin</Text>
+              <Ionicons name="shield-checkmark-outline" size={14} color="#D97706" style={{ marginRight: 4 }} />
+              <Text style={styles.demoPillText}>Admin</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -119,7 +128,8 @@ export default function WelcomeScreen() {
               onPress={() => quickLogin('client')}
               testID="quick-login-client"
             >
-              <Text style={styles.demoPillText}>🏪 Lojista</Text>
+              <Ionicons name="storefront-outline" size={14} color="#2563EB" style={{ marginRight: 4 }} />
+              <Text style={styles.demoPillText}>Lojista</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -127,7 +137,8 @@ export default function WelcomeScreen() {
               onPress={() => quickLogin('courier')}
               testID="quick-login-courier"
             >
-              <Text style={styles.demoPillText}>🛵 Entregador</Text>
+              <Ionicons name="bicycle-outline" size={14} color="#059669" style={{ marginRight: 4 }} />
+              <Text style={styles.demoPillText}>Entregador</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -209,8 +220,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  featureIcon: {
-    fontSize: 28,
+  featureIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: SPACING.md,
   },
   featureTextContainer: {
@@ -240,13 +255,19 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  demoHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    marginBottom: SPACING.sm,
   },
   demoTitle: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   demoButtonsRow: {
     flexDirection: 'row',

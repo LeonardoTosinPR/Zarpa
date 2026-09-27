@@ -62,6 +62,18 @@ describe('Authentication Screens', () => {
 
       expect(await findByText('Informe seu e-mail.')).toBeTruthy();
     });
+
+    it('toggles password visibility with animated emoji when eye button is pressed', () => {
+      const { getByTestId, getByText } = render(
+        <AuthProvider>
+          <LoginScreen />
+        </AuthProvider>
+      );
+
+      expect(getByText('🙈')).toBeTruthy();
+      fireEvent.press(getByTestId('password-toggle-button'));
+      expect(getByText('🐵')).toBeTruthy();
+    });
   });
 
   describe('RegisterScreen', () => {

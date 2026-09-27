@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\OrderController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -48,6 +49,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 
+    // Rotas de Pedidos e Roteamento (Sprint 2)
+    Route::prefix('orders')->group(function () {
+        Route::get('/geocode', [OrderController::class, 'geocode']);
+        Route::post('/estimate', [OrderController::class, 'estimate']);
+    });
+
     // Client protected zone
     Route::middleware('role.client')->prefix('client')->group(function () {
         Route::get('/profile', function (Request $request) {
@@ -56,6 +63,13 @@ Route::middleware('auth:sanctum')->group(function () {
                 'client' => $request->user()->client,
             ]);
         });
+    });
+
+    // Postagem e Gestão de Pedidos exclusiva para Lojista
+    Route::middleware('role.client')->prefix('orders')->group(function () {
+        Route::post('/', [OrderController::class, 'store']);
+        Route::get('/my-orders', [OrderController::class, 'myOrders']);
+        Route::get('/{id}', [OrderController::class, 'show']);
     });
 
     // Courier protected zone

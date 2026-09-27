@@ -4,6 +4,7 @@
 .env.production
 .env.local
 .env.*.local
+.env.testing
 
 # OS Files
 .DS_Store

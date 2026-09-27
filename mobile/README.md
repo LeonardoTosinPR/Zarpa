@@ -32,11 +32,11 @@ Este checklist documenta a evolução contínua das funcionalidades nos checkpoi
   - [x] Tela de Cadastro dinâmico especializado para Lojista (CNPJ/Razão Social) e Entregador (CNH/Veículo/Placa).
   - [x] Gerenciamento de sessão com `AuthContext` e tokens seguros via `expo-secure-store`.
   - [x] Navegação condicional protegida por papéis (`(client)` e `(courier)`).
-- [ ] **Postagem de Pedidos & Geocodificação (Lojista)**:
-  - [ ] Formulário de criação de entregas com endereço de origem e destino.
-  - [ ] Geocodificação de endereços em coordenadas via OpenRouteService (ORS).
-  - [ ] Seletor visual de modalidade de frete (*Entrega Expressa* vs *Lote Econômico*).
-  - [ ] Visualização prévia da rota no mapa interativo (`react-native-maps`).
+- [x] **Postagem de Pedidos & Geocodificação (Lojista - Sprint 2)**:
+  - [x] Formulário de criação de entregas com ponto de coleta flexível (GPS, loja ou digitação).
+  - [x] Geocodificação de endereços em coordenadas com autocomplete e debounce.
+  - [x] Seletor visual de modalidade de frete (*Entrega Expressa* vs *Lote Econômico*).
+  - [x] Visualização prévia da rota no mapa interativo com Google Maps (`react-native-maps`).
 - [ ] **Radar Expresso & Disputa Concorrente (Entregador)**:
   - [ ] Tela de Radar de ofertas imediatas com contagem regressiva de 10 segundos.
   - [ ] Ação rápida "Aceitar Corrida" com feedback anti-colisão transacional.
