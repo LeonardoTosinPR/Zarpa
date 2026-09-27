@@ -291,7 +291,7 @@ sequenceDiagram
     API-->>Lojista: 200 OK (Lista de Sugestões de Endereço)
 
     Lojista->>API: POST /api/orders/estimate (Origem, Destino, Peso, Modalidade)
-    API->>OSRM: GET /route/v1/driving/{lon1,lat1;lon2,lat2} (Basic Auth)
+    API->>OSRM: GET /route/v1/driving/{coords} (Basic Auth)
     OSRM-->>API: Distância (5.2 km), Duração (12 min), Polyline
     API->>Calc: calculate(5.2 km, 2.5 kg, "economic")
     Calc-->>API: Preço Individual R$ 19,00
