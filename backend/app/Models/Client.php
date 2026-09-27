@@ -44,4 +44,12 @@ class Client extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Relationship with Orders.
+     */
+    public function orders(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
 }

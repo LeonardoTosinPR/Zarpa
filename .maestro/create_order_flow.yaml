@@ -1,0 +1,40 @@
+appId: com.zarpa.mobile
+---
+# Scenario 1: Launch and Authenticate as Merchant
+- launchApp:
+    clearState: true
+- tapOn: "Acessar Minha Conta"
+- tapOn: "🏪 Lojista"
+- assertVisible: "Lojista / Comércio"
+
+# Scenario 2: Navigate to New Order Tab
+- tapOn: "Novo Pedido"
+- assertVisible: "Novo Pedido de Entrega"
+- assertVisible: "Ponto de Coleta (Loja)"
+
+# Scenario 3: Search Destination and Fill Package Details
+- tapOn: "destination-search-input"
+- inputText: "UTFPR"
+- waitForAnimationToEnd: 1000
+- tapOn: "suggestion-item-0"
+- assertVisible: "Destino Definido:"
+
+- tapOn: "package-description-input"
+- inputText: "Peças Eletrônicas e Cabos"
+
+- tapOn: "package-weight-input"
+- eraseText
+- inputText: "2.5"
+
+# Scenario 4: Select Economic Shipping Modality
+- tapOn: "modality-economic-button"
+- assertVisible: "-20% Rateio"
+
+# Scenario 5: Submit Order and Validate in Orders List
+- scroll
+- tapOn: "submit-order-button"
+- assertVisible: "Sucesso!"
+- tapOn: "Ver Meus Pedidos"
+- assertVisible: "Peças Eletrônicas e Cabos"
+- assertVisible: "⏳ Pendente"
+- takeScreenshot: order_created_success

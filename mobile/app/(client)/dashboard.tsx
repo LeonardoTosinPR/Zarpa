@@ -29,7 +29,7 @@ export default function ClientDashboardScreen() {
   return (
     <View style={styles.container}>
       {/* Official Zarpa Header */}
-      <Header />
+      <Header onProfilePress={() => router.push('/(client)/profile')} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -73,6 +73,7 @@ export default function ClientDashboardScreen() {
         <TouchableOpacity
           style={[styles.actionCard, SHADOWS.sm]}
           activeOpacity={0.8}
+          onPress={() => router.push('/(client)/create-order')}
           testID="client-new-order-preview"
         >
           <View style={styles.actionIconBox}>
@@ -90,6 +91,7 @@ export default function ClientDashboardScreen() {
         <TouchableOpacity
           style={[styles.actionCard, SHADOWS.sm]}
           activeOpacity={0.8}
+          onPress={() => router.push('/(client)/orders')}
           testID="client-history-preview"
         >
           <View style={styles.actionIconBox}>

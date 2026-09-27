@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({
-  showMenu = true,
+  showMenu = false,
   showProfile = true,
   onMenuPress,
   onProfilePress,

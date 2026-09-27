@@ -69,7 +69,7 @@ O projeto conta com um script único e inteligente para gerenciar todo o ciclo d
 | `.\run.ps1 test:backend` | `./run.sh test:backend`| Executa testes do backend Laravel (Pest v3) |
 | `.\run.ps1 test:mobile` | `./run.sh test:mobile` | Executa testes unitários do mobile (Jest) |
 | `.\run.ps1 test:e2e` | `./run.sh test:e2e` | Executa testes End-to-End com Maestro |
-| `.\run.ps1 diagnostic` | `./run.sh diagnostic` | Diagnóstico do Docker Desktop, WSL2 e Node.js |
+| `.\run.ps1 diagnostic` | `./run.sh diagnostic` | Diagnóstico do Docker, serviços e Node.js |
 | `.\run.ps1 users` | `./run.sh users` | Exibe credenciais das contas de teste |
 | `.\run.ps1 help` | `./run.sh help` | Exibe o menu completo de ajuda |
 

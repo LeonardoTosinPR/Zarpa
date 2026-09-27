@@ -23,7 +23,8 @@ graph TD
 
     subgraph Storage ["Camada de Dados & Serviços Externos"]
         Postgres[("PostgreSQL 16 + PostGIS")]
-        ORS["OpenRouteService API (Pelias / Directions / Matrix)"]
+        OSRM["Servidor OSRM Dedicado (osrmcar.debug.app.br / Basic Auth)"]
+        Geocoding["Serviço de Geocodificação (Nominatim / Pelias / Fallback Local)"]
     end
 
     UI --> State
@@ -33,7 +34,8 @@ graph TD
     Controllers --> Services
     Services --> Lock
     Lock --> Postgres
-    Services -->|HTTP REST| ORS
+    Services -->|HTTP Basic Auth| OSRM
+    Services -->|HTTP REST| Geocoding
     UI --> NativeMap
     UI --> GPS
 ```
@@ -47,6 +49,7 @@ graph TD
 - **Autenticação**: Laravel Sanctum com tokens de acesso pessoal e Policies por perfil (`client`, `courier`, `admin`).
 - **Persistência**: PostgreSQL 16 + PostGIS (armazenamento de coordenadas geográficas `SRID 4326` com indexação espacial `GIST`).
 - **Concorrência**: Controle transacional com bloqueio pessimista (`lockForUpdate()`) para disputa do Radar Expresso.
+- **Roteamento Viário**: Integração HTTP com servidor OSRM próprio (`https://osrmcar.debug.app.br`) via Basic Auth.
 - **Testes**: Pest v3 (Unit e Feature tests).
 
 ### 2.2 Frontend Mobile (React Native / Expo SDK 54)
@@ -58,10 +61,14 @@ graph TD
 - **Testes**: Jest + React Native Testing Library (RNTL).
 
 ### 2.3 Integrações Externas e Geoespaciais
-- **OpenRouteService (ORS)**:
-  - Geocodificação de endereços com foco em Guarapuava - PR (`/geocode/search`).
-  - Matriz de distâncias e roteamento viário (`/v2/directions/driving-car`).
-  - Otimização multi-paradas para Lote Econômico (`/v2/optimization`).
+- **Servidor OSRM Dedicado (`https://osrmcar.debug.app.br`)**:
+  - Servidor próprio configurado para roteamento viário e cálculo de distâncias reais na malha urbana de Guarapuava - PR.
+  - Autenticação: **HTTP Basic Auth** (configurado via variáveis de ambiente `OSRM_USERNAME` e `OSRM_PASSWORD`).
+  - Endpoint principal: `GET /route/v1/driving/{coordinates}?steps=true&overview=full&geometries=polyline`.
+  - Retorno: Distância precisa em metros, duração estimada em segundos e geometria da rota (Polyline) para renderização cartográfica.
+- **Serviço de Geocodificação (`GeocodingService`)**:
+  - Conversão de endereços textuais para coordenadas (lat/lng) com foco na área urbana de Guarapuava - PR.
+  - Suporte a provedor Nominatim/Pelias com dicionário geográfico local de alta precisão (bairros e pontos de referência de Guarapuava) para garantia de disponibilidade nos testes unitários e E2E.
 - **Navegação Nativa Externa**: Deep links para Google Maps (`geo:lat,lng`) e Waze (`waze://?ll=lat,lng&navigate=yes`).
 
 ---
