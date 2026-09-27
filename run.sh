@@ -196,7 +196,7 @@ open_mobile_terminal() {
         fi
     fi
 
-    write_info "Abrindo o Expo Mobile em uma janela separada do bash ($expo_args)..."
+    write_info "Iniciando o Expo Mobile ($expo_args)..."
 
     local terminal_cmd="cd '$mobile_dir' && npx expo start $expo_args; echo ''; echo 'Sessão do Expo encerrada.'; exec bash"
 
@@ -205,50 +205,50 @@ open_mobile_terminal() {
         dbus_wrap="dbus-run-session --"
     fi
 
-    # Tenta abrir em um emulador de terminal gráfico disponível
+    # Tenta abrir em uma nova aba na mesma janela (Terminator, Ptyxis ou GNOME Terminal)
     local term_opened=false
     if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ] || [ -n "$XDG_RUNTIME_DIR" ]; then
-        if command -v gnome-terminal >/dev/null 2>&1; then
-            $dbus_wrap gnome-terminal --title="ZARPA Mobile (Expo)" -- bash -c "$terminal_cmd" >/dev/null 2>&1 &
+        # 1. Se estiver rodando dentro do Terminator ou Terminator estiver ativo
+        if command -v terminator >/dev/null 2>&1 && { [ -n "$TERMINATOR_UUID" ] || pgrep -x terminator >/dev/null 2>&1; }; then
+            terminator --new-tab -T "ZARPA Mobile (Expo)" --working-directory="$mobile_dir" -x bash -c "$terminal_cmd" >/dev/null 2>&1 &
             term_opened=true
-            write_success "Expo Mobile iniciado em uma nova janela (GNOME Terminal)!"
-        elif command -v xterm >/dev/null 2>&1; then
-            xterm -title "ZARPA Mobile (Expo)" -e bash -c "$terminal_cmd" >/dev/null 2>&1 &
+            write_success "Expo Mobile iniciado em uma nova aba do Terminator!"
+        # 2. Se Ptyxis estiver ativo ou presente (terminal padrão moderno no Linux/GNOME)
+        # Importante: usar -x em vez de -- porque -- força o modo --standalone (nova janela) no Ptyxis
+        elif command -v ptyxis >/dev/null 2>&1; then
+            ptyxis --tab --title="ZARPA Mobile (Expo)" --working-directory="$mobile_dir" -x "bash -c \"$terminal_cmd\"" >/dev/null 2>&1 &
             term_opened=true
-            write_success "Expo Mobile iniciado em uma nova janela (XTerm)!"
+            write_success "Expo Mobile iniciado em uma nova aba do terminal (Ptyxis)!"
+        # 3. Terminator instalado
+        elif command -v terminator >/dev/null 2>&1; then
+            terminator --new-tab -T "ZARPA Mobile (Expo)" --working-directory="$mobile_dir" -x bash -c "$terminal_cmd" >/dev/null 2>&1 &
+            term_opened=true
+            write_success "Expo Mobile iniciado em uma nova aba do Terminator!"
+        # 4. GNOME Terminal com suporte a abas
+        elif command -v gnome-terminal >/dev/null 2>&1; then
+            $dbus_wrap gnome-terminal --tab --title="ZARPA Mobile (Expo)" --working-directory="$mobile_dir" -- bash -c "$terminal_cmd" >/dev/null 2>&1 &
+            term_opened=true
+            write_success "Expo Mobile iniciado em uma nova aba do GNOME Terminal!"
         elif command -v konsole >/dev/null 2>&1; then
-            konsole -e bash -c "$terminal_cmd" >/dev/null 2>&1 &
+            konsole --new-tab -e bash -c "$terminal_cmd" >/dev/null 2>&1 &
             term_opened=true
-            write_success "Expo Mobile iniciado em uma nova janela (Konsole)!"
+            write_success "Expo Mobile iniciado em uma nova aba (Konsole)!"
         elif command -v xfce4-terminal >/dev/null 2>&1; then
-            xfce4-terminal -e "bash -c \"$terminal_cmd\"" >/dev/null 2>&1 &
+            xfce4-terminal --tab -e "bash -c \"$terminal_cmd\"" >/dev/null 2>&1 &
             term_opened=true
-            write_success "Expo Mobile iniciado em uma nova janela (XFCE Terminal)!"
+            write_success "Expo Mobile iniciado em uma nova aba (XFCE Terminal)!"
         elif command -v alacritty >/dev/null 2>&1; then
             alacritty -e bash -c "$terminal_cmd" >/dev/null 2>&1 &
             term_opened=true
-            write_success "Expo Mobile iniciado em uma nova janela (Alacritty)!"
+            write_success "Expo Mobile iniciado em terminal dedicado (Alacritty)!"
         elif command -v kitty >/dev/null 2>&1; then
             kitty bash -c "$terminal_cmd" >/dev/null 2>&1 &
             term_opened=true
-            write_success "Expo Mobile iniciado em uma nova janela (Kitty)!"
-        elif command -v ptyxis >/dev/null 2>&1; then
-            local err_log="/tmp/ptyxis_zarpa_$$.log"
-            $dbus_wrap ptyxis --new-window -- bash -c "$terminal_cmd" >/dev/null 2>"$err_log" &
-            local p_pid=$!
-            sleep 0.5
-            if kill -0 "$p_pid" 2>/dev/null; then
-                term_opened=true
-                write_success "Expo Mobile iniciado em uma nova janela (Ptyxis)!"
-            elif [ -s "$err_log" ] && grep -qiE "failed|error" "$err_log"; then
-                write_warning "Ptyxis não conseguiu abrir uma janela separada:"
-                cat "$err_log"
-                rm -f "$err_log"
-            else
-                term_opened=true
-                write_success "Expo Mobile iniciado em uma nova janela (Ptyxis)!"
-                rm -f "$err_log"
-            fi
+            write_success "Expo Mobile iniciado em terminal dedicado (Kitty)!"
+        elif command -v xterm >/dev/null 2>&1; then
+            xterm -title "ZARPA Mobile (Expo)" -e bash -c "$terminal_cmd" >/dev/null 2>&1 &
+            term_opened=true
+            write_success "Expo Mobile iniciado em janela XTerm!"
         fi
     fi
 
@@ -256,7 +256,7 @@ open_mobile_terminal() {
         return 0
     fi
 
-    write_warning "Não foi possível abrir janela gráfica separada. Iniciando Expo no terminal atual..."
+    write_warning "Não foi possível abrir aba gráfica separada. Iniciando Expo no terminal atual..."
     (cd "$mobile_dir" && npx expo start $expo_args)
 }
 
@@ -329,11 +329,11 @@ show_usage() {
     write_header "ZARPA CLI - Comandos Disponíveis"
     echo ""
     echo "APLICAÇÃO & DESENVOLVIMENTO:"
-    echo "  ./run.sh dev               - Inicia Docker (PostGIS + Backend) e abre o Expo Mobile em nova janela"
+    echo "  ./run.sh dev               - Inicia Docker (PostGIS + Backend) e abre o Expo Mobile em nova aba/janela"
     echo "  ./run.sh up [args]         - Sobe os containers Docker em segundo plano (-d)"
     echo "  ./run.sh down [args]       - Para os containers Docker"
     echo "  ./run.sh restart           - Reinicia os containers Docker"
-    echo "  ./run.sh mobile [-w]       - Inicia apenas o servidor Expo Mobile (-w abre em nova janela)"
+    echo "  ./run.sh mobile [-t|-w]    - Inicia o Expo Mobile (terminal atual, ou -t/-w para nova aba/janela)"
     echo ""
     echo "BANCO DE DADOS & SEEDERS:"
     echo "  ./run.sh db:populate       - Executa migrations e popula usuários de teste"
@@ -397,11 +397,11 @@ case "$COMMAND" in
 
     mobile)
         assert_mobile_ready
-        if [ "$1" = "--new-window" ] || [ "$1" = "-w" ]; then
+        if [ "$1" = "--new-window" ] || [ "$1" = "-w" ] || [ "$1" = "--tab" ] || [ "$1" = "-t" ]; then
             shift
             open_mobile_terminal "$@"
         else
-            local expo_args="$*"
+            expo_args="$*"
             if [ -z "$expo_args" ]; then
                 if setup_android_usb_reverse; then
                     expo_args="--localhost"

@@ -85,9 +85,10 @@ describe('Create Order Screen', () => {
     );
 
     // Initial state: Pickup point selection options are shown, clear button is not present
-    expect(getByText('Selecione o local de partida da entrega:')).toBeTruthy();
+    expect(getByText('Selecione ou digite o local de partida da entrega:')).toBeTruthy();
     expect(getByTestId('origin-current-location-button')).toBeTruthy();
     expect(getByTestId('origin-store-address-button')).toBeTruthy();
+    expect(getByTestId('origin-search-input')).toBeTruthy();
     expect(queryByTestId('clear-origin-button')).toBeNull();
 
     // Select Store address
@@ -97,13 +98,48 @@ describe('Create Order Screen', () => {
 
     // Clear origin
     fireEvent.press(getByTestId('clear-origin-button'));
-    expect(getByText('Selecione o local de partida da entrega:')).toBeTruthy();
+    expect(getByText('Selecione ou digite o local de partida da entrega:')).toBeTruthy();
 
     // Select Current Location (GPS)
     fireEvent.press(getByTestId('origin-current-location-button'));
     await waitFor(() => {
       expect(getByText('Localização Atual (GPS)')).toBeTruthy();
     });
+    expect(getByTestId('clear-origin-button')).toBeTruthy();
+  });
+
+  it('allows manually typing and selecting a pickup address via autocomplete', async () => {
+    const mockGeocodeResults = [
+      {
+        display_name: 'Rua Saldanha Marinho, 500, Batel, Guarapuava - PR',
+        street: 'Rua Saldanha Marinho, 500',
+        neighborhood: 'Batel',
+        city: 'Guarapuava',
+        state: 'PR',
+        lat: -25.399,
+        lng: -51.472,
+        source: 'nominatim',
+      },
+    ];
+
+    jest.spyOn(orderService, 'geocode').mockResolvedValue(mockGeocodeResults);
+
+    const { getByTestId, findByTestId, getByText } = render(
+      <AuthProvider>
+        <CreateOrderScreen />
+      </AuthProvider>
+    );
+
+    const originInput = getByTestId('origin-search-input');
+    fireEvent.changeText(originInput, 'Saldanha');
+
+    const suggestionItem = await findByTestId('origin-suggestion-item-0');
+    expect(suggestionItem).toBeTruthy();
+
+    fireEvent.press(suggestionItem);
+
+    expect(getByText('Endereço Informado')).toBeTruthy();
+    expect(getByText('Rua Saldanha Marinho, 500, Batel, Guarapuava - PR')).toBeTruthy();
     expect(getByTestId('clear-origin-button')).toBeTruthy();
   });
 });

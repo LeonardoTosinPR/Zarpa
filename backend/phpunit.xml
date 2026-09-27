@@ -24,7 +24,7 @@
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_HOST" value="postgres"/>
         <env name="DB_PORT" value="5432"/>
-        <env name="DB_DATABASE" value="zarpa"/>
+        <env name="DB_DATABASE" value="zarpa_testing" force="true"/>
         <env name="DB_USERNAME" value="zarpa"/>
         <env name="DB_PASSWORD" value="zarpa_secret"/>
         <env name="MAIL_MAILER" value="array"/>

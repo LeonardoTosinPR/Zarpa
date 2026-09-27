@@ -29,7 +29,22 @@ jest.mock('expo-location', () => ({
       },
     })
   ),
+  reverseGeocodeAsync: jest.fn(() =>
+    Promise.resolve([
+      {
+        street: 'Rua das Flores',
+        streetNumber: '100',
+        district: 'Centro',
+        city: 'Guarapuava',
+        region: 'Paraná',
+        country: 'Brasil',
+        postalCode: '85010-000',
+        name: 'Rua das Flores, 100',
+      },
+    ])
+  ),
   Accuracy: {
     Balanced: 3,
+    High: 4,
   },
 }));

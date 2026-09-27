@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { getToken } from './authStorage';
+import { getToken, clearSession } from './authStorage';
 
 // Resolve dinamicamente o host da API baseado no host do bundler Metro (USB / localhost ou LAN)
 const getDynamicHost = (): string => {
@@ -30,3 +30,14 @@ api.interceptors.request.use(async (config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    // Se receber 401 não autorizado de endpoint protegido (exceto tentativa de login), limpa sessão local
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
+      await clearSession();
+    }
+    return Promise.reject(error);
+  }
+);

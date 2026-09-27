@@ -35,8 +35,13 @@ export default function CreateOrderScreen() {
   // Origem: inicia vazia conforme solicitado pelo usuário
   const [originAddress, setOriginAddress] = useState('');
   const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [originType, setOriginType] = useState<'store' | 'current' | null>(null);
+  const [originType, setOriginType] = useState<'store' | 'current' | 'custom' | null>(null);
   const [isLocatingOrigin, setIsLocatingOrigin] = useState(false);
+
+  // Busca e digitação manual do endereço de coleta (Origem)
+  const [originQuery, setOriginQuery] = useState('');
+  const [originSuggestions, setOriginSuggestions] = useState<GeocodeResult[]>([]);
+  const [isSearchingOriginGeocode, setIsSearchingOriginGeocode] = useState(false);
 
   // Destino e Geocodificação
   const [destQuery, setDestQuery] = useState('');
@@ -55,7 +60,7 @@ export default function CreateOrderScreen() {
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Seleção rápida da Origem: Endereço da Loja
+  // 1. Seleção da Origem: Endereço da Loja
   function handleSelectStoreOrigin() {
     setOriginAddress(storeAddress);
     setOriginCoords({
@@ -63,9 +68,11 @@ export default function CreateOrderScreen() {
       lng: storeLng,
     });
     setOriginType('store');
+    setOriginQuery('');
+    setOriginSuggestions([]);
   }
 
-  // Seleção rápida da Origem: Localização Atual via GPS
+  // 2. Seleção da Origem: Localização Atual via GPS físico do dispositivo
   async function handleSelectCurrentLocation() {
     try {
       setIsLocatingOrigin(true);
@@ -79,7 +86,7 @@ export default function CreateOrderScreen() {
       }
 
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
       });
 
       const lat = loc.coords.latitude;
@@ -87,36 +94,83 @@ export default function CreateOrderScreen() {
       setOriginCoords({ lat, lng });
       setOriginType('current');
 
-      // Tenta obter o logradouro via reverse geocode
+      // Tenta obter o logradouro via reverse geocoding nativo do próprio dispositivo
+      let friendlyAddress = '';
       try {
-        const reverseResults = await orderService.geocode(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        const reverseResults = await Location.reverseGeocodeAsync({
+          latitude: lat,
+          longitude: lng,
+        });
+
         if (reverseResults && reverseResults.length > 0) {
-          setOriginAddress(
-            reverseResults[0].street
-              ? `${reverseResults[0].street}, ${reverseResults[0].city}`
-              : reverseResults[0].display_name
-          );
-        } else {
-          setOriginAddress(`Localização Atual (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+          const item = reverseResults[0];
+          const street = [item.street, item.streetNumber].filter(Boolean).join(', ') || item.name || '';
+          const district = item.district || item.subregion || '';
+          const city = item.city || 'Guarapuava';
+          const parts = [street, district, city].filter(Boolean);
+          if (parts.length > 0) {
+            friendlyAddress = parts.join(' - ');
+          }
         }
-      } catch {
-        setOriginAddress(`Localização Atual (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+      } catch (err) {
+        console.warn('Erro no reverse geocode nativo:', err);
       }
+
+      if (!friendlyAddress) {
+        friendlyAddress = `Minha Localização Atual (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+      }
+
+      setOriginAddress(friendlyAddress);
+      setOriginQuery('');
+      setOriginSuggestions([]);
     } catch (err) {
-      console.warn('Erro ao obter localização:', err);
+      console.warn('Erro ao obter localização do dispositivo:', err);
       Alert.alert('Erro', 'Não foi possível obter a localização do dispositivo.');
     } finally {
       setIsLocatingOrigin(false);
     }
   }
 
+  // 3. Seleção da Origem via sugestão de endereço digitado
+  function handleSelectOriginSuggestion(item: GeocodeResult) {
+    setOriginAddress(item.display_name);
+    setOriginCoords({ lat: item.lat, lng: item.lng });
+    setOriginType('custom');
+    setOriginQuery('');
+    setOriginSuggestions([]);
+  }
+
   function handleClearOrigin() {
     setOriginAddress('');
     setOriginCoords(null);
     setOriginType(null);
+    setOriginQuery('');
+    setOriginSuggestions([]);
   }
 
-  // Debounce para geocodificação do destino
+  // Debounce para geocodificação da origem digitada
+  useEffect(() => {
+    if (!originQuery || originQuery.trim().length < 2) {
+      setOriginSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearchingOriginGeocode(true);
+        const results = await orderService.geocode(originQuery);
+        setOriginSuggestions(results);
+      } catch (err) {
+        console.warn('Erro na geocodificação de origem:', err);
+      } finally {
+        setIsSearchingOriginGeocode(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [originQuery]);
+
+  // Debounce para geocodificação do destino digitado
   useEffect(() => {
     if (!destQuery || destQuery.trim().length < 2) {
       setSuggestions([]);
@@ -187,7 +241,7 @@ export default function CreateOrderScreen() {
 
   async function handleCreateOrder() {
     if (!originCoords || !originAddress) {
-      Alert.alert('Atenção', 'Selecione o ponto de coleta (Localização atual ou Endereço da loja).');
+      Alert.alert('Atenção', 'Selecione ou digite o ponto de coleta da entrega.');
       return;
     }
 
@@ -252,7 +306,7 @@ export default function CreateOrderScreen() {
           </Text>
         </View>
 
-        {/* 1. Endereço de Coleta (Origem com Seletor) */}
+        {/* 1. Endereço de Coleta (Origem com Seletor e Campo de Digitação) */}
         <View style={[styles.card, SHADOWS.sm]}>
           <View style={styles.cardHeaderRow}>
             <Ionicons name="business-outline" size={18} color={COLORS.primary} />
@@ -264,7 +318,11 @@ export default function CreateOrderScreen() {
               <View style={{ flex: 1 }}>
                 <View style={styles.originTypePill}>
                   <Text style={styles.originTypePillText}>
-                    {originType === 'current' ? 'Localização Atual (GPS)' : 'Endereço da Loja'}
+                    {originType === 'current'
+                      ? 'Localização Atual (GPS)'
+                      : originType === 'store'
+                      ? 'Endereço da Loja'
+                      : 'Endereço Informado'}
                   </Text>
                 </View>
                 <Text style={styles.selectedOriginText}>{originAddress}</Text>
@@ -283,9 +341,10 @@ export default function CreateOrderScreen() {
           ) : (
             <View style={styles.originSelectionContainer}>
               <Text style={styles.originPromptText}>
-                Selecione o local de partida da entrega:
+                Selecione ou digite o local de partida da entrega:
               </Text>
 
+              {/* Botões rápidos: GPS e Loja */}
               <View style={styles.originOptionsRow}>
                 {/* Opção 1: Localização Atual */}
                 <TouchableOpacity
@@ -296,9 +355,9 @@ export default function CreateOrderScreen() {
                   testID="origin-current-location-button"
                 >
                   {isLocatingOrigin ? (
-                    <ActivityIndicator size="small" color={COLORS.primary} style={{ marginBottom: 6 }} />
+                    <ActivityIndicator size="small" color={COLORS.primary} style={{ marginBottom: 4 }} />
                   ) : (
-                    <Ionicons name="navigate-outline" size={22} color={COLORS.primary} style={{ marginBottom: 4 }} />
+                    <Ionicons name="navigate-outline" size={20} color={COLORS.primary} style={{ marginBottom: 4 }} />
                   )}
                   <Text style={styles.originOptionTitle}>Localização Atual</Text>
                   <Text style={styles.originOptionDesc}>GPS do aparelho</Text>
@@ -311,12 +370,52 @@ export default function CreateOrderScreen() {
                   activeOpacity={0.7}
                   testID="origin-store-address-button"
                 >
-                  <Ionicons name="storefront-outline" size={22} color={COLORS.primary} style={{ marginBottom: 4 }} />
+                  <Ionicons name="storefront-outline" size={20} color={COLORS.primary} style={{ marginBottom: 4 }} />
                   <Text style={styles.originOptionTitle}>Endereço da Loja</Text>
                   <Text style={styles.originOptionDesc} numberOfLines={1}>
                     {storeAddress}
                   </Text>
                 </TouchableOpacity>
+              </View>
+
+              {/* Opção 3: Digitar Endereço de Coleta Manualmente */}
+              <View style={styles.originManualSection}>
+                <Text style={styles.originManualLabel}>Ou digite o endereço de coleta:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Digite rua, bairro ou local de coleta..."
+                  value={originQuery}
+                  onChangeText={setOriginQuery}
+                  testID="origin-search-input"
+                />
+
+                {isSearchingOriginGeocode && (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                    <Text style={styles.loadingText}>Buscando endereço em Guarapuava...</Text>
+                  </View>
+                )}
+
+                {originSuggestions.length > 0 && (
+                  <View style={styles.suggestionsBox}>
+                    {originSuggestions.map((item, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.suggestionItem}
+                        onPress={() => handleSelectOriginSuggestion(item)}
+                        testID={`origin-suggestion-item-${index}`}
+                      >
+                        <Ionicons name="location-sharp" size={16} color={COLORS.textMuted} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.suggestionTitle}>{item.street || item.display_name}</Text>
+                          <Text style={styles.suggestionSubtitle}>
+                            {item.neighborhood ? `${item.neighborhood}, ` : ''}{item.city} - {item.state}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -650,6 +749,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textMuted,
     textAlign: 'center',
+  },
+  originManualSection: {
+    marginTop: SPACING.md,
+  },
+  originManualLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginBottom: 6,
   },
   selectedOriginBox: {
     flexDirection: 'row',

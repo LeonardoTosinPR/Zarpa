@@ -168,6 +168,52 @@ class GeocodingService
             return [];
         }
 
+        // 0. Verifica se é uma coordenada geográfica (lat, lng) para geocodificação reversa
+        if (preg_match('/^([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)$/', $trimmedQuery, $coordMatches)) {
+            $lat = (float) $coordMatches[1];
+            $lng = (float) $coordMatches[2];
+
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Zarpa-Logistics-Platform/1.0 (zarpa@zarpa.com.br)',
+                ])->timeout(3)->get("{$this->baseUrl}/reverse", [
+                    'lat' => $lat,
+                    'lon' => $lng,
+                    'format' => 'json',
+                    'addressdetails' => 1,
+                ]);
+
+                if ($response->successful()) {
+                    $item = $response->json();
+                    if (is_array($item) && isset($item['lat'])) {
+                        return [[
+                            'display_name' => $item['display_name'] ?? "Localização ({$lat}, {$lng})",
+                            'street' => $item['address']['road'] ?? ($item['name'] ?? ''),
+                            'neighborhood' => $item['address']['suburb'] ?? ($item['address']['neighbourhood'] ?? ''),
+                            'city' => 'Guarapuava',
+                            'state' => 'PR',
+                            'lat' => $lat,
+                            'lng' => $lng,
+                            'source' => 'nominatim_reverse',
+                        ]];
+                    }
+                }
+            } catch (Exception $e) {
+                Log::info("Nominatim reverse geocoding failed: " . $e->getMessage());
+            }
+
+            return [[
+                'display_name' => "Coordenadas ({$lat}, {$lng})",
+                'street' => "Ponto no mapa ({$lat}, {$lng})",
+                'neighborhood' => '',
+                'city' => 'Guarapuava',
+                'state' => 'PR',
+                'lat' => $lat,
+                'lng' => $lng,
+                'source' => 'coordinates',
+            ]];
+        }
+
         // 1. Tenta consulta ao Nominatim com delimitação geográfica de Guarapuava
         try {
             $response = Http::withHeaders([
@@ -236,15 +282,6 @@ class GeocodingService
                 $item['source'] = 'local_catalog';
                 $matches[] = $item;
             }
-        }
-
-        // Se nenhuma palavra coincidiu exatamente, mas a query possui tamanho razoável,
-        // retorna os pontos mais centrais de Guarapuava como sugestão de apoio
-        if (empty($matches)) {
-            return array_slice(array_map(function ($p) {
-                $p['source'] = 'local_catalog';
-                return $p;
-            }, $this->localGuarapuavaPlaces), 0, 4);
         }
 
         return array_slice($matches, 0, 5);
