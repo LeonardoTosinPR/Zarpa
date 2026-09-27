@@ -400,7 +400,7 @@ A arquitetura do aplicativo móvel consome diretamente os endpoints RESTful dese
 
 > ⚠️ **Nota de Avaliação**: O vídeo demonstrativo com duração de até 3 minutos apresentando a proposta técnica, objetivos e funcionalidades planejadas está em fase de gravação e será linkado publicamente abaixo:
 
-- **Link Público do Vídeo**: `[Assistir ao Vídeo Demonstrativo (YouTube / Google Drive - Acesso Público)](https://youtu.be/SEU_LINK_AQUI)` *(Em atualização)*
+- **Link Público do Vídeo**: [Assistir ao Vídeo Demonstrativo (YouTube / Google Drive - Acesso Público)](https://youtu.be/WZ_Gin2e_6U)
 - **Tempo Máximo**: 3 minutos.
 - **Tópicos Abordados no Vídeo**:
   1. Contextualização do problema de frete urbano em Guarapuava.
