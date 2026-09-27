@@ -48,3 +48,25 @@ jest.mock('expo-location', () => ({
     High: 4,
   },
 }));
+
+// Mock react-native-maps
+jest.mock('react-native-maps', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const MockMapView = React.forwardRef((props, ref) => (
+    <View testID="mock-map-view" ref={ref} {...props}>
+      {props.children}
+    </View>
+  ));
+  const MockMarker = (props) => <View testID="mock-marker" {...props} />;
+  const MockPolyline = (props) => <View testID="mock-polyline" {...props} />;
+  return {
+    __esModule: true,
+    default: MockMapView,
+    Marker: MockMarker,
+    Polyline: MockPolyline,
+    PROVIDER_DEFAULT: 'default',
+    PROVIDER_GOOGLE: 'google',
+  };
+});
+

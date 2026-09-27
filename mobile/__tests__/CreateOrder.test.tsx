@@ -21,6 +21,7 @@ jest.mock('react-native-maps', () => {
     Marker: MockMarker,
     Polyline: MockPolyline,
     PROVIDER_DEFAULT: 'default',
+    PROVIDER_GOOGLE: 'google',
   };
 });
 
@@ -58,6 +59,7 @@ describe('Create Order Screen', () => {
     expect(getByTestId('modality-economic-button')).toBeTruthy();
     expect(getByTestId('modality-express-button')).toBeTruthy();
     expect(getByTestId('submit-order-button')).toBeTruthy();
+    expect(getByTestId('mock-map-view')).toBeTruthy();
   });
 
   it('allows toggling between Economic and Express shipping modalities', () => {

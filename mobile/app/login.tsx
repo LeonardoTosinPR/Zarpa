@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Input } from '../src/components/Input';
@@ -87,7 +88,7 @@ export default function LoginScreen() {
           {/* Title Header */}
           <View style={styles.header}>
             <View style={styles.brandBadge}>
-              <Text style={styles.brandIcon}>⚡</Text>
+              <Ionicons name="flash" size={24} color={COLORS.primary} />
             </View>
             <Text style={styles.title}>Acesse sua conta</Text>
             <Text style={styles.subtitle}>
@@ -98,7 +99,7 @@ export default function LoginScreen() {
           {/* Error Banner */}
           {errorMessage && (
             <View style={styles.errorBanner} testID="login-error-banner">
-              <Text style={styles.errorIcon}>⚠️</Text>
+              <Ionicons name="alert-circle-outline" size={18} color={COLORS.danger} style={{ marginRight: 6 }} />
               <Text style={styles.errorBannerText}>{errorMessage}</Text>
             </View>
           )}
@@ -110,7 +111,7 @@ export default function LoginScreen() {
               placeholder="ex: seuemail@zarpa.com.br"
               keyboardType="email-address"
               autoCapitalize="none"
-              icon="✉️"
+              icon="mail-outline"
               value={email}
               onChangeText={setEmail}
               testID="login-email-input"
@@ -120,7 +121,7 @@ export default function LoginScreen() {
               label="Senha"
               placeholder="Digite sua senha"
               isPassword
-              icon="🔒"
+              icon="lock-closed-outline"
               value={password}
               onChangeText={setPassword}
               testID="login-password-input"
@@ -139,14 +140,18 @@ export default function LoginScreen() {
 
           {/* Test Users Quick Logins */}
           <View style={[styles.demoContainer, SHADOWS.sm]}>
-            <Text style={styles.demoTitle}>💡 Preenchimento Rápido para Teste (Sprint 1)</Text>
+            <View style={styles.demoHeaderRow}>
+              <Ionicons name="flash-outline" size={14} color={COLORS.accent} />
+              <Text style={styles.demoTitle}>Acesso Rápido (Sprint 2)</Text>
+            </View>
             <View style={styles.demoRow}>
               <TouchableOpacity
                 style={[styles.demoBtn, styles.demoAdminBtn]}
                 onPress={() => handleQuickLogin('admin')}
                 testID="login-quick-admin"
               >
-                <Text style={styles.demoBtnText}>👑 Admin</Text>
+                <Ionicons name="shield-checkmark-outline" size={13} color="#D97706" style={{ marginRight: 4 }} />
+                <Text style={styles.demoBtnText}>Admin</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -154,7 +159,8 @@ export default function LoginScreen() {
                 onPress={() => handleQuickLogin('client')}
                 testID="login-quick-client"
               >
-                <Text style={styles.demoBtnText}>🏪 Lojista</Text>
+                <Ionicons name="storefront-outline" size={13} color="#2563EB" style={{ marginRight: 4 }} />
+                <Text style={styles.demoBtnText}>Lojista</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -162,7 +168,8 @@ export default function LoginScreen() {
                 onPress={() => handleQuickLogin('courier')}
                 testID="login-quick-courier"
               >
-                <Text style={styles.demoBtnText}>🛵 Entregador</Text>
+                <Ionicons name="bicycle-outline" size={13} color="#059669" style={{ marginRight: 4 }} />
+                <Text style={styles.demoBtnText}>Entregador</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -265,17 +272,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.xl,
   },
+  demoHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: SPACING.md,
+  },
   demoTitle: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   demoRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
   },
   demoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
     borderRadius: RADIUS.md,

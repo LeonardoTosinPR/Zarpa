@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,15 @@ import {
   TouchableOpacity,
   TextInputProps,
   ViewStyle,
+  Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string | null;
-  icon?: string;
+  icon?: string | React.ReactNode;
   isPassword?: boolean;
   containerStyle?: ViewStyle;
 }
@@ -29,6 +31,69 @@ export function Input({
   const [isFocused, setIsFocused] = useState(false);
   const [hidePassword, setHidePassword] = useState(isPassword);
 
+  // Animação para o emoji de alternância de senha
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  const togglePasswordVisibility = () => {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(scaleAnim, {
+          toValue: 0.25,
+          duration: 110,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 110,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 3.5,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotateAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+
+    setHidePassword((prev) => !prev);
+  };
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '25deg'],
+  });
+
+  const renderIcon = () => {
+    if (!icon) return null;
+    if (React.isValidElement(icon)) {
+      return <View style={styles.iconWrapper}>{icon}</View>;
+    }
+    if (typeof icon === 'string') {
+      // Se for nome de ícone Ionicons (ex: 'mail-outline', 'lock-closed-outline')
+      if (icon.includes('-') || ['person', 'mail', 'lock', 'call', 'business', 'document', 'location', 'card'].some(k => icon.startsWith(k))) {
+        return (
+          <Ionicons
+            name={icon as any}
+            size={18}
+            color={isFocused ? COLORS.primary : COLORS.textMuted}
+            style={styles.vectorIcon}
+          />
+        );
+      }
+      return <Text style={styles.icon}>{icon}</Text>;
+    }
+    return null;
+  };
+
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
@@ -40,7 +105,7 @@ export function Input({
           !!error && styles.inputError,
         ]}
       >
-        {icon && <Text style={styles.icon}>{icon}</Text>}
+        {renderIcon()}
 
         <TextInput
           style={styles.input}
@@ -54,10 +119,13 @@ export function Input({
         {isPassword && (
           <TouchableOpacity
             style={styles.eyeButton}
-            onPress={() => setHidePassword(!hidePassword)}
+            onPress={togglePasswordVisibility}
             activeOpacity={0.7}
+            testID="password-toggle-button"
           >
-            <Text style={styles.eyeIcon}>{hidePassword ? '👁️' : '🔒'}</Text>
+            <Animated.View style={{ transform: [{ scale: scaleAnim }, { rotate: spin }] }}>
+              <Text style={styles.eyeIcon}>{hidePassword ? '🙈' : '🐵'}</Text>
+            </Animated.View>
           </TouchableOpacity>
         )}
       </View>
@@ -98,6 +166,12 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 16,
+    marginRight: SPACING.sm,
+  },
+  vectorIcon: {
+    marginRight: SPACING.sm,
+  },
+  iconWrapper: {
     marginRight: SPACING.sm,
   },
   input: {
