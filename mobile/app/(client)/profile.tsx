@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
@@ -45,7 +46,7 @@ export default function ClientProfileScreen() {
         {/* Profile Card */}
         <View style={[styles.profileCard, SHADOWS.sm]}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>🏪</Text>
+            <Text style={styles.avatarInitial}>{businessName.charAt(0).toUpperCase()}</Text>
           </View>
           <Text style={styles.businessName}>{businessName}</Text>
           <Text style={styles.userRole}>Lojista Cadastrado (Zarpa)</Text>
@@ -88,7 +89,9 @@ export default function ClientProfileScreen() {
 
         <View style={[styles.infoCard, SHADOWS.sm]}>
           <View style={styles.modalityInfoItem}>
-            <Text style={styles.modalityIcon}>🌱</Text>
+            <View style={{ width: 28, alignItems: 'center' }}>
+              <Ionicons name="cube-outline" size={20} color={COLORS.primary} />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.modalityInfoTitle}>Modalidade Econômica</Text>
               <Text style={styles.modalityInfoDesc}>
@@ -99,7 +102,9 @@ export default function ClientProfileScreen() {
           </View>
           <View style={styles.divider} />
           <View style={styles.modalityInfoItem}>
-            <Text style={styles.modalityIcon}>⚡</Text>
+            <View style={{ width: 28, alignItems: 'center' }}>
+              <Ionicons name="flash-outline" size={20} color={COLORS.primary} />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.modalityInfoTitle}>Modalidade Expressa</Text>
               <Text style={styles.modalityInfoDesc}>
@@ -150,8 +155,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: SPACING.sm,
   },
-  avatarText: {
-    fontSize: 32,
+  avatarInitial: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: COLORS.primary,
   },
   businessName: {
     fontSize: 18,

@@ -66,8 +66,8 @@ describe('Client Orders Screen', () => {
     const orderTitle = await findByText('Pacote de Teste Lojista');
     expect(orderTitle).toBeTruthy();
     expect(getByText('Pedido #101')).toBeTruthy();
-    expect(getByText('🌱 Econômica')).toBeTruthy();
-    expect(getByText('⏳ Pendente')).toBeTruthy();
+    expect(getByText('Econômica')).toBeTruthy();
+    expect(getByText('Pendente')).toBeTruthy();
   });
 
   it('renders empty state illustration when lojista has no orders', async () => {

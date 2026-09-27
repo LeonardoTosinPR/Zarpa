@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Text, StyleSheet, Platform } from 'react-native';
+import { Platform } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, SHADOWS } from '../../src/constants/theme';
 
 export default function ClientLayout() {
@@ -14,7 +15,7 @@ export default function ClientLayout() {
           backgroundColor: COLORS.surface,
           borderTopWidth: 1,
           borderTopColor: COLORS.border,
-          height: Platform.OS === 'ios' ? 86 : 62,
+          height: Platform.OS === 'ios' ? 86 : 64,
           paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 8,
           ...SHADOWS.md,
@@ -29,8 +30,8 @@ export default function ClientLayout() {
         name="dashboard"
         options={{
           title: 'Início',
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>🏠</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -38,8 +39,8 @@ export default function ClientLayout() {
         name="create-order"
         options={{
           title: 'Novo Pedido',
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>📦</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -47,8 +48,8 @@ export default function ClientLayout() {
         name="orders"
         options={{
           title: 'Pedidos',
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>📋</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -56,17 +57,11 @@ export default function ClientLayout() {
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>👤</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
           ),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  tabIcon: {
-    fontSize: 20,
-  },
-});

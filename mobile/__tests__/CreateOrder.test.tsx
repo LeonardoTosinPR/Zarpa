@@ -6,8 +6,13 @@ import { orderService } from '../src/services/orderService';
 
 // Mock react-native-maps
 jest.mock('react-native-maps', () => {
+  const React = require('react');
   const { View } = require('react-native');
-  const MockMapView = (props: any) => <View testID="mock-map-view" {...props}>{props.children}</View>;
+  const MockMapView = React.forwardRef((props: any, ref: any) => (
+    <View testID="mock-map-view" ref={ref} {...props}>
+      {props.children}
+    </View>
+  ));
   const MockMarker = (props: any) => <View testID="mock-marker" {...props} />;
   const MockPolyline = (props: any) => <View testID="mock-polyline" {...props} />;
   return {
@@ -70,5 +75,35 @@ describe('Create Order Screen', () => {
 
     fireEvent.press(economicBtn);
     expect(getByText('-20% Rateio')).toBeTruthy();
+  });
+
+  it('starts with empty pickup point and allows choosing store address or current location', async () => {
+    const { getByText, getByTestId, queryByTestId } = render(
+      <AuthProvider>
+        <CreateOrderScreen />
+      </AuthProvider>
+    );
+
+    // Initial state: Pickup point selection options are shown, clear button is not present
+    expect(getByText('Selecione o local de partida da entrega:')).toBeTruthy();
+    expect(getByTestId('origin-current-location-button')).toBeTruthy();
+    expect(getByTestId('origin-store-address-button')).toBeTruthy();
+    expect(queryByTestId('clear-origin-button')).toBeNull();
+
+    // Select Store address
+    fireEvent.press(getByTestId('origin-store-address-button'));
+    expect(getByText('Endereço da Loja')).toBeTruthy();
+    expect(getByTestId('clear-origin-button')).toBeTruthy();
+
+    // Clear origin
+    fireEvent.press(getByTestId('clear-origin-button'));
+    expect(getByText('Selecione o local de partida da entrega:')).toBeTruthy();
+
+    // Select Current Location (GPS)
+    fireEvent.press(getByTestId('origin-current-location-button'));
+    await waitFor(() => {
+      expect(getByText('Localização Atual (GPS)')).toBeTruthy();
+    });
+    expect(getByTestId('clear-origin-button')).toBeTruthy();
   });
 });

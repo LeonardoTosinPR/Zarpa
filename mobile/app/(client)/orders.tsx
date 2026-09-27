@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Header } from '../../src/components/Header';
 import { orderService, OrderItem } from '../../src/services/orderService';
 
@@ -46,15 +47,15 @@ export default function ClientOrdersScreen() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return { label: '⏳ Pendente', bg: '#FEF3C7', color: '#92400E' };
+        return { label: 'Pendente', bg: '#FEF3C7', color: '#92400E' };
       case 'assigned':
-        return { label: '🛵 Atribuído', bg: '#DBEAFE', color: '#1E40AF' };
+        return { label: 'Atribuído', bg: '#DBEAFE', color: '#1E40AF' };
       case 'picked_up':
-        return { label: '📦 Em Rota', bg: '#EDE9FE', color: '#5B21B6' };
+        return { label: 'Em Rota', bg: '#EDE9FE', color: '#5B21B6' };
       case 'delivered':
-        return { label: '✅ Entregue', bg: '#D1FAE5', color: '#065F46' };
+        return { label: 'Entregue', bg: '#D1FAE5', color: '#065F46' };
       case 'canceled':
-        return { label: '❌ Cancelado', bg: '#FEE2E2', color: '#991B1B' };
+        return { label: 'Cancelado', bg: '#FEE2E2', color: '#991B1B' };
       default:
         return { label: status, bg: '#F1F5F9', color: '#475569' };
     }
@@ -82,7 +83,7 @@ export default function ClientOrdersScreen() {
                   isEconomic ? styles.economicBadgeText : styles.expressBadgeText,
                 ]}
               >
-                {isEconomic ? '🌱 Econômica' : '⚡ Expressa'}
+                {isEconomic ? 'Econômica' : 'Expressa'}
               </Text>
             </View>
           </View>
@@ -117,8 +118,9 @@ export default function ClientOrdersScreen() {
         {/* Footer: Distance, Duration, Price */}
         <View style={styles.orderFooter}>
           <View style={styles.statsGroup}>
-            <Text style={styles.statDetail}>📏 {item.distance_km} km</Text>
-            <Text style={styles.statDetail}>⚖️ {item.package_weight_kg} kg</Text>
+            <Text style={styles.statDetail}>{item.distance_km} km</Text>
+            <Text style={styles.statSeparator}>·</Text>
+            <Text style={styles.statDetail}>{item.package_weight_kg} kg</Text>
           </View>
           <View style={styles.priceContainer}>
             <Text style={styles.priceLabel}>Valor do Frete</Text>
@@ -172,7 +174,7 @@ export default function ClientOrdersScreen() {
         </View>
       ) : orders.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyIcon}>📦</Text>
+          <Ionicons name="receipt-outline" size={44} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
           <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
           <Text style={styles.emptySubtitle}>
             Você ainda não possui pedidos com este filtro. Que tal criar um novo envio?
@@ -351,6 +353,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     fontWeight: '500',
+  },
+  statSeparator: {
+    fontSize: 12,
+    color: COLORS.textMuted,
   },
   priceContainer: {
     alignItems: 'flex-end',

@@ -56,10 +56,12 @@ export function RouteMapPreview({
   if (!origin && !destination) {
     return (
       <View style={[styles.placeholderContainer, { height }, SHADOWS.sm]}>
-        <Text style={styles.placeholderIcon}>🗺️</Text>
+        <View style={styles.placeholderPill}>
+          <Text style={styles.placeholderPillText}>Traçado de Rota</Text>
+        </View>
         <Text style={styles.placeholderTitle}>Pré-visualização da Rota</Text>
         <Text style={styles.placeholderSubtitle}>
-          Defina o endereço de entrega para traçar a rota viária em Guarapuava.
+          Defina o ponto de coleta e endereço de entrega para traçar a rota viária em Guarapuava.
         </Text>
       </View>
     );
@@ -152,9 +154,17 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     marginVertical: SPACING.md,
   },
-  placeholderIcon: {
-    fontSize: 32,
+  placeholderPill: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 4,
+    borderRadius: RADIUS.full,
     marginBottom: SPACING.xs,
+  },
+  placeholderPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   placeholderTitle: {
     fontSize: 15,

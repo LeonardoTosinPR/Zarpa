@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
@@ -39,24 +40,27 @@ export default function ClientDashboardScreen() {
         <View style={[styles.welcomeCard, SHADOWS.md]}>
           <View style={styles.badgeRow}>
             <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>🏪 Lojista / Comércio</Text>
+              <Text style={styles.roleBadgeText}>Lojista / Comércio</Text>
             </View>
             {user?.role === 'admin' && (
               <View style={styles.adminBadge}>
-                <Text style={styles.adminBadgeText}>👑 Admin Master</Text>
+                <Text style={styles.adminBadgeText}>Admin Master</Text>
               </View>
             )}
           </View>
 
           <Text style={styles.storeName}>{businessName}</Text>
           <Text style={styles.storeDoc}>CNPJ/CPF: {cnpj}</Text>
-          <Text style={styles.storeAddress}>📍 {address}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+            <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.storeAddress}>{address}</Text>
+          </View>
         </View>
 
         {/* Section: Sprint 1 Auth Verified Status */}
         <View style={[styles.statusCard, SHADOWS.sm]}>
           <View style={styles.statusHeader}>
-            <Text style={styles.statusIcon}>🛡️</Text>
+            <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary} />
             <Text style={styles.statusTitle}>Sessão Autenticada com Sucesso</Text>
           </View>
           <Text style={styles.statusDesc}>
@@ -77,7 +81,7 @@ export default function ClientDashboardScreen() {
           testID="client-new-order-preview"
         >
           <View style={styles.actionIconBox}>
-            <Text style={styles.actionIcon}>📦</Text>
+            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.actionTextBox}>
             <Text style={styles.actionTitle}>Novo Pedido de Entrega</Text>
@@ -95,7 +99,7 @@ export default function ClientDashboardScreen() {
           testID="client-history-preview"
         >
           <View style={styles.actionIconBox}>
-            <Text style={styles.actionIcon}>📊</Text>
+            <Ionicons name="receipt-outline" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.actionTextBox}>
             <Text style={styles.actionTitle}>Histórico & Extrato 50/50</Text>
@@ -109,7 +113,7 @@ export default function ClientDashboardScreen() {
         {/* Admin Switcher (If Admin) */}
         {role === 'admin' && (
           <View style={[styles.adminSwitcherCard, SHADOWS.sm]}>
-            <Text style={styles.adminSwitcherTitle}>👑 Painel de Alternância Admin</Text>
+            <Text style={styles.adminSwitcherTitle}>Painel de Alternância Admin</Text>
             <Text style={styles.adminSwitcherDesc}>
               Como administrador, você pode inspecionar o dashboard do entregador.
             </Text>
