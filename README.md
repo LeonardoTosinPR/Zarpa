@@ -4,7 +4,7 @@
 > **Autor**: Leonardo Tosin | **Orientador**: Prof. Dr. Andres Jessé Porfirio  
 > **Período de Execução**: 25/08/2026 a 31/10/2026  
 > **Figma UI/UX**: [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Branch da Sprint Atual**: [`sprint/1-auth-perfis-atores`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/1-auth-perfis-atores)
+> **Branch da Sprint Atual**: [`sprint/2-postagem-geocodificacao-pedidos`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/2-postagem-geocodificacao-pedidos)
 
 ---
 
@@ -14,11 +14,12 @@ Navegue diretamente pelos módulos de desenvolvimento e documentações especial
 
 | Módulo | Descrição do Componente | Documentação Direta |
 | :--- | :--- | :--- |
-| 📱 **Mobile (App)** | Aplicativo React Native com Expo SDK 54, Design System do Figma, DER e Checkpoints da disciplina de Dispositivos Móveis | 👉 [**Acessar README Mobile**](mobile/README.md) |
-| 🐘 **Backend (API)** | API RESTful em Laravel 13, PostgreSQL 16 + PostGIS, Laravel Sanctum e motor de roteamento ORS | 👉 [**Acessar README Backend**](backend/README.md) *(Em breve)* |
+| 🐘 **Backend (API)** | API RESTful em Laravel 13, PostgreSQL 16 + PostGIS, Sanctum, OSRM e Artefatos da disciplina de Backend com Framework | 👉 [**Acessar README Backend**](backend/README.md) |
+| 📱 **Mobile (App)** | Aplicativo React Native com Expo SDK 52, Design System do Figma, DER e Checkpoints da disciplina de Dispositivos Móveis | 👉 [**Acessar README Mobile**](mobile/README.md) |
 | 📐 **Arquitetura** | Especificação arquitetural do sistema, diagramas de fluxo de dados, políticas de segurança e DER Lógico | 👉 [**Acessar ARQUITETURA.md**](docs/ARQUITETURA.md) |
 | 📅 **Plano Mestre** | Visão executiva, matriz de rastreabilidade MoSCoW/RICE e cronograma consolidado de todas as sprints | 👉 [**Acessar MASTER_PLAN.md**](docs/MASTER_PLAN.md) |
-| 🏁 **Sprint 1 (Atual)** | Especificação de requisitos, backlog técnico, endpoints de autenticação e Definition of Done (DoD) | 👉 [**Acessar sprint_1.md**](docs/sprints/sprint_1.md) |
+| 🏁 **Sprint 2 (Atual)** | Postagem de Pedidos, Geocodificação OSRM, Mapa Interativo e Definition of Done (DoD) | 👉 [**Acessar sprint_2.md**](docs/sprints/sprint_2.md) |
+| 📦 **Sprint 1** | Autenticação, Perfis de Atores (Lojista / Entregador) e Navegação Condicional | 👉 [**Acessar sprint_1.md**](docs/sprints/sprint_1.md) |
 
 ---
 
