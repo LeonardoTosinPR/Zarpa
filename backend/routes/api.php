@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ExpressDispatchController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -65,20 +66,42 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    // Postagem e Gestão de Pedidos exclusiva para Lojista
+    // Postagem e Gestão de Pedidos do Lojista
     Route::middleware('role.client')->prefix('orders')->group(function () {
         Route::post('/', [OrderController::class, 'store']);
         Route::get('/my-orders', [OrderController::class, 'myOrders']);
-        Route::get('/{id}', [OrderController::class, 'show']);
     });
 
-    // Courier protected zone
-    Route::middleware('role.courier')->prefix('courier')->group(function () {
-        Route::get('/profile', function (Request $request) {
-            return response()->json([
-                'message' => 'Perfil do Entregador acessado com sucesso.',
-                'courier' => $request->user()->courier,
-            ]);
+    // Detalhes do Pedido (acessível por Lojista dono, Entregador atribuído ou Admin)
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
+
+    // Courier protected zone (Sprint 3: Radar Expresso e Concorrência)
+    Route::middleware('role.courier')->group(function () {
+        Route::prefix('courier')->group(function () {
+            Route::get('/profile', function (Request $request) {
+                return response()->json([
+                    'message' => 'Perfil do Entregador acessado com sucesso.',
+                    'courier' => $request->user()->courier,
+                    'user' => [
+                        'id' => $request->user()->id,
+                        'name' => $request->user()->name,
+                        'email' => $request->user()->email,
+                        'phone' => $request->user()->phone,
+                        'role' => $request->user()->role,
+                    ],
+                ]);
+            });
+            Route::patch('/profile', [ExpressDispatchController::class, 'updateProfile']);
+            Route::get('/radar', [ExpressDispatchController::class, 'radar']);
+            Route::patch('/status', [ExpressDispatchController::class, 'updateStatus']);
+            Route::post('/location', [ExpressDispatchController::class, 'updateLocation']);
         });
+
+        // Ciclo de vida da entrega expressa sob demanda
+        Route::post('/orders/{id}/accept-express', [ExpressDispatchController::class, 'accept']);
+        Route::post('/orders/{id}/reject-express', [ExpressDispatchController::class, 'reject']);
+        Route::post('/orders/{id}/pickup', [ExpressDispatchController::class, 'pickup']);
+        Route::post('/orders/{id}/deliver', [ExpressDispatchController::class, 'deliver']);
+        Route::post('/orders/{id}/cancel-delivery', [ExpressDispatchController::class, 'cancelDelivery']);
     });
 });

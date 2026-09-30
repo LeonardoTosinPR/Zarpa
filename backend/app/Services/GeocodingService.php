@@ -11,8 +11,10 @@ class GeocodingService
     protected string $baseUrl;
 
     // Catálogo local determinístico para alta disponibilidade e testes offline em Guarapuava - PR
+    // Catálogo local determinístico para alta disponibilidade e testes offline em Guarapuava - PR
     protected array $localGuarapuavaPlaces = [
         [
+            'place_name' => 'UTFPR - Guarapuava',
             'display_name' => 'UTFPR - Universidade Tecnológica Federal do Paraná, Câmpus Guarapuava',
             'street' => 'Avenida Professora Laura Pacheco Bastos, 800',
             'neighborhood' => 'Industrial / Cidade dos Lagos',
@@ -22,6 +24,7 @@ class GeocodingService
             'lng' => -51.4787116,
         ],
         [
+            'place_name' => 'Shopping Cidade dos Lagos',
             'display_name' => 'Shopping Cidade dos Lagos, Guarapuava - PR',
             'street' => 'Avenida Guarapuava, 1400',
             'neighborhood' => 'Cidade dos Lagos',
@@ -31,6 +34,7 @@ class GeocodingService
             'lng' => -51.4850200,
         ],
         [
+            'place_name' => 'Unicentro - Câmpus Santa Cruz',
             'display_name' => 'Unicentro - Câmpus Santa Cruz, Guarapuava - PR',
             'street' => 'Rua Padre Salvador, 875',
             'neighborhood' => 'Santa Cruz',
@@ -40,6 +44,7 @@ class GeocodingService
             'lng' => -51.4769122,
         ],
         [
+            'place_name' => 'Unicentro - Câmpus CEDETEG',
             'display_name' => 'Unicentro - Câmpus CEDETEG, Guarapuava - PR',
             'street' => 'Alameda Élio Antonio Dalla Vecchia, 838',
             'neighborhood' => 'Vila Carli',
@@ -49,6 +54,17 @@ class GeocodingService
             'lng' => -51.4420300,
         ],
         [
+            'place_name' => 'Centro Universitário Campo Real',
+            'display_name' => 'Centro Universitário Campo Real, Guarapuava - PR',
+            'street' => 'Rua Comendador Norberto, 1299',
+            'neighborhood' => 'Santa Cruz',
+            'city' => 'Guarapuava',
+            'state' => 'PR',
+            'lat' => -25.3871200,
+            'lng' => -51.4721500,
+        ],
+        [
+            'place_name' => 'Praça 9 de Dezembro (Centro)',
             'display_name' => 'Centro, Praça 9 de Dezembro, Guarapuava - PR',
             'street' => 'Rua XV de Novembro, s/n',
             'neighborhood' => 'Centro',
@@ -58,6 +74,7 @@ class GeocodingService
             'lng' => -51.4641200,
         ],
         [
+            'place_name' => 'Terminal Rodoviário de Guarapuava',
             'display_name' => 'Terminal Rodoviário de Guarapuava - PR',
             'street' => 'Avenida Sebastião de Camargo Ribas, 2100',
             'neighborhood' => 'Bonsucesso',
@@ -67,6 +84,7 @@ class GeocodingService
             'lng' => -51.4550100,
         ],
         [
+            'place_name' => 'Parque do Lago',
             'display_name' => 'Parque do Lago, Guarapuava - PR',
             'street' => 'Rua Salvatore Renna, s/n',
             'neighborhood' => 'Batel',
@@ -76,6 +94,7 @@ class GeocodingService
             'lng' => -51.4670200,
         ],
         [
+            'place_name' => 'Lagoa das Lágrimas',
             'display_name' => 'Lagoa das Lágrimas, Guarapuava - PR',
             'street' => 'Rua Brigadeiro Rocha, s/n',
             'neighborhood' => 'Centro',
@@ -85,6 +104,17 @@ class GeocodingService
             'lng' => -51.4625000,
         ],
         [
+            'place_name' => 'Prefeitura Municipal de Guarapuava',
+            'display_name' => 'Prefeitura Municipal de Guarapuava, Centro',
+            'street' => 'Rua Brigadeiro Rocha, 2777',
+            'neighborhood' => 'Centro',
+            'city' => 'Guarapuava',
+            'state' => 'PR',
+            'lat' => -25.3948000,
+            'lng' => -51.4632000,
+        ],
+        [
+            'place_name' => 'Bairro Batel',
             'display_name' => 'Bairro Batel, Guarapuava - PR',
             'street' => 'Rua Saldanha Marinho',
             'neighborhood' => 'Batel',
@@ -94,6 +124,7 @@ class GeocodingService
             'lng' => -51.4720000,
         ],
         [
+            'place_name' => 'Bairro Santa Cruz',
             'display_name' => 'Bairro Santa Cruz, Guarapuava - PR',
             'street' => 'Rua Professora Leonídia',
             'neighborhood' => 'Santa Cruz',
@@ -103,6 +134,7 @@ class GeocodingService
             'lng' => -51.4740000,
         ],
         [
+            'place_name' => 'Bairro Bonsucesso',
             'display_name' => 'Bairro Bonsucesso, Guarapuava - PR',
             'street' => 'Avenida Manoel Ribas',
             'neighborhood' => 'Bonsucesso',
@@ -112,6 +144,7 @@ class GeocodingService
             'lng' => -51.4580000,
         ],
         [
+            'place_name' => 'Bairro Morro Alto',
             'display_name' => 'Bairro Morro Alto, Guarapuava - PR',
             'street' => 'Avenida Moacir Julio Silvestri',
             'neighborhood' => 'Morro Alto',
@@ -121,6 +154,7 @@ class GeocodingService
             'lng' => -51.4880000,
         ],
         [
+            'place_name' => 'Bairro Trianon',
             'display_name' => 'Bairro Trianon, Guarapuava - PR',
             'street' => 'Rua Capitão Rocha',
             'neighborhood' => 'Trianon',
@@ -130,6 +164,7 @@ class GeocodingService
             'lng' => -51.4700000,
         ],
         [
+            'place_name' => 'Bairro Santana',
             'display_name' => 'Bairro Santana, Guarapuava - PR',
             'street' => 'Rua Rosa Lustosa de Siqueira',
             'neighborhood' => 'Santana',
@@ -139,6 +174,7 @@ class GeocodingService
             'lng' => -51.4520000,
         ],
         [
+            'place_name' => 'Bairro Primavera',
             'display_name' => 'Bairro Primavera, Guarapuava - PR',
             'street' => 'Rua das Camélias',
             'neighborhood' => 'Primavera',
@@ -187,6 +223,7 @@ class GeocodingService
                     $item = $response->json();
                     if (is_array($item) && isset($item['lat'])) {
                         return [[
+                            'place_name' => $item['name'] ?? null,
                             'display_name' => $item['display_name'] ?? "Localização ({$lat}, {$lng})",
                             'street' => $item['address']['road'] ?? ($item['name'] ?? ''),
                             'neighborhood' => $item['address']['suburb'] ?? ($item['address']['neighbourhood'] ?? ''),
@@ -203,6 +240,7 @@ class GeocodingService
             }
 
             return [[
+                'place_name' => null,
                 'display_name' => "Coordenadas ({$lat}, {$lng})",
                 'street' => "Ponto no mapa ({$lat}, {$lng})",
                 'neighborhood' => '',
@@ -214,7 +252,22 @@ class GeocodingService
             ]];
         }
 
-        // 1. Tenta consulta ao Nominatim com delimitação geográfica de Guarapuava
+        $normalizedInput = $this->normalizeText($trimmedQuery);
+        $isPoiKeyword = str_contains($normalizedInput, 'utfpr')
+            || str_contains($normalizedInput, 'unicentro')
+            || str_contains($normalizedInput, 'cedeteg')
+            || str_contains($normalizedInput, 'campo real')
+            || str_contains($normalizedInput, 'cidade dos lagos');
+
+        // Se for um polo de ensino ou estabelecimento específico de Guarapuava, prioriza o catálogo local
+        if ($isPoiKeyword) {
+            $localMatches = $this->searchLocalDictionary($trimmedQuery);
+            if (!empty($localMatches)) {
+                return $localMatches;
+            }
+        }
+
+        // 2. Consulta ao Nominatim com delimitação geográfica de Guarapuava
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'Zarpa-Logistics-Platform/1.0 (zarpa@zarpa.com.br)',
@@ -232,7 +285,9 @@ class GeocodingService
                 $results = $response->json();
                 if (is_array($results) && count($results) > 0) {
                     return array_map(function ($item) {
+                        $placeName = $item['name'] ?? ($item['address']['amenity'] ?? ($item['address']['building'] ?? null));
                         return [
+                            'place_name' => $placeName,
                             'display_name' => $item['display_name'] ?? '',
                             'street' => $item['address']['road'] ?? ($item['name'] ?? ''),
                             'neighborhood' => $item['address']['suburb'] ?? ($item['address']['neighbourhood'] ?? ''),
@@ -249,7 +304,6 @@ class GeocodingService
             Log::info("Nominatim search skipped or failed, using local dictionary: " . $e->getMessage());
         }
 
-        // 2. Busca local de alta disponibilidade no dicionário de Guarapuava
         return $this->searchLocalDictionary($trimmedQuery);
     }
 
@@ -263,7 +317,7 @@ class GeocodingService
 
         foreach ($this->localGuarapuavaPlaces as $place) {
             $searchTarget = $this->normalizeText(
-                $place['display_name'] . ' ' . $place['street'] . ' ' . $place['neighborhood']
+                ($place['place_name'] ?? '') . ' ' . $place['display_name'] . ' ' . $place['street'] . ' ' . $place['neighborhood']
             );
 
             // Confere se as palavras da busca estão contidas no ponto de referência
