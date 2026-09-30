@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -272,7 +273,7 @@ export default function CourierDashboardScreen() {
                 description: `GPS: ${deviceLocation.latitude.toFixed(5)}, ${deviceLocation.longitude.toFixed(5)}`,
               }}
               mode="current_location"
-              radiusKm={parseFloat(radius) || 5.0}
+              radiusKm={parseFloat(String(radius)) || 5.0}
               height={190}
             />
           </View>

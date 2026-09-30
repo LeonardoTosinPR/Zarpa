@@ -156,4 +156,39 @@ export const courierService = {
     const response = await api.patch('/courier/profile', data);
     return response.data;
   },
+
+  /**
+   * Confirma a coleta do pacote no remetente.
+   */
+  async confirmPickup(orderId: number): Promise<{ message: string; order: ExpressOrder }> {
+    const response = await api.post<{ message: string; order: ExpressOrder }>(
+      `/orders/${orderId}/pickup`
+    );
+    return response.data;
+  },
+
+  /**
+   * Confirma a entrega do pacote ao destinatário final.
+   */
+  async confirmDelivery(orderId: number): Promise<{ message: string; order: ExpressOrder }> {
+    const response = await api.post<{ message: string; order: ExpressOrder }>(
+      `/orders/${orderId}/deliver`
+    );
+    return response.data;
+  },
+
+  /**
+   * Cancela uma entrega em andamento pelo entregador.
+   */
+  async cancelActiveDelivery(
+    orderId: number,
+    reason?: string
+  ): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>(
+      `/orders/${orderId}/cancel-delivery`,
+      { reason }
+    );
+    return response.data;
+  },
 };
+

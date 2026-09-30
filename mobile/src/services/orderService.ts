@@ -2,6 +2,7 @@ import { api } from './api';
 
 export interface GeocodeResult {
   display_name: string;
+  place_name?: string;
   street: string;
   neighborhood: string;
   city: string;
