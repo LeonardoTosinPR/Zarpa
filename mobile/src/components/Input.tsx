@@ -124,7 +124,11 @@ export function Input({
             testID="password-toggle-button"
           >
             <Animated.View style={{ transform: [{ scale: scaleAnim }, { rotate: spin }] }}>
-              <Text style={styles.eyeIcon}>{hidePassword ? '🙈' : '🐵'}</Text>
+              <Ionicons
+                name={hidePassword ? 'eye-off-outline' : 'eye-outline'}
+                size={22}
+                color={COLORS.textSecondary}
+              />
             </Animated.View>
           </TouchableOpacity>
         )}

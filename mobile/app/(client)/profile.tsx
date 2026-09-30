@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
@@ -17,12 +19,41 @@ import { Button } from '../../src/components/Button';
 export default function ClientProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
   const businessName = user?.client?.business_name || user?.name || 'Comércio Parceiro';
   const cnpj = user?.client?.cnpj_cpf || 'Não informado';
   const email = user?.email || 'email@exemplo.com';
   const phone = user?.phone || 'Não informado';
   const defaultAddress = user?.client?.default_address || 'Centro, Guarapuava - PR';
+
+  const handlePickAvatar = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Permissão necessária',
+          'Permita o acesso à galeria para alterar sua foto de perfil.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setAvatarUri(result.assets[0].uri);
+        Alert.alert('Sucesso', 'Foto de perfil atualizada com sucesso!');
+      }
+    } catch (err) {
+      console.warn('Erro ao selecionar foto:', err);
+      Alert.alert('Erro', 'Não foi possível carregar a imagem do dispositivo.');
+    }
+  };
 
   async function handleLogout() {
     Alert.alert('Confirmar Saída', 'Deseja realmente encerrar sua sessão?', [
@@ -43,11 +74,25 @@ export default function ClientProfileScreen() {
       <Header />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Profile Card */}
+        {/* Profile Card com Foto Clicável */}
         <View style={[styles.profileCard, SHADOWS.sm]}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarInitial}>{businessName.charAt(0).toUpperCase()}</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={handlePickAvatar}
+            activeOpacity={0.8}
+            testID="client-avatar-picker-btn"
+          >
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarInitial}>{businessName.charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            <View style={styles.avatarCameraBadge}>
+              <Ionicons name="camera" size={13} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
           <Text style={styles.businessName}>{businessName}</Text>
           <Text style={styles.userRole}>Lojista Cadastrado (Zarpa)</Text>
           <View style={styles.emailPill}>
@@ -146,14 +191,35 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     marginBottom: SPACING.lg,
   },
+  avatarButton: {
+    position: 'relative',
+    marginBottom: SPACING.sm,
+  },
   avatarCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.sm,
+  },
+  avatarImage: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+  },
+  avatarCameraBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: COLORS.primary,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   avatarInitial: {
     fontSize: 26,
