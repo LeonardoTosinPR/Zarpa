@@ -37,11 +37,17 @@ Este checklist documenta a evolução contínua das funcionalidades nos checkpoi
   - [x] Geocodificação de endereços em coordenadas com autocomplete e debounce.
   - [x] Seletor visual de modalidade de frete (*Entrega Expressa* vs *Lote Econômico*).
   - [x] Visualização prévia da rota no mapa interativo com Google Maps (`react-native-maps`).
-- [ ] **Radar Expresso & Disputa Concorrente (Entregador)**:
-  - [ ] Tela de Radar de ofertas imediatas com contagem regressiva de 10 segundos.
-  - [ ] Ação rápida "Aceitar Corrida" com feedback anti-colisão transacional.
-  - [ ] Renderização fluida da Polyline da rota viária calculada pelo ORS.
-- [ ] **Agenda de Lotes Econômicos & Execução Operacional**:
+- [x] **Radar Expresso & Disputa Concorrente (Entregador - Sprint 3)**:
+  - [x] Tela de Radar de ofertas imediatas com contagem regressiva de 10 segundos (`(courier)/express-radar.tsx`).
+  - [x] Ação rápida "Aceitar Corrida" com feedback anti-colisão transacional (`HTTP 409 Conflict`).
+  - [x] Ação "Recusar Corrida" persistida no backend (`OrderRejection`), ocultando o chamado da listagem do condutor.
+  - [x] Raio de atuação customizável via modal combo-box (1 a 50 km) e tipo de transporte em combo-box no Perfil (`(courier)/profile.tsx`).
+  - [x] Alteração de foto de perfil direto da galeria do aparelho celular (`expo-image-picker`) tanto para entregadores quanto para lojistas.
+  - [x] Acesso direto à tela de perfil tocando no avatar do cabeçalho global (`Header.tsx`) de qualquer tela.
+  - [x] Autocomplete de endereços com priorização de polos locais (UTFPR, Unicentro Santa Cruz, Unicentro CEDETEG, Shopping) exibindo nome do local em destaque e endereço completo.
+  - [x] Renderização simplificada de alta performance com `RouteMapPreview`: motor de tiles em React Native puro (CartoDB Voyager / OpenStreetMap) com projeção Mercator determinística, eliminando dependência do SDK pago do Google Maps e incompatibilidades da New Architecture/Fabric no Android, com pino customizado do condutor, círculo do raio de radar e controles interativos de zoom (+, -, recentralizar).
+  - [x] Painel de Telemetria GPS em Tempo Real em tela (`(courier)/dashboard.tsx` e `express-radar.tsx`): exibição visual de latitude, longitude, polo (Guarapuava), status de conexão ("GPS Ativo no Dispositivo") e sincronização contínua com a base PostGIS do backend Docker via ADB reverse (`tcp:8000`).
+- [ ] **Agenda de Lotes Econômicos & Execução Operacional (Sprint 4 & 6)**:
   - [ ] Visualização da agenda de paradas sequenciais de coleta e entrega.
   - [ ] Transições manuais de status do pedido (*Coletado*, *A caminho*, *Entregue*).
   - [ ] Transbordamento direto de rota (*Deep Linking*) para Google Maps (`geo:`) e Waze (`waze://`).
@@ -266,15 +272,18 @@ mobile/
 │   │   ├── _layout.tsx           # Layout da área do Lojista
 │   │   └── dashboard.tsx         # Dashboard e visão geral do comércio
 │   └── (courier)/                # Grupo de rotas protegidas do Entregador
-│       ├── _layout.tsx           # Layout da área do Entregador
-│       └── dashboard.tsx         # Dashboard com switch Online/Offline e rota do dia
+│       ├── _layout.tsx           # Layout com Tabs inferiores (Início, Radar, Meu Perfil)
+│       ├── dashboard.tsx         # Dashboard com switch Online/Offline, mapa GPS real e atalhos
+│       ├── express-radar.tsx     # Radar Expresso On-Demand com mapa borderless, cards popups compactos e cooldown de 30s
+│       ├── profile.tsx           # Perfil do Entregador com ajuste do Raio de Atuação (km), veículo e CNH
+│       └── active-delivery.tsx   # Visualização da rota interna OSRM, controle de status (coleta/entrega) e bloqueio de saída sem cancelamento
 ├── src/
-│   ├── components/               # Componentes UI reutilizáveis (Header, Button, Input, RoleSelector)
+│   ├── components/               # Componentes UI (Header, Button, Input, RouteMapPreview híbrido OSM/Leaflet)
 │   ├── constants/                # Constantes do Design System (theme.ts: cores, fontes, sombras)
 │   ├── context/                  # Contextos globais (AuthContext.tsx)
-│   ├── services/                 # Clientes HTTP e persistência segura (api.ts, authStorage.ts)
+│   ├── services/                 # Clientes HTTP (api.ts, orderService.ts, courierService.ts)
 │   ├── types/                    # Contratos de tipos TypeScript (auth.ts)
-│   └── utils/                    # Funções utilitárias (formatação de moeda BRL, cálculos)
+│   └── utils/                    # Funções utilitárias (decodePolyline, cálculo geodésico)
 ├── assets/                       # Ícones, splash screens e marcadores de mapa
 ├── __tests__/                    # Suíte de testes unitários com Jest e RNTL
 ├── app.json                      # Configurações do Expo
@@ -311,5 +320,21 @@ npx expo start
 ```bash
 cd mobile
 npm test
-npx tsc --noEmit
+```
+
+Resultados da suíte de testes unitários e de integração:
+```text
+PASS __tests__/RoleSelector.test.tsx
+PASS __tests__/Polyline.test.ts
+PASS __tests__/App.test.tsx
+PASS __tests__/AuthScreens.test.tsx
+PASS __tests__/Orders.test.tsx
+PASS __tests__/CourierProfile.test.tsx
+PASS __tests__/ExpressRadar.test.tsx
+PASS __tests__/CreateOrder.test.tsx
+PASS __tests__/ActiveDelivery.test.tsx
+
+Test Suites: 9 passed, 9 total
+Tests:       30 passed, 30 total
+Snapshots:   0 total
 ```

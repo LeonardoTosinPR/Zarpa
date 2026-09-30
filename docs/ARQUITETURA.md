@@ -9,7 +9,7 @@ graph TD
     subgraph Mobile ["Frontend Mobile (Expo SDK 54 / React Native)"]
         UI["Expo Router / Telas (Lojista & Entregador)"]
         State["TanStack React Query & AuthContext"]
-        NativeMap["React Native Maps (Polylines & Markers)"]
+        NativeMap["OpenStreetMap Engine (Mercator Tiles, Radar & Markers)"]
         GPS["Expo Location & Deep Link (Google Maps / Waze)"]
     end
 
@@ -57,7 +57,7 @@ graph TD
 - **Linguagem**: TypeScript.
 - **Gerenciamento de Estado de Rede**: `@tanstack/react-query` e `axios`.
 - **Armazenamento Seguro**: `expo-secure-store` para tokens JWT/Sanctum.
-- **Mapas e Geolocalização**: `react-native-maps` e `expo-location`.
+- **Mapas e Geolocalização**: Motor nativo em React Native puro consumindo API de azulejos do **OpenStreetMap (OSM)** com projeção Mercator determinística (eliminando dependência de SDKs proprietários/pagos do Google Maps) e `expo-location`.
 - **Testes**: Jest + React Native Testing Library (RNTL).
 
 ### 2.3 Integrações Externas e Geoespaciais

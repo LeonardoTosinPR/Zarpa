@@ -60,11 +60,13 @@ jest.mock('react-native-maps', () => {
   ));
   const MockMarker = (props) => <View testID="mock-marker" {...props} />;
   const MockPolyline = (props) => <View testID="mock-polyline" {...props} />;
+  const MockCircle = (props) => <View testID="mock-circle" {...props} />;
   return {
     __esModule: true,
     default: MockMapView,
     Marker: MockMarker,
     Polyline: MockPolyline,
+    Circle: MockCircle,
     PROVIDER_DEFAULT: 'default',
     PROVIDER_GOOGLE: 'google',
   };

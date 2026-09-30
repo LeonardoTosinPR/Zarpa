@@ -53,7 +53,7 @@ export default function CreateOrderScreen() {
   // Dados do Pacote
   const [packageDescription, setPackageDescription] = useState('');
   const [packageWeight, setPackageWeight] = useState('1.5');
-  const [shippingType, setShippingType] = useState<'economic' | 'express'>('economic');
+  const [shippingType, setShippingType] = useState<'economic' | 'express'>('express');
 
   // Estimativa OSRM e Precificação
   const [estimateData, setEstimateData] = useState<EstimateResponse | null>(null);
@@ -133,7 +133,10 @@ export default function CreateOrderScreen() {
 
   // 3. Seleção da Origem via sugestão de endereço digitado
   function handleSelectOriginSuggestion(item: GeocodeResult) {
-    setOriginAddress(item.display_name);
+    const chosenAddress = item.place_name
+      ? `${item.place_name} (${item.street || item.neighborhood})`
+      : item.display_name;
+    setOriginAddress(chosenAddress);
     setOriginCoords({ lat: item.lat, lng: item.lng });
     setOriginType('custom');
     setOriginQuery('');
@@ -233,7 +236,10 @@ export default function CreateOrderScreen() {
   }, [originCoords, destCoords, packageWeight, shippingType]);
 
   function handleSelectDestination(item: GeocodeResult) {
-    setDestAddress(item.display_name);
+    const chosenAddress = item.place_name
+      ? `${item.place_name} (${item.street || item.neighborhood})`
+      : item.display_name;
+    setDestAddress(chosenAddress);
     setDestCoords({ lat: item.lat, lng: item.lng });
     setDestQuery('');
     setSuggestions([]);
@@ -405,10 +411,17 @@ export default function CreateOrderScreen() {
                         onPress={() => handleSelectOriginSuggestion(item)}
                         testID={`origin-suggestion-item-${index}`}
                       >
-                        <Ionicons name="location-sharp" size={16} color={COLORS.textMuted} />
+                        <Ionicons
+                          name={item.place_name ? 'business-outline' : 'location-sharp'}
+                          size={18}
+                          color={item.place_name ? COLORS.primary : COLORS.textMuted}
+                        />
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.suggestionTitle}>{item.street || item.display_name}</Text>
+                          <Text style={styles.suggestionTitle}>
+                            {item.place_name || item.street || item.display_name}
+                          </Text>
                           <Text style={styles.suggestionSubtitle}>
+                            {item.place_name && item.street ? `${item.street} • ` : ''}
                             {item.neighborhood ? `${item.neighborhood}, ` : ''}{item.city} - {item.state}
                           </Text>
                         </View>
@@ -471,10 +484,17 @@ export default function CreateOrderScreen() {
                       onPress={() => handleSelectDestination(item)}
                       testID={`suggestion-item-${index}`}
                     >
-                      <Ionicons name="location-sharp" size={16} color={COLORS.textMuted} />
+                      <Ionicons
+                        name={item.place_name ? 'business-outline' : 'location-sharp'}
+                        size={18}
+                        color={item.place_name ? COLORS.primary : COLORS.textMuted}
+                      />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.suggestionTitle}>{item.street || item.display_name}</Text>
+                        <Text style={styles.suggestionTitle}>
+                          {item.place_name || item.street || item.display_name}
+                        </Text>
                         <Text style={styles.suggestionSubtitle}>
+                          {item.place_name && item.street ? `${item.street} • ` : ''}
                           {item.neighborhood ? `${item.neighborhood}, ` : ''}{item.city} - {item.state}
                         </Text>
                       </View>
@@ -533,29 +553,6 @@ export default function CreateOrderScreen() {
           </View>
 
           <View style={styles.modalityRow}>
-            {/* Econômica */}
-            <TouchableOpacity
-              style={[
-                styles.modalityCard,
-                shippingType === 'economic' && styles.modalityCardActive,
-              ]}
-              onPress={() => setShippingType('economic')}
-              activeOpacity={0.8}
-              testID="modality-economic-button"
-            >
-              <View style={styles.modalityTop}>
-                <Text style={[styles.modalityTag, shippingType === 'economic' && styles.modalityTagActive]}>
-                  ECONÔMICA
-                </Text>
-                <View style={styles.discountPill}>
-                  <Text style={styles.discountPillText}>-20% Rateio</Text>
-                </View>
-              </View>
-              <Text style={styles.modalityDesc}>
-                Coleta no lote compartilhado com economia cooperativa 50/50.
-              </Text>
-            </TouchableOpacity>
-
             {/* Expressa */}
             <TouchableOpacity
               style={[
@@ -576,6 +573,29 @@ export default function CreateOrderScreen() {
               </View>
               <Text style={styles.modalityDesc}>
                 Envio imediato e exclusivo para entregador disponível agora.
+              </Text>
+            </TouchableOpacity>
+
+            {/* Econômica */}
+            <TouchableOpacity
+              style={[
+                styles.modalityCard,
+                shippingType === 'economic' && styles.modalityCardActive,
+              ]}
+              onPress={() => setShippingType('economic')}
+              activeOpacity={0.8}
+              testID="modality-economic-button"
+            >
+              <View style={styles.modalityTop}>
+                <Text style={[styles.modalityTag, shippingType === 'economic' && styles.modalityTagActive]}>
+                  ECONÔMICA
+                </Text>
+                <View style={styles.discountPill}>
+                  <Text style={styles.discountPillText}>-20% Rateio</Text>
+                </View>
+              </View>
+              <Text style={styles.modalityDesc}>
+                Coleta no lote compartilhado com economia cooperativa 50/50.
               </Text>
             </TouchableOpacity>
           </View>

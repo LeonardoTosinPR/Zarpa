@@ -1,0 +1,29 @@
+appId: com.zarpa.mobile
+---
+# Scenario 1: Launch and Authenticate as Courier
+- launchApp:
+    clearState: true
+- tapOn: "Acessar Minha Conta"
+- tapOn:
+    id: "login-quick-courier"
+- assertVisible: "Entregador / Condutor"
+- assertVisible: "Disponível no Radar"
+
+# Scenario 2: Navigate to Express Radar Screen
+- tapOn:
+    id: "courier-radar-preview"
+- assertVisible: "Radar de Chamados"
+- assertVisible: "Guarapuava • Modalidade Expressa"
+- assertVisible: "Radar Ativo & Rastreando"
+
+# Scenario 3: Validate Radar Status and Actions
+- tapOn:
+    id: "radar-manual-refresh"
+- waitForAnimationToEnd: 1000
+
+# Scenario 4: Navigate Back to Courier Dashboard
+- tapOn:
+    id: "radar-back-button"
+- assertVisible: "Entregador / Condutor"
+- assertVisible: "Ações de Despacho (Condutor)"
+- takeScreenshot: courier_radar_flow_success

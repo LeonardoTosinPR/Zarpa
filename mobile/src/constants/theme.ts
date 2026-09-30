@@ -12,6 +12,7 @@ export const COLORS = {
   surface: '#FFFFFF',        // Card background
   
   text: '#111827',           // Dark headings
+  textPrimary: '#111827',    // Dark headings alias
   textSecondary: '#4B5563',  // Secondary body
   textMuted: '#9CA3AF',      // Placeholders / Subtitles
   
@@ -20,9 +21,12 @@ export const COLORS = {
   
   danger: '#DC2626',
   dangerLight: '#FEF2F2',
+  error: '#DC2626',          // Danger alias
   
   warning: '#D97706',
   warningLight: '#FFFBEB',
+
+  white: '#FFFFFF',
 };
 
 export const FONTS = {

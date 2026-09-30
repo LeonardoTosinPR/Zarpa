@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useRouter } from 'expo-router';
 
 interface HeaderProps {
   title?: string;
@@ -18,6 +19,21 @@ export function Header({
   onProfilePress,
 }: HeaderProps) {
   const { user } = useAuth();
+  const router = useRouter();
+
+  const handleProfilePress = () => {
+    if (onProfilePress) {
+      onProfilePress();
+      return;
+    }
+    if (user?.role === 'courier') {
+      router.push('/(courier)/profile');
+    } else if (user?.role === 'client') {
+      router.push('/(client)/profile');
+    } else {
+      router.push('/(courier)/profile');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -46,7 +62,7 @@ export function Header({
           {showProfile && (
             <TouchableOpacity
               style={styles.profileButton}
-              onPress={onProfilePress}
+              onPress={handleProfilePress}
               activeOpacity={0.7}
               testID="header-profile-button"
             >
