@@ -290,13 +290,12 @@ Construir o ecossistema de atendimento imediato sob demanda (*On-Demand*), imple
 
 #### 2\. Backlog de Tarefas
 
-##### 2.1 Backend (Laravel 13\)
+##### 2.1 Backend (Laravel 13)
 
 - [ ] Implementar serviço de busca geoespacial no PostGIS:  
       - Query usando `ST_DWithin` para identificar condutores online dentro do raio configurado (`cluster_radius_km`) a partir da coordenada de coleta do pedido expresso.  
-- [ ] Integrar `OpenRouteServiceRouteService`:  
-      - Consumir endpoint `/v2/directions/driving-car` da API ORS enviando coordenadas de coleta e entrega.  
-      - Retornar distância real em km, tempo estimado e geometria codificada (Polyline).  
+- [ ] Integrar Roteamento Viário com Polylines (servidor OSRM dedicado da UTFPR com Basic Auth):  
+      - Roteamento viário com cálculo de distância real em km, tempo estimado e geometria codificada (Polyline).  
 - [ ] Implementar `ExpressDispatchController` e endpoint transacional de aceite:  
       - `GET /api/courier/radar`: Retorna ofertas expressas ativas no raio do entregador.  
       - `POST /api/orders/{id}/accept-express`:  
@@ -307,7 +306,7 @@ Construir o ecossistema de atendimento imediato sob demanda (*On-Demand*), imple
         - Se não: lançar exceção controlada `HTTP 409 Conflict` ("Corrida já aceita por outro condutor").  
 - [ ] Implementar testes com **Pest**:  
       - Teste de isolamento de transação e colisão concorrente simulando duas requisições simultâneas para o mesmo pedido.  
-      - Teste de cálculo de rota via mock do ORS com validação do tempo de processamento.
+      - Teste de cálculo de rota via mock do OSRM com validação do tempo de processamento.
 
 ##### 2.2 Mobile (React Native / Expo)
 
@@ -316,24 +315,23 @@ Construir o ecossistema de atendimento imediato sob demanda (*On-Demand*), imple
       - Barra de progresso circular / contagem regressiva visual de 10 segundos.  
       - Botão de ação rápida "ACEITAR CORRIDA".  
 - [ ] Tratamento de Resposta e Concorrência:  
-      - Feedback visual de sucesso redirecionando imediatamente para a visualização da rota no mapa.  
-      - Feedback visual amigável em caso de colisão de cliques ("Ops\! Outro entregador foi mais rápido").  
-- [ ] Renderizar Polyline do traçado real da rota no mapa (`react-native-maps`) utilizando as coordenadas retornadas pela API ORS.  
+      - Feedback visual de sucesso redirecionando imediatamente para a visualização da rota no mapa (`(courier)/active-delivery`).  
+      - Feedback visual amigável em caso de colisão de cliques ("Ops! Outro entregador foi mais rápido").  
+- [ ] Renderizar Polyline do traçado real da rota no mapa (`react-native-maps`) utilizando as coordenadas retornadas pela rota viária.  
 - [ ] Testes unitários com Jest para o componente de contagem regressiva e transições de estado do radar.
 
 ##### 2.3 Testes E2E (Maestro)
 
 - [ ] Criar `/.maestro/express_accept_flow.yaml`:  
-      - Lojista cria um pedido na modalidade Expressa.  
       - Entregador acessa o Radar Expresso e visualiza a oferta ativa.  
       - Entregador clica em "ACEITAR CORRIDA" antes do término do timer.  
       - App exibe a rota traçada no mapa com o pedido no status "Aceito".
 
-#### 3\. Critérios de Aceitação & DoD
+#### 3. Critérios de Aceitação & DoD
 
-- A trava pessimista no PostgreSQL garante que apenas 1 entregador consiga aceitar o pedido expresso, retornando erro controlado aos demais.  
-- Traçado da rota gerado pelo ORS é renderizado fluidamente sobre o mapa no app mobile.  
-- Testes Pest de concorrência aprovados e fluxo `express_accept_flow.yaml` do Maestro rodando com sucesso.
+- [ ] A trava pessimista no PostgreSQL garante que apenas 1 entregador consiga aceitar o pedido expresso, retornando erro controlado aos demais.  
+- [ ] Traçado da rota gerado pelo OSRM é renderizado fluidamente sobre o mapa no app mobile.  
+- [ ] Testes Pest de concorrência aprovados e fluxo `express_accept_flow.yaml` do Maestro criado.
 
 ---
 

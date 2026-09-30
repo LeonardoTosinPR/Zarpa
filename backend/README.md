@@ -7,7 +7,7 @@
 > **Projeto Integrado**: Trabalho de Conclusão de Curso 2 (TCC 2)  
 > **Repositório Público no GitHub**: [https://github.com/LeonardoTosinPR/Zarpa](https://github.com/LeonardoTosinPR/Zarpa)  
 > **Protótipo no Figma**: [zarpa-entregas (UI/UX)](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Branch de Desenvolvimento Ativa**: [`sprint/2-postagem-geocodificacao-pedidos`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/2-postagem-geocodificacao-pedidos)
+> **Branch de Desenvolvimento Ativa**: [`sprint/3-fluxo-expresso-concorrencia`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/3-fluxo-expresso-concorrencia)
 
 ---
 
@@ -463,43 +463,58 @@ O backend possui suíte completa de testes automatizados com banco de dados dedi
 
 ### Resultados da Execução dos Testes:
 ```
+   PASS  Tests\Unit\CourierDispatchServiceTest
+  ✓ getAvailableExpressOrders returns empty collection when courier is offline
+  ✓ acceptExpressOrder returns 404 when order does not exist
+  ✓ acceptExpressOrder returns 409 when order is economic instead of express
+
    PASS  Tests\Unit\ExampleTest
-  ✓ basic unit test                                                      0.06s  
+  ✓ basic unit test                                                      0.01s  
 
    PASS  Tests\Unit\FreightCalculatorServiceTest
-  ✓ calculates freight accurately for standard package without overweight  0.01s  
-  ✓ calculates freight with overweight fee when package exceeds 5kg      0.01s  
+  ✓ calculates freight accurately for standard package without overweight
+  ✓ calculates freight with overweight fee when package exceeds 5kg
 
    PASS  Tests\Unit\GeocodingServiceTest
-  ✓ resolves address using Nominatim API when available                  0.02s  
-  ✓ uses local Guarapuava dictionary fallback when Nominatim fails       0.01s  
+  ✓ resolves address using Nominatim API when available                  0.01s  
+  ✓ uses local Guarapuava dictionary fallback when Nominatim fails
 
    PASS  Tests\Unit\OsrmRoutingServiceTest
-  ✓ calculates route with successful OSRM HTTP response                  0.01s  
+  ✓ calculates route with successful OSRM HTTP response
   ✓ falls back to haversine calculation when OSRM server is unreachable  0.01s  
 
    PASS  Tests\Feature\AuthTest
-  ✓ can register a new client with merchant profile and coordinates      0.97s  
+  ✓ can register a new client with merchant profile and coordinates      0.05s  
   ✓ can register a new courier with vehicle and driver license           0.03s  
   ✓ registration validates required fields according to role             0.03s  
   ✓ user can login successfully with seeded test credentials             0.03s  
   ✓ admin can login successfully and has full access                     0.03s  
-  ✓ login fails with invalid password                                    0.03s  
+  ✓ login fails with invalid password                                    0.02s  
   ✓ authenticated user can fetch me profile and logout                   0.03s  
   ✓ role middleware isolates client and courier access properly          0.04s  
+
+   PASS  Tests\Feature\ExpressDispatchTest
+  ✓ courier can update online status toggle via PATCH /api/courier/status 0.04s  
+  ✓ courier can update GPS coordinates and sync PostGIS current_location 0.04s  
+  ✓ courier can view express orders within radar radius via GET /api/courier/radar 0.04s  
+  ✓ courier can successfully accept an express order changing status to assigned 0.03s  
+  ✓ pessimistic lock prevents race condition returning 409 Conflict to competing courier 0.03s  
+  ✓ client is forbidden from accessing courier radar or accepting express orders 0.03s  
+  ✓ courier can reject an express order and it disappears from their radar 0.05s  
+  ✓ courier can view and update profile including cluster_radius_km via GET and PATCH /api/courier/profile 0.03s  
 
    PASS  Tests\Feature\HealthTest
   ✓ healthcheck endpoint returns successful structure                    0.02s  
 
    PASS  Tests\Feature\OrderTest
-  ✓ authenticated user can query geocoding endpoint for address autocomplete 0.40s  
+  ✓ authenticated user can query geocoding endpoint for address autocomplete 0.10s  
   ✓ user can estimate route and freight pricing without creating order   0.03s  
-  ✓ client can create an order successfully with PostGIS spatial persistence 0.03s  
+  ✓ client can create an order successfully with PostGIS spatial persistence 0.04s  
   ✓ courier is forbidden from creating client delivery orders            0.03s  
   ✓ client can list their own orders with status filtering               0.03s  
 
-  Tests:    21 passed (137 assertions)
-  Duration: 1.89s
+  Tests:    32 passed (191 assertions)
+  Duration: 1.87s
 ```
 
 ---

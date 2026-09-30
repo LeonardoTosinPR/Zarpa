@@ -4,7 +4,7 @@
 > **Autor**: Leonardo Tosin | **Orientador**: Prof. Dr. Andres Jessé Porfirio  
 > **Período de Execução**: 25/08/2026 a 31/10/2026  
 > **Figma UI/UX**: [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Branch da Sprint Atual**: [`sprint/2-postagem-geocodificacao-pedidos`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/2-postagem-geocodificacao-pedidos)
+> **Branch da Sprint Atual**: [`sprint/3-fluxo-expresso-concorrencia`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/3-fluxo-expresso-concorrencia)
 
 ---
 
@@ -14,11 +14,12 @@ Navegue diretamente pelos módulos de desenvolvimento e documentações especial
 
 | Módulo | Descrição do Componente | Documentação Direta |
 | :--- | :--- | :--- |
-| 🐘 **Backend (API)** | API RESTful em Laravel 13, PostgreSQL 16 + PostGIS, Sanctum, OSRM e Artefatos da disciplina de Backend com Framework | 👉 [**Acessar README Backend**](backend/README.md) |
-| 📱 **Mobile (App)** | Aplicativo React Native com Expo SDK 52, Design System do Figma, DER e Checkpoints da disciplina de Dispositivos Móveis | 👉 [**Acessar README Mobile**](mobile/README.md) |
+| 🐘 **Backend (API)** | API RESTful em Laravel 13, PostgreSQL 16 + PostGIS, Sanctum, OSRM e Despacho Expresso | 👉 [**Acessar README Backend**](backend/README.md) |
+| 📱 **Mobile (App)** | Aplicativo React Native com Expo SDK 54, Design System do Figma, Radar Expresso e Mapas | 👉 [**Acessar README Mobile**](mobile/README.md) |
 | 📐 **Arquitetura** | Especificação arquitetural do sistema, diagramas de fluxo de dados, políticas de segurança e DER Lógico | 👉 [**Acessar ARQUITETURA.md**](docs/ARQUITETURA.md) |
 | 📅 **Plano Mestre** | Visão executiva, matriz de rastreabilidade MoSCoW/RICE e cronograma consolidado de todas as sprints | 👉 [**Acessar MASTER_PLAN.md**](docs/MASTER_PLAN.md) |
-| 🏁 **Sprint 2 (Atual)** | Postagem de Pedidos, Geocodificação OSRM, Mapa Interativo e Definition of Done (DoD) | 👉 [**Acessar sprint_2.md**](docs/sprints/sprint_2.md) |
+| ⚡ **Sprint 3 (Atual)** | Fluxo Expresso On-Demand, Radar com Timer de 10s, Lock Pessimista e Rota OSRM | 👉 [**Acessar sprint_3.md**](docs/sprints/sprint_3.md) |
+| 🏁 **Sprint 2** | Postagem de Pedidos, Geocodificação OSRM, Mapa Interativo e Cotação de Frete | 👉 [**Acessar sprint_2.md**](docs/sprints/sprint_2.md) |
 | 📦 **Sprint 1** | Autenticação, Perfis de Atores (Lojista / Entregador) e Navegação Condicional | 👉 [**Acessar sprint_1.md**](docs/sprints/sprint_1.md) |
 
 ---
@@ -27,9 +28,10 @@ Navegue diretamente pelos módulos de desenvolvimento e documentações especial
 
 O **Zarpa** é uma plataforma que otimiza entregas urbanas em Guarapuava - PR, integrando backend geoespacial (Laravel 13 + PostgreSQL/PostGIS) e aplicativo móvel multiplataforma (React Native / Expo SDK 54):
 
-1. **Entrega Expressa**: Atendimento imediato sob demanda com radar espacial por proximidade e bloqueio pessimista de concorrência (`lockForUpdate()`).
-2. **Lote Econômico com Rateio Dinâmico 50/50**: Agrupamento noturno de pedidos por proximidade geográfica (PostGIS + OpenRouteService), repassando 50% da economia como desconto aos lojistas e 50% como bônus aos entregadores.
-3. **Módulo de Atores e Perfis**: Segmentação estrita entre Lojista (`client`), Entregador (`courier`) e Administrador (`admin`) com autenticação via Laravel Sanctum e armazenamento seguro em `expo-secure-store`.
+1. **Entrega Expressa**: Atendimento imediato sob demanda com radar espacial por proximidade (raio de 1 a 50 km customizável no perfil), timer regressivo de 10s, bloqueio pessimista de concorrência (`lockForUpdate()`) e recusa de chamados com exclusão persistente por condutor.
+2. **Lote Econômico com Rateio Dinâmico 50/50**: Agrupamento diário/noturno de pedidos por proximidade geográfica (PostGIS + OSRM), repassando 50% da economia como desconto aos lojistas e 50% como bônus aos entregadores.
+3. **Módulo de Atores e Perfis**: Segmentação estrita entre Lojista (`client`), Entregador (`courier`) e Administrador (`admin`), com navegação para perfil pelo avatar do cabeçalho global, combo-boxes modais de seleção rápida de raio e veículo, e envio de foto de perfil via galeria do dispositivo.
+4. **Geocodificação e Autocomplete Local**: Catálogo determinístico de alta fidelidade para estabelecimentos de Guarapuava (UTFPR, Unicentro CEDETEG, Unicentro Santa Cruz, Shopping, etc.) exibindo título do polo e endereço detalhado.
 
 ---
 
