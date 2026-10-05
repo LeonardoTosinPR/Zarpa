@@ -7,7 +7,7 @@
 > **Projeto Integrado**: Trabalho de Conclusão de Curso 2 (TCC 2)  
 > **Repositório Público no GitHub**: [https://github.com/LeonardoTosinPR/Zarpa](https://github.com/LeonardoTosinPR/Zarpa)  
 > **Protótipo no Figma**: [zarpa-entregas (UI/UX)](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Branch de Desenvolvimento Ativa**: [`sprint/3-fluxo-expresso-concorrencia`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/3-fluxo-expresso-concorrencia)
+> **Branch de Desenvolvimento Ativa**: [`sprint/4-lote-economico-agrupamento`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/4-lote-economico-agrupamento)
 
 ---
 

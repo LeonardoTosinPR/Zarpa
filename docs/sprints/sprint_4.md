@@ -116,7 +116,7 @@ while (count($sequencedStops) < $totalStops) {
 
 ## 4. Métricas de Validação
 
-- **Testes Backend (Pest v3)**: **48 testes aprovados (367 asserções)**.
+- **Testes Backend (Pest v3)**: **46 testes aprovados (358 asserções)**.
 - **Testes Frontend (Jest)**: **12 suítes aprovadas, 38 testes unitários/componente aprovados**.
 - **Tipagem TypeScript**: **0 erros (`npx tsc --noEmit`)**.
 - **Regressão**: Nenhuma regressão detectada em fluxos de autenticação, geocodificação, postagem ou radar expresso da Sprint 3.

@@ -349,40 +349,40 @@ Desenvolver o núcleo do Lote Econômico: comando assíncrono em segundo plano (
 
 ##### 2.1 Backend (Laravel 13)
 
-- [x] Criar migrations para o módulo de agrupamento:  
+- [ ] Criar migrations para o módulo de agrupamento:  
       - `delivery_groups`: `id`, `courier_id`, `scheduled_date`, `total_distance_km`, `total_duration_minutes`, `status` (`created`, `assigned`, `in_progress`, `completed`), `total_combined_cost`, `total_savings_generated`, `courier_bonus`.  
       - `group_orders`: `id`, `delivery_group_id`, `order_id`, `stop_sequence` (ordem de 1 a N), `stop_type` (`pickup` / `delivery`), `isolated_distance_km`, `shared_distance_km`, `allocated_cost`, `merchant_discount`.  
-- [x] Implementar o algoritmo de agrupamento geoespacial no Service `BatchClusteringService`:  
+- [ ] Implementar o algoritmo de agrupamento geoespacial no Service `BatchClusteringService`:  
       - Seleção de pedidos pendentes da modalidade `economic`.  
       - Identificação de pedidos âncora (`is_anchor`) ou clusterização por vizinho mais próximo com base em coordenadas PostGIS / Haversine.  
       - Limitação de pacotes (máx. 5 pedidos) e peso total (20 kg) por condutor escalado, com alocação biunívoca de entregadores.  
-- [x] Integrar otimização multi-pontos com o OSRM (`OsrmRoutingService`):  
+- [ ] Integrar otimização multi-pontos com o OSRM (`OsrmRoutingService`):  
       - Consumo da API OSRM Driving com múltiplos waypoints contínuos (`calculateMultiStopRoute`), gerando polilinha codificada e métricas consolidadas.  
-- [x] Implementar comandos Artisan e Seeders:  
+- [ ] Implementar comandos Artisan e Seeders:  
       - `php artisan zarpa:process-economic-batch` (agendado diariamente às 02:00 no `routes/console.php`).  
       - `php artisan db:populate`: popula o cenário de homologação com 3 entregadores em pólos reais de Guarapuava e 15 pedidos econômicos distribuídos proporcionalmente (5 pedidos de fluxo contínuo para cada entregador).  
-- [x] Implementar Endpoints de API e Controle de Acesso (`DeliveryGroupController`):  
+- [ ] Implementar Endpoints de API e Controle de Acesso (`DeliveryGroupController`):  
       - `POST /api/batch/process-economic`: Restrito estritamente a administradores (`role === 'admin'`, retorna 403 Forbidden para não-admins).  
       - `GET /api/courier/delivery-groups` e `GET /api/courier/delivery-groups/{id}`.  
-- [x] Criar testes com **Pest** (100% aprovados, 40 testes / 281 asserções):  
+- [ ] Criar testes com **Pest** (100% aprovados):  
       - Teste unitário do `BatchClusteringService` garantindo precedência estrita ($P_i < D_i$), limites de carga e distâncias geográficas.  
       - Teste de Feature `EconomicBatchTest` validando comando Artisan, autorização admin e visualização do itinerário pelo entregador.
 
 ##### 2.2 Mobile (React Native / Expo)
 
-- [x] Módulo do Lojista:  
+- [ ] Módulo do Lojista:  
       - Atualizar card de pedido econômico exibindo badge informativo: "Aguardando processamento do lote noturno (02:00)".  
       - Exibição de badge "Lote Gerado: Entrega Agendada" e preço com desconto quando agrupado.  
-- [x] Módulo do Entregador:  
+- [ ] Módulo do Entregador:  
       - Criar tela dedicada exclusiva `mobile/app/(courier)/economic-batches.tsx` para visualização isolada dos Lotes Econômicos e itinerário de paradas sequenciadas de coleta e entrega.  
       - Card de atalho com contador no `dashboard.tsx` do entregador.  
       - Painel de simulação do batch noturno visível e restrito exclusivamente para o perfil Administrador (`role === 'admin'`).  
-- [x] Testes de renderização com Jest (100% aprovados, 11 suítes / 36 testes):  
+- [ ] Testes de renderização com Jest:  
       - `__tests__/EconomicBatch.test.tsx` cobrindo fluxo do lojista, atalho do entregador e a tela dedicada com itinerário.
 
 ##### 2.3 Testes E2E (Maestro)
 
-- [x] Fluxo auxiliar de validação do lote econômico:  
+- [ ] Fluxo auxiliar de validação do lote econômico:  
       - Comando `php artisan db:populate` para carga instantânea do cenário de 3 entregadores e 15 pedidos.  
       - Execução do lote via `php artisan zarpa:process-economic-batch` ou via endpoint restrito admin.
 
