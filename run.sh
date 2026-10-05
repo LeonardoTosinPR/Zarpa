@@ -336,7 +336,8 @@ show_usage() {
     echo "  ./run.sh mobile [-t|-w]    - Inicia o Expo Mobile (terminal atual, ou -t/-w para nova aba/janela)"
     echo ""
     echo "BANCO DE DADOS & SEEDERS:"
-    echo "  ./run.sh db:populate       - Executa migrations e popula usuários de teste"
+    echo "  ./run.sh db:populate       - Executa migrations e popula cenário padrão (seeders)"
+    echo "  ./run.sh db:mock-orders    - Popula ~70 pedidos aleatórios por Guarapuava (20 expressos + 50 econômicos)"
     echo "  ./run.sh db:reset          - Limpa (migrate:fresh) e repopula todo o banco"
     echo ""
     echo "TESTES & QUALIDADE:"
@@ -421,6 +422,16 @@ case "$COMMAND" in
         docker exec -i zarpa_backend php artisan migrate --seed
         write_success "Banco de dados atualizado e populado!"
         show_test_credentials
+        ;;
+
+    db:mock-orders)
+        assert_docker_ready
+        assert_backend_ready
+        docker compose up -d
+        wait_for_backend
+        write_info "Gerando pedidos mockados aleatórios por Guarapuava (20 expressos + 50 econômicos)..."
+        docker exec -i zarpa_backend php artisan zarpa:mock-orders --express=20 --economic=50 "$@"
+        write_success "Pedidos mockados gerados com sucesso!"
         ;;
 
     db:reset)

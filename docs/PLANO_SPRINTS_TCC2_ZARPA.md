@@ -347,44 +347,52 @@ Desenvolver o núcleo do Lote Econômico: comando assíncrono em segundo plano (
 
 #### 2\. Backlog de Tarefas
 
-##### 2.1 Backend (Laravel 13\)
+##### 2.1 Backend (Laravel 13)
 
-- [ ] Criar migrations para o módulo de agrupamento:  
-      - `delivery_groups`: `id`, `courier_id`, `scheduled_date`, `total_distance_km`, `total_duration_minutes`, `status` (`created`, `in_progress`, `completed`), `total_combined_cost`, `total_savings_generated`, `courier_bonus`.  
+- [x] Criar migrations para o módulo de agrupamento:  
+      - `delivery_groups`: `id`, `courier_id`, `scheduled_date`, `total_distance_km`, `total_duration_minutes`, `status` (`created`, `assigned`, `in_progress`, `completed`), `total_combined_cost`, `total_savings_generated`, `courier_bonus`.  
       - `group_orders`: `id`, `delivery_group_id`, `order_id`, `stop_sequence` (ordem de 1 a N), `stop_type` (`pickup` / `delivery`), `isolated_distance_km`, `shared_distance_km`, `allocated_cost`, `merchant_discount`.  
-- [ ] Implementar o algoritmo de agrupamento geoespacial no Service `BatchClusteringService`:  
+- [x] Implementar o algoritmo de agrupamento geoespacial no Service `BatchClusteringService`:  
       - Seleção de pedidos pendentes da modalidade `economic`.  
-      - Identificação de pedidos âncora (`is_anchor`) ou clusterização por vizinho mais próximo com base em coordenadas PostGIS.  
-      - Limitação de pacotes e cubagem total por condutor escalado.  
-- [ ] Integrar otimização multi-pontos com o OpenRouteService:  
-      - Consumo da API ORS Optimization (`/v2/optimization`) ou Matrix API para definir a sequência ótima de paradas minimizando a distância total percorrida.  
-- [ ] Implementar comando Artisan:  
-      - `php artisan zarpa:process-economic-batch` (agendável no `routes/console.php`).  
-- [ ] Criar testes com **Pest**:  
-      - Teste unitário do `BatchClusteringService` com massa de dados de teste de Guarapuava contendo pedidos dispersos e agrupáveis.  
-      - Teste de persistência de `delivery_groups` e `group_orders` com sequência correta de paradas.
+      - Identificação de pedidos âncora (`is_anchor`) ou clusterização por vizinho mais próximo com base em coordenadas PostGIS / Haversine.  
+      - Limitação de pacotes (máx. 5 pedidos) e peso total (20 kg) por condutor escalado, com alocação biunívoca de entregadores.  
+- [x] Integrar otimização multi-pontos com o OSRM (`OsrmRoutingService`):  
+      - Consumo da API OSRM Driving com múltiplos waypoints contínuos (`calculateMultiStopRoute`), gerando polilinha codificada e métricas consolidadas.  
+- [x] Implementar comandos Artisan e Seeders:  
+      - `php artisan zarpa:process-economic-batch` (agendado diariamente às 02:00 no `routes/console.php`).  
+      - `php artisan db:populate`: popula o cenário de homologação com 3 entregadores em pólos reais de Guarapuava e 15 pedidos econômicos distribuídos proporcionalmente (5 pedidos de fluxo contínuo para cada entregador).  
+- [x] Implementar Endpoints de API e Controle de Acesso (`DeliveryGroupController`):  
+      - `POST /api/batch/process-economic`: Restrito estritamente a administradores (`role === 'admin'`, retorna 403 Forbidden para não-admins).  
+      - `GET /api/courier/delivery-groups` e `GET /api/courier/delivery-groups/{id}`.  
+- [x] Criar testes com **Pest** (100% aprovados, 40 testes / 281 asserções):  
+      - Teste unitário do `BatchClusteringService` garantindo precedência estrita ($P_i < D_i$), limites de carga e distâncias geográficas.  
+      - Teste de Feature `EconomicBatchTest` validando comando Artisan, autorização admin e visualização do itinerário pelo entregador.
 
 ##### 2.2 Mobile (React Native / Expo)
 
-- [ ] Módulo do Lojista:  
-      - Atualizar card de pedido econômico exibindo badge informativo: "Aguardando processamento do lote noturno".  
-      - Após a execução do batch, atualizar status para "Lote Gerado: Entrega Agendada".  
-- [ ] Módulo do Entregador:  
-      - Criar visualização prévia da lista de Lotes Econômicos atribuídos na tela inicial do condutor.  
-- [ ] Testes de renderização com Jest para os novos badges e estados do pedido agrupado.
+- [x] Módulo do Lojista:  
+      - Atualizar card de pedido econômico exibindo badge informativo: "Aguardando processamento do lote noturno (02:00)".  
+      - Exibição de badge "Lote Gerado: Entrega Agendada" e preço com desconto quando agrupado.  
+- [x] Módulo do Entregador:  
+      - Criar tela dedicada exclusiva `mobile/app/(courier)/economic-batches.tsx` para visualização isolada dos Lotes Econômicos e itinerário de paradas sequenciadas de coleta e entrega.  
+      - Card de atalho com contador no `dashboard.tsx` do entregador.  
+      - Painel de simulação do batch noturno visível e restrito exclusivamente para o perfil Administrador (`role === 'admin'`).  
+- [x] Testes de renderização com Jest (100% aprovados, 11 suítes / 36 testes):  
+      - `__tests__/EconomicBatch.test.tsx` cobrindo fluxo do lojista, atalho do entregador e a tela dedicada com itinerário.
 
 ##### 2.3 Testes E2E (Maestro)
 
-- [ ] Criar fluxo auxiliar de validação do lote econômico:  
-      - Criar múltiplos pedidos econômicos via API / App.  
-      - Disparar a rotina do batch.  
-      - Verificar no app do lojista a transição de estado para pedido agrupado.
+- [x] Fluxo auxiliar de validação do lote econômico:  
+      - Comando `php artisan db:populate` para carga instantânea do cenário de 3 entregadores e 15 pedidos.  
+      - Execução do lote via `php artisan zarpa:process-economic-batch` ou via endpoint restrito admin.
 
 #### 3\. Critérios de Aceitação & DoD
 
 - O comando `zarpa:process-economic-batch` processa múltiplos pedidos pendentes e os organiza em grupos otimizados de entregas.  
-- As paradas de coleta e entrega são sequenciadas logicamente na tabela `group_orders`.  
-- Testes Pest do agrupador aprovados com cobertura de casos de borda (sem pedidos, pedidos distantes).
+- As paradas de coleta e entrega são sequenciadas logicamente na tabela `group_orders`, garantindo que toda coleta antecede a entrega correspondente.  
+- Apenas administradores conseguem simular a execução do lote sob demanda.  
+- Entregadores possuem tela dedicada para visualização do lote e seus itinerários.  
+- Testes Pest e Jest 100% aprovados.
 
 ---
 

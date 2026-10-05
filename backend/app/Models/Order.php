@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -129,5 +131,39 @@ class Order extends Model
     public function scopeExpress(Builder $query): Builder
     {
         return $query->where('shipping_type', 'express');
+    }
+
+    /**
+     * Paradas associadas a este pedido em lotes de entrega.
+     */
+    public function groupOrders(): HasMany
+    {
+        return $this->hasMany(GroupOrder::class);
+    }
+
+    /**
+     * Lotes de entrega aos quais este pedido pertence.
+     */
+    public function deliveryGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(DeliveryGroup::class, 'group_orders')
+            ->withPivot([
+                'id',
+                'stop_sequence',
+                'stop_type',
+                'isolated_distance_km',
+                'shared_distance_km',
+                'allocated_cost',
+                'merchant_discount',
+            ])
+            ->withTimestamps();
+    }
+
+    /**
+     * Lote de entrega mais recente ou ativo deste pedido.
+     */
+    public function currentDeliveryGroup(): ?DeliveryGroup
+    {
+        return $this->deliveryGroups()->latest('delivery_groups.created_at')->first();
     }
 }

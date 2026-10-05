@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role.client' => \App\Http\Middleware\EnsureUserIsClient::class,
             'role.courier' => \App\Http\Middleware\EnsureUserIsCourier::class,
+            'role.admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

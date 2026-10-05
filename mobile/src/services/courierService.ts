@@ -190,5 +190,38 @@ export const courierService = {
     );
     return response.data;
   },
+
+  /**
+   * Consulta os lotes econômicos atribuídos ou disponíveis para o entregador.
+   */
+  async getDeliveryGroups(): Promise<{
+    courier_id: number;
+    total_groups: number;
+    groups: any[];
+  }> {
+    const response = await api.get('/courier/delivery-groups');
+    return response.data;
+  },
+
+  /**
+   * Obtém detalhes completos de um lote econômico com a lista de paradas sequenciadas.
+   */
+  async getDeliveryGroupDetail(id: number): Promise<any> {
+    const response = await api.get(`/courier/delivery-groups/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Dispara o processamento do lote econômico sob demanda (para testes manuais).
+   */
+  async processEconomicBatch(params?: {
+    scheduled_date?: string;
+    radius?: number;
+    dry_run?: boolean;
+  }): Promise<any> {
+    const response = await api.post('/batch/process-economic', params || {});
+    return response.data;
+  },
 };
+
 

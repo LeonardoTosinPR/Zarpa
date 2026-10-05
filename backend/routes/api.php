@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ExpressDispatchController;
+use App\Http\Controllers\Api\DeliveryGroupController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -104,5 +105,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders/{id}/pickup', [ExpressDispatchController::class, 'pickup']);
         Route::post('/orders/{id}/deliver', [ExpressDispatchController::class, 'deliver']);
         Route::post('/orders/{id}/cancel-delivery', [ExpressDispatchController::class, 'cancelDelivery']);
+
+        // Lotes Econômicos do Entregador (Sprint 4)
+        Route::get('/courier/delivery-groups', [DeliveryGroupController::class, 'courierGroups']);
+        Route::get('/courier/delivery-groups/{id}', [DeliveryGroupController::class, 'show']);
+    });
+
+    // Módulo de Agrupamento e Lote Econômico (Sprint 4: Execução sob demanda para testes manuais e admin)
+    Route::prefix('batch')->group(function () {
+        Route::post('/process-economic', [DeliveryGroupController::class, 'processBatch']);
+        Route::get('/summary', [DeliveryGroupController::class, 'getPendingSummary']);
+    });
+
+    // Módulo de Gestão Administrativa Master
+    Route::middleware('role.admin')->prefix('admin')->group(function () {
+        Route::get('/users', [\App\Http\Controllers\Api\AdminController::class, 'users']);
+        Route::get('/orders', [\App\Http\Controllers\Api\AdminController::class, 'orders']);
+        Route::patch('/couriers/{id}/status', [\App\Http\Controllers\Api\AdminController::class, 'toggleCourierStatus']);
     });
 });
