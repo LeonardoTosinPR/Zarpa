@@ -1,13 +1,12 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Platform,
-  TouchableOpacity,
-  Image,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { ExpoLeaflet, MapLayer, MapMarker, MapShape } from 'expo-leaflet';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 import { decodePolyline, LatLng } from '../utils/polyline';
 
@@ -36,65 +35,20 @@ export const GUARAPUAVA_DEFAULT_REGION = {
   longitudeDelta: 0.05,
 };
 
-interface MapTileItem {
-  key: string;
-  url: string;
-  left: number;
-  top: number;
-}
+// Camada base oficial OpenStreetMap (OSM) via Leaflet
+const OSM_MAP_LAYER: MapLayer = {
+  baseLayerName: 'OpenStreetMap',
+  baseLayerIsChecked: true,
+  layerType: 'TileLayer',
+  baseLayer: true,
+  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+};
 
-// Projeção Mercator para cálculo determinístico de tiles e posicionamento em pixels
-function calculateMapTiles(
-  centerLat: number,
-  centerLng: number,
-  zoom: number,
-  containerWidth: number,
-  containerHeight: number
-) {
-  const n = Math.pow(2, zoom);
-  const xExact = ((centerLng + 180) / 360) * n;
-  const latRad = (centerLat * Math.PI) / 180;
-  const yExact = ((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2) * n;
-
-  const centerTileX = Math.floor(xExact);
-  const centerTileY = Math.floor(yExact);
-
-  const offsetX = (xExact - centerTileX) * 256;
-  const offsetY = (yExact - centerTileY) * 256;
-
-  const centerTileLeft = containerWidth / 2 - offsetX;
-  const centerTileTop = containerHeight / 2 - offsetY;
-
-  const tiles: MapTileItem[] = [];
-  // Grade 3x3 de tiles (768x768 pixels) cobrindo todo o viewport do mapa diretamente via OpenStreetMap (OSM)
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dy = -1; dy <= 1; dy++) {
-      const tx = centerTileX + dx;
-      const ty = centerTileY + dy;
-      tiles.push({
-        key: `${zoom}-${tx}-${ty}`,
-        url: `https://tile.openstreetmap.de/${zoom}/${tx}/${ty}.png`,
-        left: centerTileLeft + dx * 256,
-        top: centerTileTop + dy * 256,
-      });
-    }
-  }
-
-  // Metros por pixel no paralelo da latitude central
-  const metersPerPixel = (40075016.686 * Math.cos(latRad)) / (256 * n);
-
-  const toPixelXY = (targetLat: number, targetLng: number) => {
-    const txExact = ((targetLng + 180) / 360) * n;
-    const tLatRad = (targetLat * Math.PI) / 180;
-    const tyExact = ((1 - Math.asinh(Math.tan(tLatRad)) / Math.PI) / 2) * n;
-    return {
-      x: centerTileLeft + (txExact - centerTileX) * 256,
-      y: centerTileTop + (tyExact - centerTileY) * 256,
-    };
-  };
-
-  return { tiles, metersPerPixel, toPixelXY };
-}
+// Ícones SVG para os marcadores Leaflet (Compatíveis com WebView e Leaflet)
+const COURIER_PIN_SVG = `<svg stroke="currentColor" fill="#1E3A8A" stroke-width="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></svg>`;
+const ORIGIN_PIN_SVG = `<svg stroke="currentColor" fill="#059669" stroke-width="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></svg>`;
+const DEST_PIN_SVG = `<svg stroke="currentColor" fill="#DC2626" stroke-width="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></svg>`;
 
 export function RouteMapPreview({
   origin,
@@ -108,16 +62,6 @@ export function RouteMapPreview({
   // Identifica se o mapa está exibindo exclusivamente a posição do condutor
   const isCurrentLocation =
     mode === 'current_location' || (Boolean(origin) && !destination && !polyline);
-
-  const [zoom, setZoom] = useState<number>(isCurrentLocation ? 15 : 14);
-  const [containerWidth, setContainerWidth] = useState<number>(360);
-  const [containerHeight, setContainerHeight] = useState<number>(height ?? 230);
-
-  useEffect(() => {
-    if (height) {
-      setContainerHeight(height);
-    }
-  }, [height]);
 
   const routeCoordinates: LatLng[] = useMemo(() => {
     return polyline ? decodePolyline(polyline) : [];
@@ -137,21 +81,83 @@ export function RouteMapPreview({
     return origin?.longitude ?? destination?.longitude ?? GUARAPUAVA_DEFAULT_REGION.longitude;
   }, [origin, destination, isCurrentLocation]);
 
-  const { tiles, metersPerPixel, toPixelXY } = useMemo(() => {
-    return calculateMapTiles(centerLat, centerLng, zoom, containerWidth, containerHeight);
-  }, [centerLat, centerLng, zoom, containerWidth, containerHeight]);
+  const zoom = isCurrentLocation ? 15 : origin && destination ? 13 : 14;
 
-  const originPixel = origin ? toPixelXY(origin.latitude, origin.longitude) : null;
-  const destPixel = destination ? toPixelXY(destination.latitude, destination.longitude) : null;
-  const radiusPx = (radiusKm * 1000) / metersPerPixel;
+  // Marcadores Leaflet
+  const mapMarkers = useMemo<MapMarker[]>(() => {
+    const list: MapMarker[] = [];
+
+    if (origin) {
+      list.push({
+        id: isCurrentLocation ? 'courier-loc' : 'origin-loc',
+        position: { lat: origin.latitude, lng: origin.longitude },
+        icon: isCurrentLocation ? COURIER_PIN_SVG : ORIGIN_PIN_SVG,
+        size: [32, 32],
+        title: isCurrentLocation ? 'Você está aqui' : (origin.title || 'Coleta'),
+      });
+    }
+
+    if (!isCurrentLocation && destination) {
+      list.push({
+        id: 'dest-loc',
+        position: { lat: destination.latitude, lng: destination.longitude },
+        icon: DEST_PIN_SVG,
+        size: [32, 32],
+        title: destination.title || 'Entrega',
+      });
+    }
+
+    return list;
+  }, [origin, destination, isCurrentLocation]);
+
+  // Formas Leaflet (Círculo de radar e polilinha de rota OSRM)
+  const mapShapes = useMemo<MapShape[]>(() => {
+    const shapes: MapShape[] = [];
+
+    if (isCurrentLocation && origin) {
+      shapes.push({
+        shapeType: 'circle',
+        id: 'radar-radius-circle',
+        center: { lat: origin.latitude, lng: origin.longitude },
+        radius: (radiusKm ?? 5.0) * 1000,
+        pathOptions: {
+          color: '#1E3A8A',
+          fillColor: '#1E3A8A',
+          fillOpacity: 0.12,
+          weight: 2,
+        },
+      } as any);
+    }
+
+    if (routeCoordinates.length > 0) {
+      shapes.push({
+        shapeType: 'polyline',
+        id: 'route-polyline',
+        positions: routeCoordinates.map((c) => [c.latitude, c.longitude]),
+        pathOptions: {
+          color: '#1E3A8A',
+          weight: 4,
+          opacity: 0.85,
+        },
+      } as any);
+    }
+
+    return shapes;
+  }, [isCurrentLocation, origin, radiusKm, routeCoordinates]);
+
+  const mapHeightStyle =
+    height !== undefined
+      ? { height }
+      : borderless
+      ? { flex: 1, height: '100%' as any }
+      : { height: 230 };
 
   // =========================================================================
   // RENDERIZAÇÃO WEB VIA LEAFLET / OPENSTREETMAP (Navegadores Desktop e Web)
   // =========================================================================
   if (Platform.OS === 'web') {
-    const webCenterLat = origin?.latitude ?? destination?.latitude ?? GUARAPUAVA_DEFAULT_REGION.latitude;
-    const webCenterLng = origin?.longitude ?? destination?.longitude ?? GUARAPUAVA_DEFAULT_REGION.longitude;
-    const webZoom = isCurrentLocation ? 15 : origin && destination ? 13 : origin || destination ? 14 : 13;
+    const webCenterLat = centerLat;
+    const webCenterLng = centerLng;
 
     const markersJson = JSON.stringify([
       ...(origin
@@ -198,7 +204,7 @@ export function RouteMapPreview({
           <div id="map"></div>
           <script>
             try {
-              var map = L.map('map', { zoomControl: false }).setView([${webCenterLat}, ${webCenterLng}], ${webZoom});
+              var map = L.map('map', { zoomControl: false }).setView([${webCenterLat}, ${webCenterLng}], ${zoom});
               L.control.zoom({ position: 'bottomright' }).addTo(map);
 
               L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -253,13 +259,6 @@ export function RouteMapPreview({
       </html>
     `;
 
-    const mapHeightStyle =
-      height !== undefined
-        ? { height }
-        : borderless
-        ? { flex: 1, height: '100%' as any }
-        : { height: 230 };
-
     return (
       <View
         style={[
@@ -267,7 +266,7 @@ export function RouteMapPreview({
           borderless ? styles.containerBorderless : SHADOWS.md,
           mapHeightStyle,
         ]}
-        testID="web-map-preview-container"
+        testID="mock-map-view"
       >
         <iframe
           srcDoc={leafletHtml}
@@ -300,7 +299,7 @@ export function RouteMapPreview({
           </Text>
         </View>
 
-        {/* Legenda (Apenas para rotas com destino) */}
+        {/* Legenda */}
         {!isCurrentLocation && (origin || destination) && (
           <View style={styles.mapLegend}>
             <View style={styles.legendItem}>
@@ -323,16 +322,9 @@ export function RouteMapPreview({
     );
   }
 
-  const mapHeightStyle =
-    height !== undefined
-      ? { height }
-      : borderless
-      ? { flex: 1, height: '100%' as any }
-      : { height: 230 };
-
   // =========================================================================
-  // RENDERIZAÇÃO MOBILE NATIVA DE ALTA PERFORMANCE (Android & iOS)
-  // Sem dependência de chave paga da Google e compatível com New Architecture
+  // RENDERIZAÇÃO MOBILE NATIVA VIA EXPO-LEAFLET + WEBVIEW (Android & iOS)
+  // Conforme modelo do orientador (OpenStreetMap via WebView)
   // =========================================================================
   return (
     <View
@@ -341,151 +333,22 @@ export function RouteMapPreview({
         borderless ? styles.containerBorderless : SHADOWS.md,
         mapHeightStyle,
       ]}
-      onLayout={(e) => {
-        const { width: w, height: h } = e.nativeEvent.layout;
-        if (w > 0 && Math.abs(w - containerWidth) > 1) {
-          setContainerWidth(w);
-        }
-        if (h > 0 && Math.abs(h - containerHeight) > 1) {
-          setContainerHeight(h);
-        }
-      }}
       testID="mock-map-view"
     >
-      {/* 1. Base Canvas Background com Linhas de Grade e Bússola */}
-      <View style={styles.baseCanvas}>
-        <View style={styles.canvasCrosshairHorizontal} />
-        <View style={styles.canvasCrosshairVertical} />
-      </View>
+      <ExpoLeaflet
+        mapLayers={[OSM_MAP_LAYER]}
+        mapCenterPosition={{ lat: centerLat, lng: centerLng }}
+        mapMarkers={mapMarkers}
+        mapShapes={mapShapes}
+        onMessage={(msg) => {
+          if (msg.tag === 'onMapClicked') {
+            console.log('Mapa clicado:', msg.location);
+          }
+        }}
+        zoom={zoom}
+      />
 
-      {/* 2. Grade 3x3 de Tiles Nativos OpenStreetMap (OSM) */}
-      {tiles.map((tile) => (
-        <Image
-          key={tile.key}
-          source={{
-            uri: tile.url,
-            headers: {
-              'User-Agent': 'ZarpaApp-Guarapuava/1.0 (contato@zarpa.com.br)',
-            },
-          }}
-          style={[
-            styles.tileImage,
-            {
-              left: tile.left,
-              top: tile.top,
-            },
-          ]}
-          resizeMode="cover"
-        />
-      ))}
-
-      {/* 3. Círculo do Raio de Radar do Entregador */}
-      {isCurrentLocation && originPixel && (
-        <View
-          style={[
-            styles.radarCircle,
-            {
-              left: originPixel.x - radiusPx,
-              top: originPixel.y - radiusPx,
-              width: radiusPx * 2,
-              height: radiusPx * 2,
-              borderRadius: radiusPx,
-            },
-          ]}
-        />
-      )}
-
-      {/* 4. Linha Conectora de Rota (Modo Entrega com Origem e Destino) */}
-      {!isCurrentLocation && originPixel && destPixel && (
-        <View
-          style={[
-            styles.routeConnectorLine,
-            {
-              left: Math.min(originPixel.x, destPixel.x),
-              top: Math.min(originPixel.y, destPixel.y),
-              width: Math.max(Math.abs(destPixel.x - originPixel.x), 2),
-              height: Math.max(Math.abs(destPixel.y - originPixel.y), 2),
-            },
-          ]}
-        />
-      )}
-
-      {/* 5. Pino do Entregador (Modo Localização Atual) */}
-      {isCurrentLocation && originPixel && (
-        <View
-          style={[
-            styles.courierPinContainer,
-            { left: originPixel.x - 18, top: originPixel.y - 36 },
-          ]}
-        >
-          <View style={styles.courierPinBubble}>
-            <Ionicons name="bicycle" size={16} color="#FFFFFF" />
-          </View>
-          <View style={styles.courierPinPointer} />
-          <View style={styles.courierPinPulse} />
-        </View>
-      )}
-
-      {/* 6. Marcadores de Coleta e Entrega (Modo Rota) */}
-      {!isCurrentLocation && originPixel && (
-        <View
-          style={[
-            styles.routePinContainer,
-            { left: originPixel.x - 14, top: originPixel.y - 32 },
-          ]}
-        >
-          <Ionicons name="location" size={28} color="#059669" />
-          <View style={styles.pinTooltip}>
-            <Text style={styles.pinTooltipText}>Coleta</Text>
-          </View>
-        </View>
-      )}
-
-      {!isCurrentLocation && destPixel && (
-        <View
-          style={[
-            styles.routePinContainer,
-            { left: destPixel.x - 14, top: destPixel.y - 32 },
-          ]}
-        >
-          <Ionicons name="location" size={28} color="#DC2626" />
-          <View style={[styles.pinTooltip, { backgroundColor: '#DC2626' }]}>
-            <Text style={styles.pinTooltipText}>Entrega</Text>
-          </View>
-        </View>
-      )}
-
-      {/* 7. Controles Flutuantes de Zoom e Recentralização */}
-      <View style={styles.zoomControlsBox}>
-        <TouchableOpacity
-          style={styles.zoomBtn}
-          onPress={() => setZoom((z) => Math.min(18, z + 1))}
-          activeOpacity={0.7}
-          testID="map-zoom-in-btn"
-        >
-          <Ionicons name="add" size={18} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.zoomDivider} />
-        <TouchableOpacity
-          style={styles.zoomBtn}
-          onPress={() => setZoom((z) => Math.max(12, z - 1))}
-          activeOpacity={0.7}
-          testID="map-zoom-out-btn"
-        >
-          <Ionicons name="remove" size={18} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.zoomDivider} />
-        <TouchableOpacity
-          style={styles.zoomBtn}
-          onPress={() => setZoom(isCurrentLocation ? 15 : 14)}
-          activeOpacity={0.7}
-          testID="map-recenter-btn"
-        >
-          <Ionicons name="locate" size={16} color={COLORS.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* 8. Badge Superior de Telemetria GPS */}
+      {/* Top Info Banner */}
       <View style={styles.topInfoOverlay}>
         <Ionicons
           name={isCurrentLocation ? 'navigate-circle' : origin && destination ? 'navigate-circle' : 'location'}
@@ -507,7 +370,7 @@ export function RouteMapPreview({
         </Text>
       </View>
 
-      {/* 9. Badge Inferior de Status ou Legenda */}
+      {/* Legenda ou Status de Radar */}
       {isCurrentLocation && origin ? (
         <View style={styles.currentLocBottomBadge}>
           <Ionicons name="radio-outline" size={13} color={COLORS.accent} />
@@ -528,9 +391,9 @@ export function RouteMapPreview({
         </View>
       ) : null}
 
-      {/* 10. Tag de Atribuição Cartográfica Oficial OpenStreetMap */}
+      {/* Tag de Atribuição Cartográfica Oficial OpenStreetMap */}
       <View style={styles.attributionTag}>
-        <Text style={styles.attributionText}>© OpenStreetMap</Text>
+        <Text style={styles.attributionText}>© OpenStreetMap (Leaflet)</Text>
       </View>
     </View>
   );
@@ -549,122 +412,6 @@ const styles = StyleSheet.create({
   containerBorderless: {
     borderRadius: 0,
     borderWidth: 0,
-  },
-  baseCanvas: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  canvasCrosshairHorizontal: {
-    position: 'absolute',
-    width: '100%',
-    height: 1,
-    backgroundColor: 'rgba(30, 58, 138, 0.08)',
-  },
-  canvasCrosshairVertical: {
-    position: 'absolute',
-    height: '100%',
-    width: 1,
-    backgroundColor: 'rgba(30, 58, 138, 0.08)',
-  },
-  tileImage: {
-    position: 'absolute',
-    width: 256,
-    height: 256,
-  },
-  radarCircle: {
-    position: 'absolute',
-    backgroundColor: 'rgba(30, 58, 138, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(30, 58, 138, 0.45)',
-    borderStyle: 'dashed',
-    zIndex: 5,
-  },
-  routeConnectorLine: {
-    position: 'absolute',
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderStyle: 'dashed',
-    zIndex: 4,
-  },
-  courierPinContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    zIndex: 10,
-    width: 36,
-    height: 36,
-  },
-  courierPinBubble: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    ...SHADOWS.md,
-  },
-  courierPinPointer: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderBottomWidth: 0,
-    borderTopWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: COLORS.primary,
-    marginTop: -1,
-  },
-  courierPinPulse: {
-    width: 14,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(30, 58, 138, 0.3)',
-    marginTop: 2,
-  },
-  routePinContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  pinTooltip: {
-    backgroundColor: '#059669',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-    marginTop: -4,
-  },
-  pinTooltipText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  zoomControlsBox: {
-    position: 'absolute',
-    right: SPACING.sm,
-    top: '30%',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    zIndex: 15,
-    ...SHADOWS.sm,
-  },
-  zoomBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  zoomDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    width: '100%',
   },
   topInfoOverlay: {
     position: 'absolute',

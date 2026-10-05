@@ -279,7 +279,15 @@ export default function ExpressRadarScreen() {
 
       setOrders(availableOrders);
     } catch (error: any) {
-      console.warn('Erro ao carregar oportunidades do radar:', error);
+      if (error.response?.status === 403) {
+        setIsOnline(false);
+        const errorMsg = error.response?.data?.message || 'Acesso não autorizado. Perfil de entregador exigido.';
+        Alert.alert('Radar Indisponível', errorMsg, [
+          { text: 'Voltar', onPress: () => router.back() },
+        ]);
+      } else {
+        console.warn('Erro ao carregar oportunidades do radar:', error);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -287,6 +295,15 @@ export default function ExpressRadarScreen() {
   }, [getDeviceCoordinates, user]);
 
   useEffect(() => {
+    if (user && user.role !== 'courier' && user.role !== 'admin') {
+      Alert.alert(
+        'Acesso Restrito',
+        'O radar de oportunidades é exclusivo para entregadores parceiros.',
+        [{ text: 'OK', onPress: () => router.replace('/(client)/dashboard') }]
+      );
+      return;
+    }
+
     if (!isOnline) {
       setLoading(false);
       return;
@@ -299,7 +316,7 @@ export default function ExpressRadarScreen() {
     }, 8000);
 
     return () => clearInterval(pollInterval);
-  }, [fetchRadar, isOnline]);
+  }, [fetchRadar, isOnline, user]);
 
   const handleActivateOnline = async () => {
     try {

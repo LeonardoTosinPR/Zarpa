@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role.client')->prefix('orders')->group(function () {
         Route::post('/', [OrderController::class, 'store']);
         Route::get('/my-orders', [OrderController::class, 'myOrders']);
+        Route::post('/{id}/cancel', [OrderController::class, 'cancel']);
     });
 
     // Detalhes do Pedido (acessível por Lojista dono, Entregador atribuído ou Admin)

@@ -97,6 +97,64 @@ class ExpressDispatchController extends Controller
     }
 
     /**
+     * Confirmação da coleta pelo condutor.
+     * POST /api/orders/{id}/pickup
+     */
+    public function pickup(Request $request, int $id): JsonResponse
+    {
+        $courier = $this->resolveCourier($request);
+
+        if (!$courier) {
+            return response()->json([
+                'message' => 'Perfil de condutor não encontrado para o usuário autenticado.',
+            ], 403);
+        }
+
+        $result = $this->dispatchService->pickup($id, $courier);
+
+        return response()->json($result, $result['status']);
+    }
+
+    /**
+     * Confirmação da entrega ao cliente final pelo condutor.
+     * POST /api/orders/{id}/deliver
+     */
+    public function deliver(Request $request, int $id): JsonResponse
+    {
+        $courier = $this->resolveCourier($request);
+
+        if (!$courier) {
+            return response()->json([
+                'message' => 'Perfil de condutor não encontrado para o usuário autenticado.',
+            ], 403);
+        }
+
+        $result = $this->dispatchService->deliver($id, $courier);
+
+        return response()->json($result, $result['status']);
+    }
+
+    /**
+     * Cancelamento de corrida em andamento pelo entregador.
+     * POST /api/orders/{id}/cancel-delivery
+     */
+    public function cancelDelivery(Request $request, int $id): JsonResponse
+    {
+        $courier = $this->resolveCourier($request);
+
+        if (!$courier) {
+            return response()->json([
+                'message' => 'Perfil de condutor não encontrado para o usuário autenticado.',
+            ], 403);
+        }
+
+        $reason = $request->input('reason');
+        $result = $this->dispatchService->cancelDelivery($id, $courier, $reason);
+
+        return response()->json($result, $result['status']);
+    }
+
+    /**
      * Atualização do status online/offline do condutor.
      * PATCH /api/courier/status
      */
@@ -256,13 +314,13 @@ class ExpressDispatchController extends Controller
             return $user->courier;
         }
 
-        if ($user->hasFullAccess()) {
+        if ($user->isCourier() || $user->hasFullAccess()) {
             return Courier::firstOrCreate(
                 ['user_id' => $user->id],
                 [
                     'cnh' => '00000000000',
                     'vehicle_type' => 'motorcycle',
-                    'vehicle_plate' => 'ADM-0000',
+                    'vehicle_plate' => 'ZRP-0000',
                     'current_lat' => -25.3954,
                     'current_lng' => -51.4641,
                     'cluster_radius_km' => 5.0,
