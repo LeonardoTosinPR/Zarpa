@@ -25,6 +25,7 @@ export interface RouteMapPreviewProps {
   mode?: 'route' | 'current_location';
   radiusKm?: number;
   borderless?: boolean;
+  additionalMarkers?: RoutePoint[];
 }
 
 // Coordenadas centrais oficiais e delimitações de Guarapuava - PR
@@ -49,6 +50,7 @@ const OSM_MAP_LAYER: MapLayer = {
 const COURIER_PIN_SVG = `<svg stroke="currentColor" fill="#1E3A8A" stroke-width="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></svg>`;
 const ORIGIN_PIN_SVG = `<svg stroke="currentColor" fill="#059669" stroke-width="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></svg>`;
 const DEST_PIN_SVG = `<svg stroke="currentColor" fill="#DC2626" stroke-width="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></svg>`;
+const ORDER_PIN_SVG = `<svg stroke="currentColor" fill="#F59E0B" stroke-width="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></svg>`;
 
 export function RouteMapPreview({
   origin,
@@ -58,6 +60,7 @@ export function RouteMapPreview({
   mode,
   radiusKm = 5.0,
   borderless = false,
+  additionalMarkers = [],
 }: RouteMapPreviewProps) {
   // Identifica se o mapa está exibindo exclusivamente a posição do condutor
   const isCurrentLocation =
@@ -81,7 +84,10 @@ export function RouteMapPreview({
     return origin?.longitude ?? destination?.longitude ?? GUARAPUAVA_DEFAULT_REGION.longitude;
   }, [origin, destination, isCurrentLocation]);
 
-  const zoom = isCurrentLocation ? 15 : origin && destination ? 13 : 14;
+  // Zoom dinâmico proporcional ao raio em km para enquadrar perfeitamente a área
+  const zoom = isCurrentLocation
+    ? (radiusKm <= 2 ? 16 : radiusKm <= 4 ? 15 : radiusKm <= 7 ? 14 : radiusKm <= 12 ? 13 : radiusKm <= 20 ? 12 : 11)
+    : origin && destination ? 13 : 14;
 
   // Marcadores Leaflet
   const mapMarkers = useMemo<MapMarker[]>(() => {
@@ -107,8 +113,19 @@ export function RouteMapPreview({
       });
     }
 
+    // Adiciona marcadores extras no radar (ex: pontos de coleta de chamados disponíveis)
+    additionalMarkers.forEach((m, idx) => {
+      list.push({
+        id: `extra-marker-${idx}-${m.latitude}-${m.longitude}`,
+        position: { lat: m.latitude, lng: m.longitude },
+        icon: ORDER_PIN_SVG,
+        size: [28, 28],
+        title: m.title || 'Chamado Disponível',
+      });
+    });
+
     return list;
-  }, [origin, destination, isCurrentLocation]);
+  }, [origin, destination, isCurrentLocation, additionalMarkers]);
 
   // Formas Leaflet (Círculo de radar e polilinha de rota OSRM)
   const mapShapes = useMemo<MapShape[]>(() => {

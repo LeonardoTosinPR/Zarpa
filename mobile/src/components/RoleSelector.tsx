@@ -80,8 +80,14 @@ export function RoleSelector({ selectedRole, onSelect }: RoleSelectorProps) {
 
               {/* Badge */}
               <View style={[styles.badge, isSelected && styles.badgeSelected]}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={12}
+                  color={isSelected ? COLORS.primary : COLORS.textMuted}
+                  style={{ marginRight: 3 }}
+                />
                 <Text style={[styles.badgeText, isSelected && styles.badgeTextSelected]}>
-                  ✓ {opt.badgeText}
+                  {opt.badgeText}
                 </Text>
               </View>
             </TouchableOpacity>

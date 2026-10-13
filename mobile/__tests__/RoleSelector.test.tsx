@@ -11,7 +11,7 @@ describe('RoleSelector Component', () => {
 
     expect(getByText('Lojista / Estabelecimento')).toBeTruthy();
     expect(getByText('Entregador / Condutor')).toBeTruthy();
-    expect(getByText('✓ Lojista')).toBeTruthy();
+    expect(getByText('Lojista')).toBeTruthy();
   });
 
   it('calls onSelect when an option is pressed', () => {

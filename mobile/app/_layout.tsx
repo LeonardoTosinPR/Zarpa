@@ -17,6 +17,7 @@ export default function RootLayout() {
             screenOptions={{
               headerShown: false,
               animation: 'slide_from_right',
+              animationDuration: 220,
             }}
           >
             <Stack.Screen name="index" />

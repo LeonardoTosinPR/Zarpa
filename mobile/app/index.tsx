@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,19 @@ import {
   SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Button } from '../src/components/Button';
+import { api } from '../src/services/api';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { user, role, isAuthenticated, isLoading, quickLogin } = useAuth();
+  const [quickLoginLoading, setQuickLoginLoading] = React.useState<string | null>(null);
 
   // Automatic routing if already authenticated
   useEffect(() => {
@@ -30,6 +33,28 @@ export default function WelcomeScreen() {
       }
     }
   }, [isLoading, isAuthenticated, role]);
+
+  const handleQuickLogin = async (targetRole: 'admin' | 'client' | 'courier') => {
+    try {
+      setQuickLoginLoading(targetRole);
+      const loggedUser = await quickLogin(targetRole);
+      if (loggedUser.role === 'courier') {
+        router.replace('/(courier)/dashboard');
+      } else {
+        router.replace('/(client)/dashboard');
+      }
+    } catch (err: any) {
+      const isNetError = err.message?.includes('Network Error') || !err.response;
+      Alert.alert(
+        'Erro ao Conectar ao Backend',
+        isNetError
+          ? `Não foi possível alcançar o servidor em:\n\n${api.defaults.baseURL}\n\nVerifique se o backend está acessível e se o celular está na mesma rede.`
+          : (err.response?.data?.message || 'Falha ao autenticar.')
+      );
+    } finally {
+      setQuickLoginLoading(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -116,28 +141,43 @@ export default function WelcomeScreen() {
           <View style={styles.demoButtonsRow}>
             <TouchableOpacity
               style={[styles.demoPill, styles.demoAdmin]}
-              onPress={() => quickLogin('admin')}
+              onPress={() => handleQuickLogin('admin')}
+              disabled={!!quickLoginLoading}
               testID="quick-login-admin"
             >
-              <Ionicons name="shield-checkmark-outline" size={14} color="#D97706" style={{ marginRight: 4 }} />
+              {quickLoginLoading === 'admin' ? (
+                <ActivityIndicator size="small" color="#D97706" style={{ marginRight: 4 }} />
+              ) : (
+                <Ionicons name="shield-checkmark-outline" size={14} color="#D97706" style={{ marginRight: 4 }} />
+              )}
               <Text style={styles.demoPillText}>Admin</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.demoPill, styles.demoClient]}
-              onPress={() => quickLogin('client')}
+              onPress={() => handleQuickLogin('client')}
+              disabled={!!quickLoginLoading}
               testID="quick-login-client"
             >
-              <Ionicons name="storefront-outline" size={14} color="#2563EB" style={{ marginRight: 4 }} />
+              {quickLoginLoading === 'client' ? (
+                <ActivityIndicator size="small" color="#2563EB" style={{ marginRight: 4 }} />
+              ) : (
+                <Ionicons name="storefront-outline" size={14} color="#2563EB" style={{ marginRight: 4 }} />
+              )}
               <Text style={styles.demoPillText}>Lojista</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.demoPill, styles.demoCourier]}
-              onPress={() => quickLogin('courier')}
+              onPress={() => handleQuickLogin('courier')}
+              disabled={!!quickLoginLoading}
               testID="quick-login-courier"
             >
-              <Ionicons name="bicycle-outline" size={14} color="#059669" style={{ marginRight: 4 }} />
+              {quickLoginLoading === 'courier' ? (
+                <ActivityIndicator size="small" color="#059669" style={{ marginRight: 4 }} />
+              ) : (
+                <Ionicons name="bicycle-outline" size={14} color="#059669" style={{ marginRight: 4 }} />
+              )}
               <Text style={styles.demoPillText}>Entregador</Text>
             </TouchableOpacity>
           </View>
