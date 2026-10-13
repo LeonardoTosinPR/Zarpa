@@ -69,63 +69,23 @@ export default function ClientDashboardScreen() {
           </Text>
         </View>
 
-        {/* Action Shortcuts Preview */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Ações Rápidas (Lojista)</Text>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.actionCard, SHADOWS.sm]}
-          activeOpacity={0.8}
-          onPress={() => router.push('/(client)/create-order')}
-          testID="client-new-order-preview"
-        >
-          <View style={styles.actionIconBox}>
-            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-          </View>
-          <View style={styles.actionTextBox}>
-            <Text style={styles.actionTitle}>Novo Pedido de Entrega</Text>
-            <Text style={styles.actionSubtitle}>
-              Postagem expressa ou econômica com cubagem e geocodificação.
-            </Text>
-          </View>
-          <Text style={styles.actionArrow}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, SHADOWS.sm]}
-          activeOpacity={0.8}
-          onPress={() => router.push('/(client)/orders')}
-          testID="client-history-preview"
-        >
-          <View style={styles.actionIconBox}>
-            <Ionicons name="receipt-outline" size={20} color={COLORS.primary} />
-          </View>
-          <View style={styles.actionTextBox}>
-            <Text style={styles.actionTitle}>Histórico & Extrato 50/50</Text>
-            <Text style={styles.actionSubtitle}>
-              Acompanhe a economia gerada pelo rateio compartilhado.
-            </Text>
-          </View>
-          <Text style={styles.actionArrow}>→</Text>
-        </TouchableOpacity>
-
-        {/* Admin Switcher (If Admin) */}
-        {role === 'admin' && (
+        {/* Admin Switcher (If Admin) - Hidden for Sprint 4 */}
+        {/* role === 'admin' && (
           <View style={[styles.adminSwitcherCard, SHADOWS.sm]}>
             <Text style={styles.adminSwitcherTitle}>Painel de Alternância Admin</Text>
             <Text style={styles.adminSwitcherDesc}>
-              Como administrador, você pode inspecionar o dashboard do entregador.
+              Como administrador, você pode alternar e inspecionar o dashboard do entregador.
             </Text>
             <Button
-              title="Visualizar Dashboard do Entregador"
+              title="Alternar para Visão do Entregador"
               variant="secondary"
               onPress={() => router.push('/(courier)/dashboard')}
               style={styles.adminSwitchBtn}
+              textStyle={{ color: '#FFFFFF', fontWeight: '700' }}
               testID="admin-switch-to-courier"
             />
           </View>
-        )}
+        ) */}
 
         {/* Logout Button */}
         <Button
@@ -191,16 +151,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.text,
     marginBottom: 4,
+    flexShrink: 1,
   },
   storeDoc: {
     fontSize: 13,
     color: COLORS.textSecondary,
     marginBottom: 2,
+    flexShrink: 1,
   },
   storeAddress: {
     fontSize: 13,
     color: COLORS.textSecondary,
     marginTop: SPACING.xs,
+    flexShrink: 1,
   },
   statusCard: {
     backgroundColor: COLORS.accentLight,
@@ -279,27 +242,30 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.sm,
   },
   adminSwitcherCard: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#0F172A',
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: '#C4B5FD',
+    borderColor: '#334155',
     marginTop: SPACING.md,
     marginBottom: SPACING.md,
   },
   adminSwitcherTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#6D28D9',
+    color: '#A78BFA',
     marginBottom: 2,
   },
   adminSwitcherDesc: {
     fontSize: 12,
-    color: '#4C1D95',
+    color: '#94A3B8',
     marginBottom: SPACING.sm,
   },
   adminSwitchBtn: {
-    height: 42,
+    height: 44,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#475569',
   },
   logoutButton: {
     marginTop: SPACING.xl,

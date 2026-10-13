@@ -4,7 +4,7 @@
 > **Autor**: Leonardo Tosin | **Orientador**: Prof. Dr. Andres Jessé Porfirio  
 > **Período de Execução**: 25/08/2026 a 31/10/2026  
 > **Figma UI/UX**: [Protótipo no Figma](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Branch da Sprint Atual**: [`sprint/3-fluxo-expresso-concorrencia`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/3-fluxo-expresso-concorrencia)
+> **Branch da Sprint Atual**: [`sprint/4-lote-economico-agrupamento`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/4-lote-economico-agrupamento)
 
 ---
 
@@ -18,7 +18,8 @@ Navegue diretamente pelos módulos de desenvolvimento e documentações especial
 | 📱 **Mobile (App)** | Aplicativo React Native com Expo SDK 54, Design System do Figma, Radar Expresso e Mapas | 👉 [**Acessar README Mobile**](mobile/README.md) |
 | 📐 **Arquitetura** | Especificação arquitetural do sistema, diagramas de fluxo de dados, políticas de segurança e DER Lógico | 👉 [**Acessar ARQUITETURA.md**](docs/ARQUITETURA.md) |
 | 📅 **Plano Mestre** | Visão executiva, matriz de rastreabilidade MoSCoW/RICE e cronograma consolidado de todas as sprints | 👉 [**Acessar MASTER_PLAN.md**](docs/MASTER_PLAN.md) |
-| ⚡ **Sprint 3 (Atual)** | Fluxo Expresso On-Demand, Radar com Timer de 10s, Lock Pessimista e Rota OSRM | 👉 [**Acessar sprint_3.md**](docs/sprints/sprint_3.md) |
+| ⚡ **Sprint 4 (Atual)** | Lote Econômico, Agrupamento Assíncrono (Batch), PDP e Roteamento Multi-Pontos | 👉 [**Acessar sprint_4.md**](docs/sprints/sprint_4.md) |
+| 📦 **Sprint 3** | Fluxo Expresso On-Demand, Radar com Timer de 10s, Lock Pessimista e Rota OSRM | 👉 [**Acessar sprint_3.md**](docs/sprints/sprint_3.md) |
 | 🏁 **Sprint 2** | Postagem de Pedidos, Geocodificação OSRM, Mapa Interativo e Cotação de Frete | 👉 [**Acessar sprint_2.md**](docs/sprints/sprint_2.md) |
 | 📦 **Sprint 1** | Autenticação, Perfis de Atores (Lojista / Entregador) e Navegação Condicional | 👉 [**Acessar sprint_1.md**](docs/sprints/sprint_1.md) |
 
@@ -28,8 +29,8 @@ Navegue diretamente pelos módulos de desenvolvimento e documentações especial
 
 O **Zarpa** é uma plataforma que otimiza entregas urbanas em Guarapuava - PR, integrando backend geoespacial (Laravel 13 + PostgreSQL/PostGIS) e aplicativo móvel multiplataforma (React Native / Expo SDK 54):
 
-1. **Entrega Expressa**: Atendimento imediato sob demanda com radar espacial por proximidade (raio de 1 a 50 km customizável no perfil), timer regressivo de 10s, bloqueio pessimista de concorrência (`lockForUpdate()`) e recusa de chamados com exclusão persistente por condutor.
-2. **Lote Econômico com Rateio Dinâmico 50/50**: Agrupamento diário/noturno de pedidos por proximidade geográfica (PostGIS + OSRM), repassando 50% da economia como desconto aos lojistas e 50% como bônus aos entregadores.
+1. **Lote Econômico com Rateio Dinâmico (Batch Noturno & On-Demand)**: Agrupamento inteligente de pedidos por proximidade geográfica (PostGIS + OSRM), sequenciamento com precedência estrita ($P_i < D_i$), limites de capacidade física (até 5 pedidos e 20 kg por condutor), rateio 50/50 de economia gerada e tela dedicada no app para consulta de itinerários.
+2. **Entrega Expressa On-Demand**: Atendimento imediato sob demanda com radar espacial por proximidade (raio de 1 a 50 km customizável no perfil), timer regressivo de 10s, bloqueio pessimista de concorrência (`lockForUpdate()`) e recusa de chamados com exclusão persistente por condutor.
 3. **Módulo de Atores e Perfis**: Segmentação estrita entre Lojista (`client`), Entregador (`courier`) e Administrador (`admin`), com navegação para perfil pelo avatar do cabeçalho global, combo-boxes modais de seleção rápida de raio e veículo, e envio de foto de perfil via galeria do dispositivo.
 4. **Geocodificação e Autocomplete Local**: Catálogo determinístico de alta fidelidade para estabelecimentos de Guarapuava (UTFPR, Unicentro CEDETEG, Unicentro Santa Cruz, Shopping, etc.) exibindo título do polo e endereço detalhado.
 
@@ -66,7 +67,8 @@ O projeto conta com um script único e inteligente para gerenciar todo o ciclo d
 | `.\run.ps1 down` | `./run.sh down` | Para e remove os containers Docker |
 | `.\run.ps1 restart` | `./run.sh restart` | Reinicia todos os containers Docker |
 | `.\run.ps1 mobile` | `./run.sh mobile` | Inicia apenas o servidor Expo Mobile |
-| `.\run.ps1 db:populate` | `./run.sh db:populate` | Executa migrations e popula usuários de teste |
+| `.\run.ps1 db:populate` | `./run.sh db:populate` | Executa migrations e popula cenário de teste com entregadores em pólos |
+| `.\run.ps1 db:mock-orders` | `./run.sh db:mock-orders` | Popula 70 pedidos mockados aleatórios (20 expressos + 50 econômicos) |
 | `.\run.ps1 db:reset` | `./run.sh db:reset` | Reseta o banco (`migrate:fresh`) e repopula |
 | `.\run.ps1 test` | `./run.sh test` | Executa todos os testes (Pest + Jest + TypeScript) |
 | `.\run.ps1 test:backend` | `./run.sh test:backend`| Executa testes do backend Laravel (Pest v3) |

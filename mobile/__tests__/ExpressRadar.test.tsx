@@ -9,13 +9,14 @@ import { AuthProvider } from '../src/context/AuthContext';
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
+const mockRouter = {
+  push: mockPush,
+  back: mockBack,
+  replace: mockReplace,
+};
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({
-    push: mockPush,
-    back: mockBack,
-    replace: mockReplace,
-  }),
+  useRouter: () => mockRouter,
 }));
 
 // Mock expo-secure-store

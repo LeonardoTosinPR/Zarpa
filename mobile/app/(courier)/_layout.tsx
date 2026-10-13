@@ -3,8 +3,11 @@ import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, SHADOWS } from '../../src/constants/theme';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function CourierLayout() {
+  const { role } = useAuth();
+
   return (
     <Tabs
       screenOptions={{
@@ -60,6 +63,16 @@ export default function CourierLayout() {
           title: 'Meu Perfil',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          href: null, // Hidden for Sprint 4
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'shield' : 'shield-outline'} size={22} color={color} />
           ),
         }}
       />

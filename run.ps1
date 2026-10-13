@@ -261,7 +261,8 @@ function Show-Usage {
     Write-Host "  .\run.ps1 mobile            - Inicia apenas o servidor do Expo Mobile"
     Write-Host ""
     Write-Host "BANCO DE DADOS & SEEDERS:" -ForegroundColor Yellow
-    Write-Host "  .\run.ps1 db:populate       - Executa migrations e popula usuarios de teste"
+    Write-Host "  .\run.ps1 db:populate       - Executa migrations e popula cenario padrao (seeders)"
+    Write-Host "  .\run.ps1 db:mock-orders    - Popula ~70 pedidos aleatorios por Guarapuava (20 expressos + 50 economicos)"
     Write-Host "  .\run.ps1 db:reset          - Limpa (migrate:fresh) e repopula todo o banco"
     Write-Host ""
     Write-Host "TESTES & QUALIDADE:" -ForegroundColor Yellow
@@ -346,6 +347,15 @@ try {
             docker exec -i zarpa_backend php artisan migrate --seed
             Write-Success "Banco de dados atualizado e populado!"
             Show-Test-Credentials
+        }
+
+        'db:mock-orders' {
+            Assert-DockerReady
+            Write-Info "Garantindo containers ativos..."
+            Invoke-Compose @('up', '-d')
+            Write-Info "Gerando pedidos mockados aleatorios por Guarapuava (20 expressos + 50 economicos)..."
+            docker exec -i zarpa_backend php artisan zarpa:mock-orders --express=20 --economic=50 @CommandArgs
+            Write-Success "Pedidos mockados gerados com sucesso!"
         }
 
         'db:reset' {

@@ -207,15 +207,21 @@ class OrderController extends Controller
             $client = Client::where('user_id', $user->id)->first();
         }
 
-        if (!$client) {
-            return response()->json([
-                'message' => 'Perfil de lojista não encontrado.',
-            ], 403);
-        }
+        // Se for admin e não tiver client vinculado, visualiza todos os pedidos
+        if (!$client && $user->hasFullAccess()) {
+            $query = Order::with(['courier.user', 'client.user'])
+                ->orderBy('created_at', 'desc');
+        } else {
+            if (!$client) {
+                return response()->json([
+                    'message' => 'Perfil de lojista não encontrado.',
+                ], 403);
+            }
 
-        $query = Order::where('client_id', $client->id)
-            ->with(['courier.user'])
-            ->orderBy('created_at', 'desc');
+            $query = Order::where('client_id', $client->id)
+                ->with(['courier.user'])
+                ->orderBy('created_at', 'desc');
+        }
 
         if ($request->has('status') && !empty($request->query('status'))) {
             $query->where('status', $request->query('status'));

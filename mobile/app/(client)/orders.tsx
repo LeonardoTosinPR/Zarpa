@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Header } from '../../src/components/Header';
 import { orderService, OrderItem } from '../../src/services/orderService';
+import { courierService } from '../../src/services/courierService';
 
 export default function ClientOrdersScreen() {
   const router = useRouter();
@@ -98,6 +100,27 @@ export default function ClientOrdersScreen() {
         {/* Item Description */}
         <Text style={styles.packageDescription}>{item.package_description}</Text>
 
+        {/* Badge do Lote Econômico (Sprint 4) */}
+        {isEconomic && (
+          <View style={styles.batchNoticeContainer}>
+            {item.status === 'pending' ? (
+              <View style={styles.batchPendingBadge}>
+                <Ionicons name="moon" size={13} color="#D97706" style={{ marginRight: 4 }} />
+                <Text style={styles.batchPendingText}>
+                  Aguardando processamento do lote noturno (02:00)
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.batchScheduledBadge}>
+                <Ionicons name="cash" size={13} color="#059669" style={{ marginRight: 4 }} />
+                <Text style={styles.batchScheduledText}>
+                  Lote Gerado: Entrega Agendada
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Addresses */}
         <View style={styles.routeContainer}>
           <View style={styles.routeStep}>
@@ -124,9 +147,20 @@ export default function ClientOrdersScreen() {
           </View>
           <View style={styles.priceContainer}>
             <Text style={styles.priceLabel}>Valor do Frete</Text>
-            <Text style={styles.priceValue}>
-              R$ {Number(item.individual_freight_price).toFixed(2)}
-            </Text>
+            {item.final_freight_price && Number(item.final_freight_price) < Number(item.individual_freight_price) ? (
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.priceOriginalCrossed}>
+                  R$ {Number(item.individual_freight_price).toFixed(2)}
+                </Text>
+                <Text style={styles.priceValueDiscounted}>
+                  R$ {Number(item.final_freight_price).toFixed(2)}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.priceValue}>
+                R$ {Number(item.individual_freight_price).toFixed(2)}
+              </Text>
+            )}
           </View>
         </View>
       </View>
@@ -254,11 +288,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.xs,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   idAndModality: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
+    flexShrink: 0,
   },
   orderId: {
     fontSize: 14,
@@ -294,6 +331,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.full,
+    flexShrink: 0,
   },
   statusBadgeText: {
     fontSize: 11,
@@ -305,6 +343,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginTop: 2,
     marginBottom: SPACING.sm,
+    flexShrink: 1,
   },
   routeContainer: {
     backgroundColor: '#F8FAFC',
@@ -329,6 +368,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     flex: 1,
+    flexShrink: 1,
   },
   routeLine: {
     width: 2,
@@ -344,10 +384,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: SPACING.sm,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   statsGroup: {
     flexDirection: 'row',
     gap: SPACING.md,
+    flex: 1,
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   statDetail: {
     fontSize: 12,
@@ -360,6 +405,7 @@ const styles = StyleSheet.create({
   },
   priceContainer: {
     alignItems: 'flex-end',
+    flexShrink: 0,
   },
   priceLabel: {
     fontSize: 10,
@@ -410,5 +456,88 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
+  },
+  batchBanner: {
+    backgroundColor: '#EEF2FF',
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.xs,
+    padding: SPACING.md,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  batchBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  batchBannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3730A3',
+  },
+  batchBannerSubtitle: {
+    fontSize: 11,
+    color: '#4F46E5',
+    marginTop: 2,
+  },
+  batchTriggerBtn: {
+    backgroundColor: '#4F46E5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.md,
+    alignSelf: 'flex-start',
+  },
+  batchTriggerBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  batchNoticeContainer: {
+    marginBottom: SPACING.sm,
+  },
+  batchPendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  batchPendingText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  batchScheduledBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  batchScheduledText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1D4ED8',
+  },
+  priceOriginalCrossed: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textDecorationLine: 'line-through',
+  },
+  priceValueDiscounted: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#059669', // Verde de economia
   },
 });

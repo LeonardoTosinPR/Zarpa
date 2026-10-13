@@ -255,6 +255,23 @@ export default function ExpressRadarScreen() {
     return fallbackCoords;
   }, [user]);
 
+  const [isCentering, setIsCentering] = useState(false);
+
+  const handleCenterOnUser = async () => {
+    try {
+      setIsCentering(true);
+      const coords = await getDeviceCoordinates();
+      if (coords) {
+        setDeviceCoords({ ...coords });
+        try {
+          await courierService.updateLocation(coords.latitude, coords.longitude);
+        } catch (_) {}
+      }
+    } finally {
+      setIsCentering(false);
+    }
+  };
+
   const fetchRadar = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true);
@@ -279,7 +296,15 @@ export default function ExpressRadarScreen() {
 
       setOrders(availableOrders);
     } catch (error: any) {
-      console.warn('Erro ao carregar oportunidades do radar:', error);
+      if (error.response?.status === 403) {
+        setIsOnline(false);
+        const errorMsg = error.response?.data?.message || 'Acesso não autorizado. Perfil de entregador exigido.';
+        Alert.alert('Radar Indisponível', errorMsg, [
+          { text: 'Voltar', onPress: () => router.back() },
+        ]);
+      } else {
+        console.warn('Erro ao carregar oportunidades do radar:', error);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -287,6 +312,15 @@ export default function ExpressRadarScreen() {
   }, [getDeviceCoordinates, user]);
 
   useEffect(() => {
+    if (user && user.role !== 'courier' && user.role !== 'admin') {
+      Alert.alert(
+        'Acesso Restrito',
+        'O radar de oportunidades é exclusivo para entregadores parceiros.',
+        [{ text: 'OK', onPress: () => router.replace('/(client)/dashboard') }]
+      );
+      return;
+    }
+
     if (!isOnline) {
       setLoading(false);
       return;
@@ -299,7 +333,7 @@ export default function ExpressRadarScreen() {
     }, 8000);
 
     return () => clearInterval(pollInterval);
-  }, [fetchRadar, isOnline]);
+  }, [fetchRadar, isOnline, user]);
 
   const handleActivateOnline = async () => {
     try {
@@ -491,13 +525,29 @@ export default function ExpressRadarScreen() {
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={() => fetchRadar(true)}
-          style={styles.floatingHeaderBtn}
-          testID="radar-manual-refresh"
-        >
-          <Ionicons name="refresh" size={20} color={COLORS.primary} />
-        </TouchableOpacity>
+        <View style={styles.floatingHeaderRightButtons}>
+          <TouchableOpacity
+            onPress={handleCenterOnUser}
+            style={styles.floatingHeaderBtn}
+            disabled={isCentering}
+            activeOpacity={0.7}
+            testID="radar-center-location-btn"
+          >
+            {isCentering ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Ionicons name="locate" size={20} color={COLORS.primary} />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => fetchRadar(true)}
+            style={styles.floatingHeaderBtn}
+            testID="radar-manual-refresh"
+          >
+            <Ionicons name="refresh" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 3. CARD POPUP FLUTUANTE NA PARTE INFERIOR SOBREPOSTO AO MAPA */}
@@ -590,6 +640,11 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: RADIUS.md,
     backgroundColor: '#F1F5F9',
+  },
+  floatingHeaderRightButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   floatingHeaderTitleBox: {
     alignItems: 'center',

@@ -105,4 +105,102 @@ class OsrmRoutingService
             'source' => 'fallback_haversine',
         ];
     }
+
+    /**
+     * Calcula rota viária com múltiplas paradas sequenciais usando OSRM.
+     * Waypoints: array de arrays ['lat' => float, 'lng' => float]
+     *
+     * @param array<array{lat: float, lng: float}> $waypoints
+     * @return array
+     */
+    public function calculateMultiStopRoute(array $waypoints): array
+    {
+        if (count($waypoints) < 2) {
+            return [
+                'success' => false,
+                'distance_km' => 0.0,
+                'duration_minutes' => 0,
+                'polyline_geometry' => null,
+                'legs' => [],
+                'source' => 'none',
+            ];
+        }
+
+        // Formata sequência de waypoints: lng1,lat1;lng2,lat2;...
+        $coordStrings = [];
+        foreach ($waypoints as $wp) {
+            $lng = $wp['lng'] ?? $wp['dest_lng'] ?? $wp['origin_lng'];
+            $lat = $wp['lat'] ?? $wp['dest_lat'] ?? $wp['origin_lat'];
+            $coordStrings[] = "{$lng},{$lat}";
+        }
+        $coordinates = implode(';', $coordStrings);
+        $url = "{$this->baseUrl}/route/v1/driving/{$coordinates}";
+
+        try {
+            $request = Http::timeout(8)->acceptJson();
+
+            if (!empty($this->username) && !empty($this->password)) {
+                $request = $request->withBasicAuth($this->username, $this->password);
+            }
+
+            $response = $request->get($url, [
+                'steps' => 'true',
+                'overview' => 'full',
+                'geometries' => 'polyline',
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (!empty($data['routes'][0])) {
+                    $route = $data['routes'][0];
+                    $distanceMeters = (float) ($route['distance'] ?? 0);
+                    $durationSeconds = (float) ($route['duration'] ?? 0);
+
+                    return [
+                        'success' => true,
+                        'distance_km' => round($distanceMeters / 1000, 2),
+                        'duration_minutes' => (int) ceil($durationSeconds / 60),
+                        'polyline_geometry' => $route['geometry'] ?? null,
+                        'legs' => $route['legs'] ?? [],
+                        'source' => 'osrm',
+                    ];
+                }
+            }
+
+            Log::warning("OSRM MultiStop non-successful ({$response->status()}): " . $response->body());
+        } catch (Exception $e) {
+            Log::error("OSRM MultiStop Routing error: " . $e->getMessage());
+        }
+
+        return $this->fallbackMultiStopHaversineRoute($waypoints);
+    }
+
+    /**
+     * Fallback Haversine acumulado para múltiplas paradas.
+     */
+    protected function fallbackMultiStopHaversineRoute(array $waypoints): array
+    {
+        $totalDistanceKm = 0.0;
+        $totalMinutes = 0;
+
+        for ($i = 0; $i < count($waypoints) - 1; $i++) {
+            $lat1 = (float) ($waypoints[$i]['lat'] ?? $waypoints[$i]['origin_lat'] ?? 0);
+            $lon1 = (float) ($waypoints[$i]['lng'] ?? $waypoints[$i]['origin_lng'] ?? 0);
+            $lat2 = (float) ($waypoints[$i + 1]['lat'] ?? $waypoints[$i + 1]['dest_lat'] ?? 0);
+            $lon2 = (float) ($waypoints[$i + 1]['lng'] ?? $waypoints[$i + 1]['dest_lng'] ?? 0);
+
+            $leg = $this->fallbackHaversineRoute($lat1, $lon1, $lat2, $lon2);
+            $totalDistanceKm += $leg['distance_km'];
+            $totalMinutes += $leg['duration_minutes'];
+        }
+
+        return [
+            'success' => true,
+            'distance_km' => round($totalDistanceKm, 2),
+            'duration_minutes' => max(5, $totalMinutes),
+            'polyline_geometry' => null,
+            'legs' => [],
+            'source' => 'fallback_haversine',
+        ];
+    }
 }

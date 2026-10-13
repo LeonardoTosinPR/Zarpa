@@ -45,7 +45,7 @@ Este checklist documenta a evolução contínua das funcionalidades nos checkpoi
   - [x] Alteração de foto de perfil direto da galeria do aparelho celular (`expo-image-picker`) tanto para entregadores quanto para lojistas.
   - [x] Acesso direto à tela de perfil tocando no avatar do cabeçalho global (`Header.tsx`) de qualquer tela.
   - [x] Autocomplete de endereços com priorização de polos locais (UTFPR, Unicentro Santa Cruz, Unicentro CEDETEG, Shopping) exibindo nome do local em destaque e endereço completo.
-  - [x] Renderização simplificada de alta performance com `RouteMapPreview`: motor de tiles em React Native puro (CartoDB Voyager / OpenStreetMap) com projeção Mercator determinística, eliminando dependência do SDK pago do Google Maps e incompatibilidades da New Architecture/Fabric no Android, com pino customizado do condutor, círculo do raio de radar e controles interativos de zoom (+, -, recentralizar).
+  - [x] Renderização de mapas com **Expo-Leaflet + OpenStreetMap via WebView** (conforme orientação acadêmica - componente `MyMap` / repositório `pdm-ts-maps-leaflet`): arquitetura padronizada com `expo-leaflet` e `react-native-webview` consumindo a API aberta da OpenStreetMap Foundation (OSM), eliminando totalmente a dependência do SDK pago do Google Maps e incompatibilidades da New Architecture/Fabric no Android, com marcadores customizados, traçado de rota OSRM, raio de cobertura do radar express e suporte cross-platform.
   - [x] Painel de Telemetria GPS em Tempo Real em tela (`(courier)/dashboard.tsx` e `express-radar.tsx`): exibição visual de latitude, longitude, polo (Guarapuava), status de conexão ("GPS Ativo no Dispositivo") e sincronização contínua com a base PostGIS do backend Docker via ADB reverse (`tcp:8000`).
 - [ ] **Agenda de Lotes Econômicos & Execução Operacional (Sprint 4 & 6)**:
   - [ ] Visualização da agenda de paradas sequenciais de coleta e entrega.
@@ -278,7 +278,7 @@ mobile/
 │       ├── profile.tsx           # Perfil do Entregador com ajuste do Raio de Atuação (km), veículo e CNH
 │       └── active-delivery.tsx   # Visualização da rota interna OSRM, controle de status (coleta/entrega) e bloqueio de saída sem cancelamento
 ├── src/
-│   ├── components/               # Componentes UI (Header, Button, Input, RouteMapPreview híbrido OSM/Leaflet)
+│   ├── components/               # Componentes UI (Header, Button, Input, MyMap, RouteMapPreview com Expo-Leaflet/OSM)
 │   ├── constants/                # Constantes do Design System (theme.ts: cores, fontes, sombras)
 │   ├── context/                  # Contextos globais (AuthContext.tsx)
 │   ├── services/                 # Clientes HTTP (api.ts, orderService.ts, courierService.ts)

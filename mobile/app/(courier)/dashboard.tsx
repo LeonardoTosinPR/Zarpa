@@ -8,6 +8,7 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -30,6 +31,40 @@ export default function CourierDashboardScreen() {
   }));
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [lastGpsSync, setLastGpsSync] = useState<string>('Sincronizado');
+
+  // Lotes Econômicos Agendados (Sprint 4)
+  const [deliveryGroups, setDeliveryGroups] = useState<any[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(true);
+  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
+  const [isProcessingBatch, setIsProcessingBatch] = useState<boolean>(false);
+
+  const loadDeliveryGroups = useCallback(async () => {
+    try {
+      setIsLoadingGroups(true);
+      const res = await courierService.getDeliveryGroups();
+      setDeliveryGroups(res.groups || []);
+    } catch (err) {
+      console.warn('Erro ao carregar lotes do condutor:', err);
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  }, []);
+
+  const handleTriggerBatchNow = async () => {
+    try {
+      setIsProcessingBatch(true);
+      const res = await courierService.processEconomicBatch({ dry_run: false });
+      Alert.alert(
+        'Distribuição Concluída!',
+        `Processamento noturno executado com sucesso!\n\n• Pedidos Organizados: ${res.orders_processed}\n• Lotes Criados: ${res.groups_created}\n• Economia Gerada: R$ ${Number(res.total_savings_generated).toFixed(2)}`,
+        [{ text: 'OK', onPress: () => loadDeliveryGroups() }]
+      );
+    } catch (err: any) {
+      Alert.alert('Erro ao Processar Lote', err?.response?.data?.message || 'Falha ao executar distribuição.');
+    } finally {
+      setIsProcessingBatch(false);
+    }
+  };
 
   // Captura a localização GPS física real do aparelho do condutor
   const fetchDeviceLocation = useCallback(async () => {
@@ -99,7 +134,8 @@ export default function CourierDashboardScreen() {
 
   useEffect(() => {
     fetchDeviceLocation();
-  }, [fetchDeviceLocation]);
+    loadDeliveryGroups();
+  }, [fetchDeviceLocation, loadDeliveryGroups]);
 
   async function handleToggleOnline(val: boolean) {
     setIsOnline(val);
@@ -207,84 +243,7 @@ export default function CourierDashboardScreen() {
           </View>
         </View>
 
-        {/* Real-time Map of Courier Current Location & Telemetry */}
-        <View style={[styles.mapSectionCard, SHADOWS.sm]} testID="courier-gps-section">
-          <View style={styles.mapHeaderRow}>
-            <View style={styles.mapHeaderTitleBox}>
-              <Ionicons name="navigate-circle-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.mapHeaderTitle}>Sua Localização GPS</Text>
-            </View>
-            <TouchableOpacity
-              onPress={fetchDeviceLocation}
-              style={styles.recalibrateBtn}
-              activeOpacity={0.7}
-              disabled={isLocating}
-              testID="recalibrate-gps-button"
-            >
-              {isLocating ? (
-                <ActivityIndicator size="small" color={COLORS.primary} />
-              ) : (
-                <>
-                  <Ionicons name="locate-outline" size={14} color={COLORS.primary} />
-                  <Text style={styles.recalibrateBtnText}>Atualizar GPS</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
 
-          {/* Painel de Telemetria Numérica do GPS em Tempo Real */}
-          <View style={styles.telemetryCard}>
-            <View style={styles.telemetryHeaderRow}>
-              <View style={styles.telemetryStatusBadge}>
-                <View style={styles.telemetryStatusDot} />
-                <Text style={styles.telemetryStatusText}>GPS Ativo no Dispositivo</Text>
-              </View>
-              <Text style={styles.telemetrySyncText}>{lastGpsSync}</Text>
-            </View>
-
-            <View style={styles.telemetryCoordsRow}>
-              <View style={styles.telemetryCoordItem}>
-                <Text style={styles.telemetryCoordLabel}>LATITUDE</Text>
-                <Text style={styles.telemetryCoordValue}>
-                  {deviceLocation.latitude.toFixed(6)}
-                </Text>
-              </View>
-              <View style={styles.telemetryDivider} />
-              <View style={styles.telemetryCoordItem}>
-                <Text style={styles.telemetryCoordLabel}>LONGITUDE</Text>
-                <Text style={styles.telemetryCoordValue}>
-                  {deviceLocation.longitude.toFixed(6)}
-                </Text>
-              </View>
-              <View style={styles.telemetryDivider} />
-              <View style={styles.telemetryCoordItem}>
-                <Text style={styles.telemetryCoordLabel}>POLO</Text>
-                <Text style={styles.telemetryCoordValue}>Guarapuava</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.mapContainer}>
-            <RouteMapPreview
-              origin={{
-                latitude: deviceLocation.latitude,
-                longitude: deviceLocation.longitude,
-                title: 'Você está aqui',
-                description: `GPS: ${deviceLocation.latitude.toFixed(5)}, ${deviceLocation.longitude.toFixed(5)}`,
-              }}
-              mode="current_location"
-              radiusKm={parseFloat(String(radius)) || 5.0}
-              height={190}
-            />
-          </View>
-
-          <View style={styles.mapFooterRow}>
-            <Ionicons name="information-circle-outline" size={14} color={COLORS.textMuted} />
-            <Text style={styles.mapFooterText}>
-              O radar sintoniza chamados pelo GPS do aparelho num raio de {radius} km em Guarapuava.
-            </Text>
-          </View>
-        </View>
 
         {/* Route / Earnings Preview */}
         <View style={[styles.routePreviewCard, SHADOWS.sm]}>
@@ -304,58 +263,53 @@ export default function CourierDashboardScreen() {
 
         {/* Action Shortcuts */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Ações de Despacho</Text>
+          <Text style={styles.sectionTitle}>Lotes e Roteamento</Text>
         </View>
 
         <TouchableOpacity
           style={[styles.actionCard, SHADOWS.sm]}
           activeOpacity={0.8}
-          onPress={handleNavigateRadar}
-          testID="courier-radar-preview"
+          onPress={() => router.push('/(courier)/economic-batches')}
+          testID="courier-economic-batches-btn"
         >
-          <View style={[styles.actionIconBox, { backgroundColor: COLORS.primaryLight }]}>
-            <Ionicons name="radio" size={20} color={COLORS.primary} />
+          <View style={[styles.actionIconBox, { backgroundColor: '#ECFDF5' }]}>
+            <Ionicons name="cash-outline" size={22} color="#059669" />
           </View>
           <View style={styles.actionTextBox}>
-            <Text style={styles.actionTitle}>Radar de Entregas Expressas</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.actionTitle}>Lotes Econômicos Agendados</Text>
+              {deliveryGroups.length > 0 && (
+                <View style={styles.batchCountPill}>
+                  <Text style={styles.batchCountPillText}>{deliveryGroups.length}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.actionSubtitle}>
-              Dispute chamados urgentes com trava anti-conflito.
+              Itinerários otimizados com paradas sequenciadas do batch.
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.actionCard, SHADOWS.sm]}
-          activeOpacity={0.8}
-          testID="courier-routes-preview"
-        >
-          <View style={[styles.actionIconBox, { backgroundColor: '#F3F4F6' }]}>
-            <Ionicons name="map-outline" size={20} color={COLORS.textPrimary} />
-          </View>
-          <View style={styles.actionTextBox}>
-            <Text style={styles.actionTitle}>Agenda de Lotes & Multi-paradas</Text>
-            <Text style={styles.actionSubtitle}>
-              Visualize itinerários e transborde para Google Maps / Waze.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
-        </TouchableOpacity>
-
-        {/* Admin Switcher */}
+        {/* Admin Switcher & Batch Simulation Panel */}
         {role === 'admin' && (
           <View style={[styles.adminSwitcherCard, SHADOWS.sm]}>
-            <Text style={styles.adminSwitcherTitle}>Painel de Alternância Admin</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
+              <Ionicons name="shield-checkmark" size={16} color="#7C3AED" />
+              <Text style={styles.adminSwitcherTitle}>Painel do Administrador Master</Text>
+            </View>
             <Text style={styles.adminSwitcherDesc}>
-              Como administrador, você pode inspecionar o dashboard do lojista.
+              Acesso exclusivo para simulação da distribuição noturna e auditoria.
             </Text>
             <Button
-              title="Visualizar Dashboard do Lojista"
-              variant="secondary"
-              onPress={() => router.push('/(client)/dashboard')}
-              style={styles.adminSwitchBtn}
-              testID="admin-switch-to-client"
+              title={isProcessingBatch ? "Executando Distribuição..." : "⚡ Simular Distribuição do Batch Agora"}
+              variant="primary"
+              onPress={handleTriggerBatchNow}
+              disabled={isProcessingBatch}
+              style={{ marginBottom: SPACING.sm }}
+              testID="admin-trigger-batch-dashboard-btn"
             />
+            {/* Button to switch view removed to avoid duplicating navigation options */}
           </View>
         )}
 
@@ -429,17 +383,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.textPrimary,
     marginBottom: 4,
+    flexShrink: 1,
   },
   vehicleInfo: {
     fontSize: 14,
     color: COLORS.textPrimary,
     fontWeight: '500',
     marginBottom: 2,
+    flexShrink: 1,
   },
   cnhInfo: {
     fontSize: 12,
     color: COLORS.textMuted,
     marginBottom: SPACING.lg,
+    flexShrink: 1,
   },
   statusToggleRow: {
     flexDirection: 'row',
@@ -448,11 +405,15 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   statusIndicatorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
+    flex: 1,
+    flexShrink: 1,
   },
   statusDot: {
     width: 10,
@@ -689,30 +650,343 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   adminSwitcherCard: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#0F172A',
     borderRadius: RADIUS.md,
     padding: SPACING.lg,
     marginTop: SPACING.md,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: '#DDD6FE',
+    borderColor: '#334155',
   },
   adminSwitcherTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#6D28D9',
+    color: '#A78BFA',
     marginBottom: 4,
   },
   adminSwitcherDesc: {
     fontSize: 12,
-    color: '#7C3AED',
+    color: '#94A3B8',
     marginBottom: SPACING.md,
   },
   adminSwitchBtn: {
-    borderColor: '#6D28D9',
+    height: 44,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#475569',
   },
   logoutButton: {
     marginTop: SPACING.md,
     marginBottom: SPACING.xxl,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.sm,
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  batchQuickBtn: {
+    backgroundColor: '#4F46E5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.sm,
+  },
+  batchQuickBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  groupLoadingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+    backgroundColor: '#F8FAFC',
+    borderRadius: RADIUS.md,
+    marginBottom: SPACING.md,
+  },
+  groupLoadingText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  emptyGroupBox: {
+    backgroundColor: '#FFFFFF',
+    padding: SPACING.lg,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  emptyGroupTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  emptyGroupSubtitle: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: SPACING.md,
+    lineHeight: 16,
+  },
+  simulateBatchBtn: {
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 8,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  simulateBatchBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  groupsContainer: {
+    marginBottom: SPACING.md,
+  },
+  groupCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  groupCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
+  },
+  batchCountPill: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: RADIUS.full,
+  },
+  batchCountPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#4F46E5',
+  },
+  groupBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  groupBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  groupDateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  groupDateText: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  groupMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    padding: SPACING.sm,
+    borderRadius: RADIUS.sm,
+    marginBottom: SPACING.sm,
+  },
+  groupMetricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  groupMetricLabel: {
+    fontSize: 9,
+    color: COLORS.textMuted,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  groupMetricValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  groupMetricDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#E2E8F0',
+  },
+  groupBonusValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#059669',
+    marginTop: 2,
+  },
+  viewStopsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    marginTop: 4,
+  },
+  viewStopsBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    padding: SPACING.lg,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: SPACING.sm,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalBody: {
+    marginBottom: SPACING.md,
+  },
+  modalBonusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    marginBottom: SPACING.md,
+  },
+  modalBonusTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  modalBonusDesc: {
+    fontSize: 11,
+    color: '#047857',
+    marginTop: 2,
+  },
+  stopsSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+  },
+  stopCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: SPACING.sm,
+    borderRadius: RADIUS.sm,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  stopSeqBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.sm,
+  },
+  stopSeqText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  stopTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  stopTypeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  pickupTag: {
+    backgroundColor: '#FEF3C7',
+  },
+  deliveryTag: {
+    backgroundColor: '#DBEAFE',
+  },
+  stopTypeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  pickupText: {
+    color: '#92400E',
+  },
+  deliveryText: {
+    color: '#1E40AF',
+  },
+  stopDistText: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  stopOrderDesc: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  modalDoneBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.md,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+  },
+  modalDoneBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

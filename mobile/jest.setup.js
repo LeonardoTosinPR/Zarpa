@@ -72,3 +72,29 @@ jest.mock('react-native-maps', () => {
   };
 });
 
+// Mock react-native-webview
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const MockWebView = React.forwardRef((props, ref) =>
+    React.createElement(View, { testID: 'mock-webview', ref, ...props })
+  );
+  return {
+    WebView: MockWebView,
+    default: MockWebView,
+  };
+});
+
+// Mock expo-leaflet
+jest.mock('expo-leaflet', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const MockExpoLeaflet = React.forwardRef((props, ref) =>
+    React.createElement(View, { testID: 'mock-expo-leaflet', ref, ...props }, props.children)
+  );
+  return {
+    ExpoLeaflet: MockExpoLeaflet,
+    default: MockExpoLeaflet,
+  };
+});
+

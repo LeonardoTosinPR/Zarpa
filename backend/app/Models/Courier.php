@@ -98,4 +98,12 @@ class Courier extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    /**
+     * Relationship with DeliveryGroups (Lotes Economicos).
+     */
+    public function deliveryGroups(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(DeliveryGroup::class);
+    }
 }
