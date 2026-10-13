@@ -38,18 +38,18 @@ class PopulateRandomMockOrdersCommand extends Command
         // Polo Norte / Cidade dos Lagos / Bonsucesso
         [
             'name' => 'UTFPR - Câmpus Guarapuava',
-            'address' => 'Av. Professora Laura Pacheco Bastos, 800 - Bonsucesso',
-            'lat' => -25.3494225, 'lng' => -51.4787116,
+            'address' => 'Av. Professora Laura Pacheco Bastos, 800 - Bairro Industrial',
+            'lat' => -25.3880000, 'lng' => -51.4810000,
         ],
         [
             'name' => 'Shopping Cidade dos Lagos',
             'address' => 'Avenida Guarapuava, 1400 - Cidade dos Lagos',
-            'lat' => -25.3520100, 'lng' => -51.4850200,
+            'lat' => -25.3884000, 'lng' => -51.4815000,
         ],
         [
             'name' => 'Hospital Regional Cidade dos Lagos',
-            'address' => 'Rua Salvatore Renna, 450 - Cidade dos Lagos',
-            'lat' => -25.3540000, 'lng' => -51.4795000,
+            'address' => 'Av. Guarapuava, 100 - Cidade dos Lagos',
+            'lat' => -25.3860000, 'lng' => -51.4830000,
         ],
         [
             'name' => 'Superpão Compre Mais Bonsucesso',
@@ -100,18 +100,13 @@ class PopulateRandomMockOrdersCommand extends Command
         ],
         [
             'name' => 'Parque do Lago',
-            'address' => 'Rua Salvatore Renna, s/n - Batel',
-            'lat' => -25.4010500, 'lng' => -51.4670200,
+            'address' => 'Rua Padre Salvador, s/n - Batel',
+            'lat' => -25.3983000, 'lng' => -51.4707000,
         ],
         [
             'name' => 'Batel Imóveis & Residências',
             'address' => 'Rua Capitão Rocha, 890 - Batel',
             'lat' => -25.3995000, 'lng' => -51.4715000,
-        ],
-        [
-            'name' => 'Bairro Trianon Residencial',
-            'address' => 'Rua Visconde de Guarapuava, 420 - Trianon',
-            'lat' => -25.3910000, 'lng' => -51.4700000,
         ],
         [
             'name' => 'Prefeitura Municipal de Guarapuava',
@@ -122,8 +117,8 @@ class PopulateRandomMockOrdersCommand extends Command
         // Polo Oeste / Santa Cruz / Campo Real
         [
             'name' => 'UNICENTRO - Câmpus Santa Cruz',
-            'address' => 'Rua Padre Salvador, 875 - Santa Cruz',
-            'lat' => -25.3896597, 'lng' => -51.4769122,
+            'address' => 'Rua Salvatore Renna, 875 - Santa Cruz',
+            'lat' => -25.4097000, 'lng' => -51.4659000,
         ],
         [
             'name' => 'Centro Universitário Campo Real',
@@ -135,17 +130,12 @@ class PopulateRandomMockOrdersCommand extends Command
             'address' => 'Rua Saldanha Marinho, 3100 - Santa Cruz',
             'lat' => -25.3880000, 'lng' => -51.4740000,
         ],
-        [
-            'name' => 'Bairro Morro Alto Comercial',
-            'address' => 'Av. Moacir Júlio Silvestri, 3200 - Morro Alto',
-            'lat' => -25.3750000, 'lng' => -51.4880000,
-        ],
 
         // Polo Sul / Vila Carli / CEDETEG / Santana
         [
             'name' => 'UNICENTRO - Câmpus CEDETEG',
             'address' => 'Alameda Élio Antonio Dalla Vecchia, 838 - Vila Carli',
-            'lat' => -25.4050200, 'lng' => -51.4420300,
+            'lat' => -25.3833900, 'lng' => -51.4881800,
         ],
         [
             'name' => 'Hipermercado Dal Pozzo Vila Carli',
@@ -155,22 +145,12 @@ class PopulateRandomMockOrdersCommand extends Command
         [
             'name' => 'Terminal Rodoviário de Guarapuava',
             'address' => 'Av. Sebastião de Camargo Ribas, 2100 - Bonsucesso',
-            'lat' => -25.3912300, 'lng' => -51.4550100,
+            'lat' => -25.3780000, 'lng' => -51.4650000,
         ],
         [
             'name' => 'Bairro Santana Residencial',
             'address' => 'Rua Rosa Lustosa de Siqueira, 780 - Santana',
             'lat' => -25.3830000, 'lng' => -51.4520000,
-        ],
-        [
-            'name' => 'Bairro Primavera Sul',
-            'address' => 'Rua das Camélias, 410 - Primavera',
-            'lat' => -25.4200000, 'lng' => -51.4750000,
-        ],
-        [
-            'name' => 'Vila Bela Residencial',
-            'address' => 'Rua Pato Branco, 250 - Vila Bela',
-            'lat' => -25.4150000, 'lng' => -51.4650000,
         ],
     ];
 

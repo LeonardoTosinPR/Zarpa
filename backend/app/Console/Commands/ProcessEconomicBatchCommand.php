@@ -14,7 +14,7 @@ class ProcessEconomicBatchCommand extends Command
      */
     protected $signature = 'zarpa:process-economic-batch 
                             {--date= : Data agendada para a entrega (YYYY-MM-DD)}
-                            {--radius=6.0 : Raio máximo de dispersão geográfica em km}
+                            {--radius=2.0 : Raio máximo de dispersão geográfica em km}
                             {--dry-run : Apenas simular sem persistir no banco}';
 
     /**
