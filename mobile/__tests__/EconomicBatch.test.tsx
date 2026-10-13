@@ -140,7 +140,7 @@ describe('Economic Batch Modules (Sprint 4)', () => {
     expect(getByText('R$ 18.50')).toBeTruthy();
   });
 
-  it('renders economic batches shortcut on courier dashboard and navigates to dedicated screen', async () => {
+  it('renders courier dashboard without batch button since it moved to bottom menu', async () => {
     const mockGroups = [
       {
         id: 1,
@@ -161,21 +161,15 @@ describe('Economic Batch Modules (Sprint 4)', () => {
     });
     jest.spyOn(courierService, 'updateLocation').mockResolvedValue({} as any);
 
-    const { findByText, getByTestId } = render(
+    const { queryByTestId, findByText } = render(
       <AuthProvider>
         <CourierDashboardScreen />
       </AuthProvider>
     );
 
-    // Valida card de atalho para a tela dedicada
-    const shortcutTitle = await findByText('Lotes Econômicos Agendados');
-    expect(shortcutTitle).toBeTruthy();
-
-    const shortcutBtn = getByTestId('courier-economic-batches-btn');
-    fireEvent.press(shortcutBtn);
-
-    // Valida navegação para a rota dedicada
-    expect(mockPush).toHaveBeenCalledWith('/(courier)/economic-batches');
+    // Valida que o dashboard carrega sem erro e que o botão foi realocado para o menu de abas
+    expect(await findByText('Entregador Parceiro')).toBeTruthy();
+    expect(queryByTestId('courier-economic-batches-btn')).toBeNull();
   });
 
   it('renders dedicated economic batches screen with sequenced stops and productivity bonus', async () => {
@@ -258,11 +252,12 @@ describe('Economic Batch Modules (Sprint 4)', () => {
     expect(getByText('Lotes Econômicos')).toBeTruthy();
     expect(getByText('Itinerários Agendados')).toBeTruthy();
 
-    // Valida lote e métricas
+    // Valida lote e métricas (incluindo taxa de R$ 3,00 por parada entregue)
     const loteTitle = await findByText('Lote #1');
     expect(loteTitle).toBeTruthy();
-    expect(getByText('18.5 km')).toBeTruthy();
-    expect(getByText('R$ 7.25')).toBeTruthy();
+    expect(getByText('SEU GANHO TOTAL')).toBeTruthy();
+    expect(getByText('R$ 59.50')).toBeTruthy();
+    expect(getByText('+ R$ 7.25')).toBeTruthy();
 
     // Valida itinerário sequenciado e bônus exibido
     await waitFor(() => {

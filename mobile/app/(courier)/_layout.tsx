@@ -12,6 +12,7 @@ export default function CourierLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        animation: 'fade',
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarStyle: {
@@ -44,6 +45,24 @@ export default function CourierLayout() {
           title: 'Radar',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'radio' : 'radio-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="financial"
+        options={{
+          title: 'Ganhos',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="economic-batches"
+        options={{
+          title: 'Lotes',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'cube' : 'cube-outline'} size={22} color={color} />
           ),
         }}
       />

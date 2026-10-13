@@ -209,25 +209,47 @@ export default function EconomicBatchesScreen() {
                     </View>
                   </TouchableOpacity>
 
-                  {/* Metrics Banner */}
-                  <View style={styles.metricsGrid}>
-                    <View style={styles.metricBox}>
-                      <Text style={styles.metricLabel}>PARADAS</Text>
-                      <Text style={styles.metricValue}>{stopsCount} paradas</Text>
-                    </View>
-                    <View style={styles.metricDivider} />
-                    <View style={styles.metricBox}>
-                      <Text style={styles.metricLabel}>DISTÂNCIA</Text>
-                      <Text style={styles.metricValue}>{group.total_distance_km} km</Text>
-                    </View>
-                    <View style={styles.metricDivider} />
-                    <View style={styles.metricBox}>
-                      <Text style={styles.metricLabel}>BÔNUS CONDUTOR</Text>
-                      <Text style={styles.metricBonusValue}>
-                        R$ {Number(group.courier_bonus || 0).toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
+                  {/* Metrics Banner com Foco em Ganhos */}
+                  {(() => {
+                    const ordersCount = group.orders ? group.orders.length : (group.group_orders ? group.group_orders.length / 2 : 0);
+                    const routeFare = Number(group.total_distance_km || 0) * 2.50;
+                    const stopFees = ordersCount * 3.00;
+                    const courierBonus = Number(group.courier_bonus || 0);
+                    const totalEarnings = routeFare + stopFees + courierBonus;
+
+                    return (
+                      <View style={styles.metricsGrid}>
+                        <View style={styles.metricBox}>
+                          <Text style={styles.metricLabel}>SEU GANHO TOTAL</Text>
+                          <Text style={[styles.metricBonusValue, { fontSize: 14, color: '#059669' }]}>
+                            R$ {totalEarnings.toFixed(2)}
+                          </Text>
+                        </View>
+                        <View style={styles.metricDivider} />
+                        <View style={styles.metricBox}>
+                          <Text style={styles.metricLabel}>FRETE ROTA ({group.total_distance_km} km)</Text>
+                          <Text style={styles.metricValue}>
+                            R$ {routeFare.toFixed(2)}
+                          </Text>
+                        </View>
+                        <View style={styles.metricDivider} />
+                        <View style={styles.metricBox}>
+                          <Text style={styles.metricLabel}>TAXA PARADAS ({ordersCount}x R$3)</Text>
+                          <Text style={[styles.metricBonusValue, { color: '#059669' }]}>
+                            + R$ {stopFees.toFixed(2)}
+                          </Text>
+                        </View>
+                        <View style={styles.metricDivider} />
+                        <View style={styles.metricBox}>
+                          <Text style={styles.metricLabel}>BÔNUS LOTE 50%</Text>
+                          <Text style={[styles.metricBonusValue, { color: courierBonus > 0 ? '#059669' : COLORS.textMuted }]}>
+                            + R$ {courierBonus.toFixed(2)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })()}
+
 
                   {/* Detalhes Expansíveis de Paradas Sequenciadas */}
                   {isExpanded && (
@@ -286,13 +308,19 @@ export default function EconomicBatchesScreen() {
                                   {orderItem?.package_description ? ` • ${orderItem.package_description}` : ''}
                                 </Text>
                                 {orderItem ? (
-                                  <Text style={styles.stopAddress} numberOfLines={2}>
-                                    📍 {isPickup ? orderItem.origin_address : orderItem.dest_address}
-                                  </Text>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                                    <Ionicons name="location-outline" size={13} color={COLORS.textMuted} style={{ marginRight: 4 }} />
+                                    <Text style={styles.stopAddress} numberOfLines={2}>
+                                      {isPickup ? orderItem.origin_address : orderItem.dest_address}
+                                    </Text>
+                                  </View>
                                 ) : (
-                                  <Text style={styles.stopAddress}>
-                                    📍 Parada calculada no lote
-                                  </Text>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                                    <Ionicons name="location-outline" size={13} color={COLORS.textMuted} style={{ marginRight: 4 }} />
+                                    <Text style={styles.stopAddress}>
+                                      Parada calculada no lote
+                                    </Text>
+                                  </View>
                                 )}
                               </View>
                             </View>
