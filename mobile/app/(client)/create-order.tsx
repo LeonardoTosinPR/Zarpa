@@ -40,11 +40,17 @@ export default function CreateOrderScreen() {
 
   // Busca e digitação manual do endereço de coleta (Origem)
   const [originQuery, setOriginQuery] = useState('');
+  const [originNumber, setOriginNumber] = useState('');
+  const [originComplement, setOriginComplement] = useState('');
+  const [originBaseStreet, setOriginBaseStreet] = useState('');
   const [originSuggestions, setOriginSuggestions] = useState<GeocodeResult[]>([]);
   const [isSearchingOriginGeocode, setIsSearchingOriginGeocode] = useState(false);
 
   // Destino e Geocodificação
   const [destQuery, setDestQuery] = useState('');
+  const [destNumber, setDestNumber] = useState('');
+  const [destComplement, setDestComplement] = useState('');
+  const [destBaseStreet, setDestBaseStreet] = useState('');
   const [destAddress, setDestAddress] = useState('');
   const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [suggestions, setSuggestions] = useState<GeocodeResult[]>([]);
@@ -136,6 +142,7 @@ export default function CreateOrderScreen() {
     const chosenAddress = item.place_name
       ? `${item.place_name} (${item.street || item.neighborhood})`
       : item.display_name;
+    setOriginBaseStreet(chosenAddress);
     setOriginAddress(chosenAddress);
     setOriginCoords({ lat: item.lat, lng: item.lng });
     setOriginType('custom');
@@ -143,8 +150,28 @@ export default function CreateOrderScreen() {
     setOriginSuggestions([]);
   }
 
+  // Atualiza endereço formatado da origem quando o número ou complemento mudam
+  function handleOriginNumberChange(num: string) {
+    setOriginNumber(num);
+    if (!originBaseStreet) return;
+    const numPart = num.trim() ? `, Nº ${num.trim()}` : '';
+    const compPart = originComplement.trim() ? ` (${originComplement.trim()})` : '';
+    setOriginAddress(`${originBaseStreet}${numPart}${compPart}`);
+  }
+
+  function handleOriginComplementChange(comp: string) {
+    setOriginComplement(comp);
+    if (!originBaseStreet) return;
+    const numPart = originNumber.trim() ? `, Nº ${originNumber.trim()}` : '';
+    const compPart = comp.trim() ? ` (${comp.trim()})` : '';
+    setOriginAddress(`${originBaseStreet}${numPart}${compPart}`);
+  }
+
   function handleClearOrigin() {
     setOriginAddress('');
+    setOriginBaseStreet('');
+    setOriginNumber('');
+    setOriginComplement('');
     setOriginCoords(null);
     setOriginType(null);
     setOriginQuery('');
@@ -195,6 +222,51 @@ export default function CreateOrderScreen() {
     return () => clearTimeout(timer);
   }, [destQuery]);
 
+  // Recalcula coordenadas do destino quando o número predial for informado ou alterado
+  useEffect(() => {
+    if (!destBaseStreet || !destNumber.trim()) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const queryWithNumber = `${destBaseStreet} ${destNumber.trim()}`;
+        const results = await orderService.geocode(queryWithNumber);
+        if (results && results.length > 0) {
+          const match = results[0];
+          setDestCoords({ lat: match.lat, lng: match.lng });
+        }
+      } catch (err) {
+        console.warn('Erro ao recalcular coordenadas do destino com o número:', err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [destBaseStreet, destNumber]);
+
+  // Recalcula coordenadas da origem quando o número predial for informado ou alterado (para endereço customizado)
+  useEffect(() => {
+    if (originType !== 'custom' || !originBaseStreet || !originNumber.trim()) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const queryWithNumber = `${originBaseStreet} ${originNumber.trim()}`;
+        const results = await orderService.geocode(queryWithNumber);
+        if (results && results.length > 0) {
+          const match = results[0];
+          setOriginCoords({ lat: match.lat, lng: match.lng });
+        }
+      } catch (err) {
+        console.warn('Erro ao recalcular coordenadas da origem com o número:', err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [originBaseStreet, originNumber, originType]);
+
+
   // Recalcula estimativa de rota e frete sempre que ambos os pontos, peso ou modalidade mudarem
   useEffect(() => {
     if (!originCoords || !destCoords) {
@@ -239,8 +311,36 @@ export default function CreateOrderScreen() {
     const chosenAddress = item.place_name
       ? `${item.place_name} (${item.street || item.neighborhood})`
       : item.display_name;
+    setDestBaseStreet(chosenAddress);
     setDestAddress(chosenAddress);
     setDestCoords({ lat: item.lat, lng: item.lng });
+    setDestQuery('');
+    setSuggestions([]);
+  }
+
+  // Atualiza endereço formatado do destino quando o número ou complemento mudam
+  function handleDestNumberChange(num: string) {
+    setDestNumber(num);
+    if (!destBaseStreet) return;
+    const numPart = num.trim() ? `, Nº ${num.trim()}` : '';
+    const compPart = destComplement.trim() ? ` (${destComplement.trim()})` : '';
+    setDestAddress(`${destBaseStreet}${numPart}${compPart}`);
+  }
+
+  function handleDestComplementChange(comp: string) {
+    setDestComplement(comp);
+    if (!destBaseStreet) return;
+    const numPart = destNumber.trim() ? `, Nº ${destNumber.trim()}` : '';
+    const compPart = comp.trim() ? ` (${comp.trim()})` : '';
+    setDestAddress(`${destBaseStreet}${numPart}${compPart}`);
+  }
+
+  function handleClearDestination() {
+    setDestAddress('');
+    setDestBaseStreet('');
+    setDestNumber('');
+    setDestComplement('');
+    setDestCoords(null);
     setDestQuery('');
     setSuggestions([]);
   }
@@ -332,6 +432,31 @@ export default function CreateOrderScreen() {
                   </Text>
                 </View>
                 <Text style={styles.selectedOriginText}>{originAddress}</Text>
+                {originType === 'custom' && (
+                  <View style={styles.addressDetailsRow}>
+                    <View style={styles.addressNumberCol}>
+                      <Text style={styles.fieldSubLabel}>Número</Text>
+                      <TextInput
+                        style={styles.detailInput}
+                        placeholder="Nº"
+                        value={originNumber}
+                        onChangeText={handleOriginNumberChange}
+                        keyboardType="numeric"
+                        testID="origin-number-input"
+                      />
+                    </View>
+                    <View style={styles.addressComplementCol}>
+                      <Text style={styles.fieldSubLabel}>Complemento / Ponto de Ref.</Text>
+                      <TextInput
+                        style={styles.detailInput}
+                        placeholder="Ex: Apto 102, Bloco B..."
+                        value={originComplement}
+                        onChangeText={handleOriginComplementChange}
+                        testID="origin-complement-input"
+                      />
+                    </View>
+                  </View>
+                )}
                 <Text style={styles.inputHint}>
                   Coordenadas: {originCoords.lat.toFixed(4)}, {originCoords.lng.toFixed(4)}
                 </Text>
@@ -446,12 +571,34 @@ export default function CreateOrderScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.selectedDestLabel}>Destino Definido:</Text>
                 <Text style={styles.selectedDestText}>{destAddress}</Text>
+
+                {/* Campos de Número e Complemento para Destino */}
+                <View style={styles.addressDetailsRow}>
+                  <View style={styles.addressNumberCol}>
+                    <Text style={styles.fieldSubLabel}>Número</Text>
+                    <TextInput
+                      style={styles.detailInput}
+                      placeholder="Nº"
+                      value={destNumber}
+                      onChangeText={handleDestNumberChange}
+                      keyboardType="numeric"
+                      testID="destination-number-input"
+                    />
+                  </View>
+                  <View style={styles.addressComplementCol}>
+                    <Text style={styles.fieldSubLabel}>Complemento / Ponto de Ref.</Text>
+                    <TextInput
+                      style={styles.detailInput}
+                      placeholder="Ex: Casa, Apto 4, Fundos..."
+                      value={destComplement}
+                      onChangeText={handleDestComplementChange}
+                      testID="destination-complement-input"
+                    />
+                  </View>
+                </View>
               </View>
               <TouchableOpacity
-                onPress={() => {
-                  setDestAddress('');
-                  setDestCoords(null);
-                }}
+                onPress={handleClearDestination}
                 style={styles.clearBtn}
                 testID="clear-destination-button"
               >
@@ -839,6 +986,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.text,
     marginTop: 2,
+  },
+  addressDetailsRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+    marginBottom: 4,
+  },
+  addressNumberCol: {
+    width: 80,
+  },
+  addressComplementCol: {
+    flex: 1,
+  },
+  fieldSubLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    marginBottom: 3,
+    textTransform: 'uppercase',
+  },
+  detailInput: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+    fontSize: 12,
+    color: COLORS.text,
   },
   clearBtn: {
     paddingHorizontal: SPACING.sm,
