@@ -61,3 +61,7 @@ postgres_data/
 
 # Maestro output
 .maestro/output/
+
+# AI & Agent local rules and memories
+.agents/
+GEMINI.md
