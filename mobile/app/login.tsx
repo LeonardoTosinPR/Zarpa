@@ -15,6 +15,7 @@ import { COLORS, RADIUS, SHADOWS, SPACING } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Input } from '../src/components/Input';
 import { Button } from '../src/components/Button';
+import { api } from '../src/services/api';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -46,7 +47,10 @@ export default function LoginScreen() {
         router.replace('/(courier)/dashboard');
       }
     } catch (error: any) {
-      const serverMsg = error.response?.data?.message || 'Falha ao autenticar. Verifique suas credenciais.';
+      console.warn('Erro de login:', error);
+      const isNetError = error.message?.includes('Network Error') || !error.response;
+      const serverMsg = error.response?.data?.message || 
+        (isNetError ? `Erro de conexão com o servidor. Verifique se o backend está acessível em: ${api.defaults.baseURL}` : 'Falha ao autenticar. Verifique suas credenciais.');
       setErrorMessage(serverMsg);
     }
   }
@@ -61,7 +65,11 @@ export default function LoginScreen() {
         router.replace('/(courier)/dashboard');
       }
     } catch (error: any) {
-      setErrorMessage('Não foi possível realizar o login automático de teste.');
+      console.warn('Erro quick login:', error);
+      const isNetError = error.message?.includes('Network Error') || !error.response;
+      const msg = error.response?.data?.message || 
+        (isNetError ? `Erro de rede ao conectar em ${api.defaults.baseURL}` : 'Não foi possível realizar o login automático de teste.');
+      setErrorMessage(msg);
     }
   }
 

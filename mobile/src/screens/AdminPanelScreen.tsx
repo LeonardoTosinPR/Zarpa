@@ -343,22 +343,31 @@ export function AdminPanelScreen() {
                             </View>
                           </View>
                           <Text style={styles.userEmailText}>{item.email}</Text>
-                          <Text style={styles.userPhoneText}>📞 {item.phone || 'Sem telefone'}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                            <Ionicons name="call-outline" size={12} color={COLORS.textMuted} style={{ marginRight: 4 }} />
+                            <Text style={styles.userPhoneText}>{item.phone || 'Sem telefone'}</Text>
+                          </View>
                         </View>
                       </View>
 
                       {/* Informações Específicas do Perfil */}
                       {isClient && item.client && (
                         <View style={styles.extraInfoBox}>
-                          <Text style={styles.extraInfoTitle}>
-                            🏢 {item.client.business_name}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                            <Ionicons name="business-outline" size={13} color={COLORS.primary} style={{ marginRight: 4 }} />
+                            <Text style={styles.extraInfoTitle}>
+                              {item.client.business_name}
+                            </Text>
+                          </View>
                           <Text style={styles.extraInfoSub}>
                             CNPJ/CPF: {item.client.cnpj_cpf}
                           </Text>
-                          <Text style={styles.extraInfoAddress} numberOfLines={2}>
-                            📍 {item.client.default_address}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                            <Ionicons name="location-outline" size={13} color={COLORS.textMuted} style={{ marginRight: 4 }} />
+                            <Text style={styles.extraInfoAddress} numberOfLines={2}>
+                              {item.client.default_address}
+                            </Text>
+                          </View>
                         </View>
                       )}
 
@@ -380,9 +389,12 @@ export function AdminPanelScreen() {
                               Raio: {item.courier.cluster_radius_km} km
                             </Text>
                           </View>
-                          <Text style={styles.extraInfoSub}>
-                            🛵 Veículo: {item.courier.vehicle_type} • Placa: {item.courier.vehicle_plate}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+                            <Ionicons name="bicycle-outline" size={13} color={COLORS.textMuted} style={{ marginRight: 4 }} />
+                            <Text style={styles.extraInfoSub}>
+                              Veículo: {item.courier.vehicle_type} • Placa: {item.courier.vehicle_plate}
+                            </Text>
+                          </View>
                           <Text style={styles.extraInfoSub}>
                             CNH: {item.courier.cnh}
                           </Text>
@@ -402,8 +414,8 @@ export function AdminPanelScreen() {
                                 ]}
                               >
                                 {item.courier.is_active
-                                  ? '✓ Ativo (Apto a receber pedidos)'
-                                  : '✕ Inativo (Bloqueado para distribuição)'}
+                                  ? 'Ativo (Apto a receber pedidos)'
+                                  : 'Inativo (Bloqueado para distribuição)'}
                               </Text>
                             </View>
                             {updatingCourierId === item.courier.id ? (
@@ -486,9 +498,9 @@ export function AdminPanelScreen() {
             <View style={{ marginBottom: SPACING.md }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
                 {[
-                  { key: 'all', label: 'Todos os Tipos' },
-                  { key: 'express', label: '⚡ Expresso' },
-                  { key: 'economic', label: '🌙 Econômico' },
+                  { key: 'all', label: 'Todos os Tipos', icon: 'layers-outline' },
+                  { key: 'express', label: 'Expresso', icon: 'flash' },
+                  { key: 'economic', label: 'Econômico', icon: 'leaf' },
                 ].map((chip) => {
                   const isSelected = orderTypeFilter === chip.key;
                   return (
@@ -499,6 +511,12 @@ export function AdminPanelScreen() {
                       activeOpacity={0.7}
                       testID={`admin-order-type-${chip.key}`}
                     >
+                      <Ionicons
+                        name={chip.icon as any}
+                        size={13}
+                        color={isSelected ? COLORS.white : COLORS.textMuted}
+                        style={{ marginRight: 4 }}
+                      />
                       <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
                         {chip.label}
                       </Text>
@@ -577,13 +595,19 @@ export function AdminPanelScreen() {
                             isExpress ? styles.typeExpressBadge : styles.typeEconomicBadge,
                           ]}
                         >
+                          <Ionicons
+                            name={isExpress ? 'flash' : 'leaf'}
+                            size={11}
+                            color={isExpress ? '#B45309' : '#047857'}
+                            style={{ marginRight: 3 }}
+                          />
                           <Text
                             style={[
                               styles.typeBadgeText,
                               isExpress ? styles.typeExpressText : styles.typeEconomicText,
                             ]}
                           >
-                            {isExpress ? '⚡ Expresso' : '🌙 Econômico'}
+                            {isExpress ? 'Expresso' : 'Econômico'}
                           </Text>
                         </View>
                         <View

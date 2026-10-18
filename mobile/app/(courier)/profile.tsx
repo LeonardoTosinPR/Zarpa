@@ -20,7 +20,8 @@ import { Header } from '../../src/components/Header';
 import { Button } from '../../src/components/Button';
 import { courierService } from '../../src/services/courierService';
 
-const RADIUS_OPTIONS = [3, 5, 8, 10, 15, 20, 25, 30];
+// Opções de raio calibradas para o perímetro urbano de Guarapuava (máx ~12km de ponta a ponta)
+const RADIUS_OPTIONS = [1, 2, 3, 5, 8, 10, 12];
 
 const VEHICLE_OPTIONS: { label: string; value: 'motorcycle' | 'bicycle' | 'car' }[] = [
   { label: 'Motocicleta', value: 'motorcycle' },
@@ -30,7 +31,7 @@ const VEHICLE_OPTIONS: { label: string; value: 'motorcycle' | 'bicycle' | 'car' 
 
 export default function CourierProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -134,6 +135,9 @@ export default function CourierProfileScreen() {
         vehicle_plate: vehiclePlate.trim().toUpperCase(),
         cnh: cnh.trim(),
       });
+
+      // Sincroniza o contexto global de autenticação com o novo perfil e raio
+      await refreshProfile();
 
       Alert.alert('Sucesso', 'Perfil e raio de atuação atualizados com sucesso!');
     } catch (err: any) {

@@ -103,7 +103,7 @@ function RadarOrderCard({
           <Text style={styles.urgentBadgeText}>EXPRESSO</Text>
         </View>
         <View style={styles.countdownBadge}>
-          <Ionicons name="timer-outline" size={13} color={secondsLeft <= 3 ? COLORS.error : COLORS.textMuted} />
+          <Ionicons name="time-outline" size={13} color={secondsLeft <= 3 ? COLORS.error : COLORS.textMuted} />
           <Text
             style={[
               styles.countdownText,
@@ -118,43 +118,48 @@ function RadarOrderCard({
 
       {/* Linha Principal: Preço e Distância da Coleta */}
       <View style={styles.mainInfoRow}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
           <Text style={styles.priceValue}>{freightPrice}</Text>
-          <Text style={styles.priceSublabel}>ganho livre</Text>
+          <Text style={styles.priceSublabel}>líquido</Text>
         </View>
         <View style={styles.distanceBadge}>
-          <Ionicons name="navigate-circle" size={14} color={COLORS.primary} style={{ marginRight: 3 }} />
+          <Ionicons name="navigate-outline" size={12} color={COLORS.primary} style={{ marginRight: 3 }} />
           <Text style={styles.distanceBadgeText}>Coleta a {pickupDistance}</Text>
         </View>
       </View>
 
-      {/* Descrição Compacta do Pacote */}
+      {/* Rota Expressa de Origem até Destino com Linha Vertical */}
+      <View style={styles.itineraryBox}>
+        <View style={styles.itineraryTimeline}>
+          <View style={[styles.timelineNode, { backgroundColor: '#10B981' }]} />
+          <View style={styles.timelineLine} />
+          <View style={[styles.timelineNode, { backgroundColor: '#EF4444' }]} />
+        </View>
+        <View style={styles.itineraryTextCol}>
+          <View style={styles.itineraryRow}>
+            <Text style={styles.itineraryPointLabel}>Coleta</Text>
+            <Text style={styles.itineraryPointAddress} numberOfLines={1}>
+              {order.origin_address}
+            </Text>
+          </View>
+          <View style={styles.itineraryRow}>
+            <Text style={styles.itineraryPointLabel}>Entrega</Text>
+            <Text style={styles.itineraryPointAddress} numberOfLines={1}>
+              {order.dest_address}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Mini Detalhes: Pacote & Peso */}
       <View style={styles.packageCompactRow}>
-        <Ionicons name="cube-outline" size={13} color={COLORS.primary} style={{ marginRight: 4 }} />
-        <Text style={styles.packageTitle} numberOfLines={1}>
+        <Ionicons name="cube-outline" size={12} color={COLORS.primary} style={{ marginRight: 4 }} />
+        <Text style={styles.packageDescriptionText} numberOfLines={1}>
           {order.package_description}
         </Text>
         <Text style={styles.packageSubtitle} numberOfLines={1}>
-          • {order.package_weight_kg}kg • {order.distance_km}km
+          {' '}• {order.package_weight_kg} kg • {order.distance_km} km
         </Text>
-      </View>
-
-      {/* Endereços em Linhas Compactas */}
-      <View style={styles.addressSection}>
-        <View style={styles.addressCompactRow}>
-          <View style={[styles.dot, { backgroundColor: '#059669' }]} />
-          <Text style={styles.addressText} numberOfLines={1}>
-            <Text style={styles.addressLabel}>Coleta: </Text>
-            {order.origin_address}
-          </Text>
-        </View>
-        <View style={styles.addressCompactRow}>
-          <View style={[styles.dot, { backgroundColor: '#DC2626' }]} />
-          <Text style={styles.addressText} numberOfLines={1}>
-            <Text style={styles.addressLabel}>Entrega: </Text>
-            {order.dest_address}
-          </Text>
-        </View>
       </View>
 
       {/* Botões de Ação */}
@@ -333,7 +338,7 @@ export default function ExpressRadarScreen() {
     }, 8000);
 
     return () => clearInterval(pollInterval);
-  }, [fetchRadar, isOnline, user]);
+  }, [fetchRadar, isOnline, user, user?.courier?.cluster_radius_km]);
 
   const handleActivateOnline = async () => {
     try {
@@ -348,13 +353,22 @@ export default function ExpressRadarScreen() {
     }
   };
 
+  // Gerenciador de pausa / cooldown de 3 segundos entre um chamado e o próximo
+  const [isCooldownActive, setIsCooldownActive] = useState(false);
+
   const handleExpireOrder = (orderId: number) => {
-    // Ao expirar os 10s sem resposta do entregador, aplica 30 segundos de resfriamento local.
-    // NÃO rejeita no banco de dados para que o chamado volte a aparecer caso ainda esteja pendente.
+    // Ao expirar os 10s sem resposta do entregador:
+    // 1. Aplica resfriamento local para esse pedido específico não retornar imediatamente
     cooldownsRef.current[orderId] = Date.now() + 30000;
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
-    // Reavaliação automática após os 30 segundos
+    // 2. Aciona o cooldown de 3 segundos antes de exibir o próximo chamado da fila
+    setIsCooldownActive(true);
+    setTimeout(() => {
+      setIsCooldownActive(false);
+    }, 3000);
+
+    // Reavaliação do pedido expirado após 30 segundos
     setTimeout(() => {
       delete cooldownsRef.current[orderId];
       fetchRadar();
@@ -502,6 +516,12 @@ export default function ExpressRadarScreen() {
           mode="current_location"
           radiusKm={activeRadius}
           borderless={true}
+          additionalMarkers={orders.map((o) => ({
+            latitude: Number(o.origin_lat),
+            longitude: Number(o.origin_lng),
+            title: `Coleta: ${o.package_description} (R$ ${Number(o.individual_freight_price).toFixed(2)})`,
+            description: o.origin_address,
+          }))}
         />
       </View>
 
@@ -557,6 +577,11 @@ export default function ExpressRadarScreen() {
             <ActivityIndicator size="small" color={COLORS.primary} />
             <Text style={styles.statusPopupText}>Sintonizando chamados no radar...</Text>
           </View>
+        ) : isCooldownActive ? (
+          <View style={[styles.statusPopupCard, SHADOWS.md]} testID="radar-cooldown-card">
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.statusPopupText}>Buscando próximo chamado na região...</Text>
+          </View>
         ) : orders.length === 0 ? (
           <View style={[styles.emptyPopupCard, SHADOWS.lg]} testID="radar-empty-state">
             <View style={styles.emptyIconCircleSmall}>
@@ -578,32 +603,38 @@ export default function ExpressRadarScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <ScrollView
-            style={styles.ordersScrollBox}
-            contentContainerStyle={styles.ordersScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.popupBadgeRow}>
-              <View style={styles.popupBadgeIndicator}>
-                <Ionicons name="flash" size={13} color="#FFFFFF" />
-                <Text style={styles.popupBadgeIndicatorText}>
-                  {orders.length} {orders.length === 1 ? 'CHAMADO DISPONÍVEL' : 'CHAMADOS DISPONÍVEIS'}
-                </Text>
-              </View>
-            </View>
+          (() => {
+            // Ordena estritamente por distância de coleta (mais próximo primeiro)
+            const sortedOrders = [...orders].sort((a, b) => {
+              const distA = a.pickup_distance_km ?? a.distance_km ?? 999;
+              const distB = b.pickup_distance_km ?? b.distance_km ?? 999;
+              return distA - distB;
+            });
+            const topOrder = sortedOrders[0];
 
-            {orders.map((order) => (
-              <RadarOrderCard
-                key={order.id}
-                order={order}
-                onAccept={handleAcceptOrder}
-                onReject={handleRejectOrder}
-                onExpire={handleExpireOrder}
-                isAccepting={acceptingId === order.id}
-                isRejecting={rejectingId === order.id}
-              />
-            ))}
-          </ScrollView>
+            return (
+              <View style={styles.ordersScrollContent}>
+                <View style={styles.popupBadgeRow}>
+                  <View style={styles.popupBadgeIndicator}>
+                    <Ionicons name="flash" size={13} color="#FFFFFF" />
+                    <Text style={styles.popupBadgeIndicatorText}>
+                      NOVA CORRIDA MAIS PRÓXIMA • {orders.length} NA FILA
+                    </Text>
+                  </View>
+                </View>
+
+                <RadarOrderCard
+                  key={topOrder.id}
+                  order={topOrder}
+                  onAccept={handleAcceptOrder}
+                  onReject={handleRejectOrder}
+                  onExpire={handleExpireOrder}
+                  isAccepting={acceptingId === topOrder.id}
+                  isRejecting={rejectingId === topOrder.id}
+                />
+              </View>
+            );
+          })()
         )}
       </View>
     </View>
@@ -906,49 +937,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary,
   },
-  packageCompactRow: {
+  itineraryBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 5,
+    borderRadius: RADIUS.md,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     marginBottom: 6,
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
-  packageTitle: {
-    fontSize: 12,
+  itineraryTimeline: {
+    alignItems: 'center',
+    marginRight: 8,
+    width: 10,
+  },
+  timelineNode: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  timelineLine: {
+    width: 1.5,
+    height: 14,
+    backgroundColor: '#CBD5E1',
+    marginVertical: 2,
+  },
+  itineraryTextCol: {
+    flex: 1,
+    gap: 4,
+  },
+  itineraryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  itineraryPointLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    width: 46,
+    textTransform: 'uppercase',
+  },
+  itineraryPointAddress: {
+    fontSize: 11,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+    flex: 1,
+  },
+  packageCompactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    marginBottom: 6,
+  },
+  packageDescriptionText: {
+    fontSize: 11,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
   packageSubtitle: {
     fontSize: 11,
     color: COLORS.textMuted,
-  },
-  addressSection: {
-    marginBottom: 8,
-    gap: 4,
-  },
-  addressCompactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-  },
-  addressLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  addressText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    flex: 1,
   },
   cardActionsRow: {
     flexDirection: 'row',

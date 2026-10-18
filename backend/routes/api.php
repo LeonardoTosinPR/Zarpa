@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ExpressDispatchController;
 use App\Http\Controllers\Api\DeliveryGroupController;
+use App\Http\Controllers\Api\FinancialController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -65,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 'client' => $request->user()->client,
             ]);
         });
+        Route::get('/financial-statement', [FinancialController::class, 'getClientStatement']);
     });
 
     // Postagem e Gestão de Pedidos do Lojista
@@ -97,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/radar', [ExpressDispatchController::class, 'radar']);
             Route::patch('/status', [ExpressDispatchController::class, 'updateStatus']);
             Route::post('/location', [ExpressDispatchController::class, 'updateLocation']);
+            Route::get('/financial-statement', [FinancialController::class, 'getCourierStatement']);
         });
 
         // Ciclo de vida da entrega expressa sob demanda

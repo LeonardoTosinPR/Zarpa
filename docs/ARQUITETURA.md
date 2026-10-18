@@ -171,9 +171,39 @@ $$D_{isolada} = \sum_{i=1}^{n} d_i$$
 
 $$E_{total} = (D_{isolada} \times \text{tarifa\_km}) - (D_{conjunta} \times \text{tarifa\_km})$$
 
-A distribuição ocorre em proporção exata 50/50:
+A distribuição da economia gerada ocorre em proporção estrita **50/50**, mantendo balanço contábil rigoroso:
 1. **Bônus de Produtividade do Entregador (50%)**:
    $$B_{courier} = E_{total} \times 0.50$$
-2. **Desconto Compartilhado dos Lojistas (50%)**, rateado ponderadamente:
+   - Remunera o entregador parceiro por sua eficiência no cumprimento da rota compartilhada, somando-se ao frete base da corrida.
+2. **Desconto Compartilhado dos Lojistas (50%)**, rateado de forma proporcional e ponderada à distância de cada entrega:
    $$\text{Desconto}_i = (E_{total} \times 0.50) \times \left( \frac{d_i}{D_{isolada}} \right)$$
+   - Reduz o custo individual pago por cada estabelecimento, incentivando a opção pela modalidade econômica agendada.
+
+---
+
+## 5. Logística de Otimização dos Lotes Econômicos (Heurística Avançada)
+
+Para maximizar a economia total ($E_{total}$) e encurtar a distância percorrida ($D_{conjunta}$) na malha urbana de Guarapuava - PR, o serviço [`BatchClusteringService`](file:///dados/tosin/Zarpa/backend/app/Services/BatchClusteringService.php) opera sob três pilares de otimização matemática:
+
+### 5.1 Calibração de Raio Municipal
+- **Raio de Agrupamento Compacto (`DEFAULT_CLUSTER_RADIUS_KM = 2.0 km`)**:
+  - Calibrado especificamente para a geografia de Guarapuava, concentrando nós por pólos urbanos coesos (Centro/Batel/Santa Cruz, Bonsucesso/Cidade dos Lagos, Cedeteg/Vila Carli).
+  - Evita a dispersão geográfica excessiva observada em raios genéricos maiores.
+
+### 5.2 Coerência Vetorial por Similaridade de Cosseno
+- Para cada pedido $i$, calcula-se o vetor de deslocamento viário:
+  $$\vec{v}_i = (\Delta \text{lng}_i, \Delta \text{lat}_i) = (\text{dest\_lng}_i - \text{orig\_lng}_i, \; \text{dest\_lat}_i - \text{orig\_lat}_i)$$
+- A similaridade de direção entre dois pedidos é calculada pelo produto escalar normalizado:
+  $$\cos \theta = \frac{\vec{v}_1 \cdot \vec{v}_2}{\|\vec{v}_1\| \|\vec{v}_2\|}$$
+- **Critério**: Dois pedidos só são agrupados no mesmo lote se $\cos \theta \ge 0.20$. Pedidos com fluxos opostos ($\cos \theta < 0$, ex: um indo para a UTFPR ao norte e outro para a Vila Carli ao sul) são segregados em lotes diferentes, eliminando rotas com efeito "ioiô".
+
+### 5.3 Sequenciamento com Consolidação de Mesma Origem e 2-Opt PDP
+1. **Consolidação Imediata de Origem Compartilhada**:
+   - Pedidos que partem da mesma origem ou estabelecimento ($\le 50\text{ m}$) têm suas coletas unificadas sequencialmente de imediato, evitando múltiplas viagens ao mesmo ponto.
+2. **Refinamento Heurístico 2-Opt com Precedência Estrita (Pickup-and-Delivery Problem - PDP 2-Opt)**:
+   - Aplica permutações de pares de arestas sobre a sequência gerada:
+     $$S' = \text{2-opt}(S, i, j)$$
+   - Apenas transições que mantêm a propriedade de **precedência estrita** ($\text{index}(P_k) < \text{index}(D_k), \; \forall k$) e que reduzem a distância total Haversine da rota são aceitas.
+   - O algoritmo desfaz cruzamentos viários e nós cegos antes da submissão final ao motor de roteamento OSRM.
+
 

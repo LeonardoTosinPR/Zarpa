@@ -261,35 +261,7 @@ export default function CourierDashboardScreen() {
           </View>
         </View>
 
-        {/* Action Shortcuts */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Lotes e Roteamento</Text>
-        </View>
 
-        <TouchableOpacity
-          style={[styles.actionCard, SHADOWS.sm]}
-          activeOpacity={0.8}
-          onPress={() => router.push('/(courier)/economic-batches')}
-          testID="courier-economic-batches-btn"
-        >
-          <View style={[styles.actionIconBox, { backgroundColor: '#ECFDF5' }]}>
-            <Ionicons name="cash-outline" size={22} color="#059669" />
-          </View>
-          <View style={styles.actionTextBox}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.actionTitle}>Lotes Econômicos Agendados</Text>
-              {deliveryGroups.length > 0 && (
-                <View style={styles.batchCountPill}>
-                  <Text style={styles.batchCountPillText}>{deliveryGroups.length}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.actionSubtitle}>
-              Itinerários otimizados com paradas sequenciadas do batch.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
-        </TouchableOpacity>
 
         {/* Admin Switcher & Batch Simulation Panel */}
         {role === 'admin' && (
@@ -302,7 +274,7 @@ export default function CourierDashboardScreen() {
               Acesso exclusivo para simulação da distribuição noturna e auditoria.
             </Text>
             <Button
-              title={isProcessingBatch ? "Executando Distribuição..." : "⚡ Simular Distribuição do Batch Agora"}
+              title={isProcessingBatch ? "Executando Distribuição..." : "Simular Distribuição do Batch Agora"}
               variant="primary"
               onPress={handleTriggerBatchNow}
               disabled={isProcessingBatch}

@@ -12,6 +12,7 @@ export default function ClientLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        animation: 'fade',
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarStyle: {
@@ -53,6 +54,15 @@ export default function ClientLayout() {
           title: 'Pedidos',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="financial"
+        options={{
+          title: 'Extrato',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
           ),
         }}
       />

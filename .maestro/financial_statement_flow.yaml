@@ -1,0 +1,36 @@
+appId: com.zarpa.mobile
+---
+# Scenario 1: Launch App and Login as Merchant (Lojista)
+- launchApp:
+    clearState: true
+- assertVisible: "Zarpa"
+- assertVisible: "Acessar Minha Conta"
+- tapOn: "Acessar Minha Conta"
+- tapOn: "🏪 Lojista"
+
+# Scenario 2: Navigate to Merchant Financial Statement
+- assertVisible: "Extrato"
+- tapOn: "Extrato"
+- assertVisible: "Extrato Financeiro"
+- assertVisible: "Economia Total com o Zarpa"
+- assertVisible: "Como funciona o Rateio 50/50?"
+- takeScreenshot: client_financial_statement_success
+
+# Scenario 3: Logout from Merchant Account
+- tapOn: "Perfil"
+- scroll
+- tapOn: "Encerrar Sessão (Sair)"
+- assertVisible: "Acessar Minha Conta"
+
+# Scenario 4: Login as Courier (Entregador)
+- tapOn: "Acessar Minha Conta"
+- tapOn: "🛵 Entregador"
+- assertVisible: "Entregador / Condutor"
+
+# Scenario 5: Navigate to Courier Financial Statement (Ganhos)
+- assertVisible: "Ganhos"
+- tapOn: "Ganhos"
+- assertVisible: "Extrato de Ganhos"
+- assertVisible: "Faturamento Total Acumulado"
+- assertVisible: "Fretes Base"
+- takeScreenshot: courier_financial_statement_success

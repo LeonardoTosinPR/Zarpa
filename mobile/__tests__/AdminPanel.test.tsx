@@ -174,7 +174,7 @@ describe('Admin Panel Modules (Gestão Global do App)', () => {
     expect(getAllByText('Entregadores').length).toBeGreaterThan(0);
 
     // Valida cartões de usuários
-    expect(getByText('Supermercado Compre Mais')).toBeTruthy();
+    expect(getAllByText('Supermercado Compre Mais').length).toBeGreaterThan(0);
     expect(getByText('Lucas Motoboy Guarapuava')).toBeTruthy();
     expect(getByText('Administrador Master')).toBeTruthy();
 
@@ -230,11 +230,11 @@ describe('Admin Panel Modules (Gestão Global do App)', () => {
     // Valida pedidos listados
     expect(getByText('#501')).toBeTruthy();
     expect(getByText('Cesta de Produtos Farmácia')).toBeTruthy();
-    expect(getAllByText('⚡ Expresso').length).toBeGreaterThan(0);
+    expect(getAllByText('Expresso').length).toBeGreaterThan(0);
 
     expect(getByText('#502')).toBeTruthy();
     expect(getByText('Pedido Econômico Doces')).toBeTruthy();
-    expect(getAllByText('🌙 Econômico').length).toBeGreaterThan(0);
+    expect(getAllByText('Econômico').length).toBeGreaterThan(0);
 
     // Valida lojistas e entregadores dos pedidos
     expect(getByText('Farmácia Trajano')).toBeTruthy();

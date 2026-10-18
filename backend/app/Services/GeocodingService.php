@@ -185,6 +185,61 @@ class GeocodingService
         ],
     ];
 
+    /**
+     * Eixos viários extensos de Guarapuava mapeados com seus extremos (início e fim da numeração predial).
+     * Permite interpolação métrica determinística quando o Nominatim retorna apenas o centroide ou segmento arbitrário.
+     */
+    protected array $longThoroughfaresGuarapuava = [
+        'saldanha marinho' => [
+            'canonical_name' => 'Rua Saldanha Marinho',
+            'neighborhood_start' => 'Batel / Dos Estados',
+            'neighborhood_end' => 'São Cristóvão / Morro Alto',
+            // Extremo Inicial (Números baixos ~1 a 100, no extremo sul/sudeste próximo à Vila Carli/Batel)
+            'start_lat' => -25.404455,
+            'start_lng' => -51.458913,
+            'start_num' => 1,
+            // Extremo Final (Números altos ~3200+, no noroeste em direção ao São Cristóvão)
+            'end_lat' => -25.378342,
+            'end_lng' => -51.487515,
+            'end_num' => 3200,
+        ],
+        'xv de novembro' => [
+            'canonical_name' => 'Rua XV de Novembro',
+            'neighborhood_start' => 'Alto da XV / Bonsucesso',
+            'neighborhood_end' => 'Santa Cruz / Morro Alto',
+            // Início da XV de Novembro (extremo leste)
+            'start_lat' => -25.390055,
+            'start_lng' => -51.462487,
+            'start_num' => 1,
+            // Fim da XV de Novembro (extremo oeste)
+            'end_lat' => -25.396500,
+            'end_lng' => -51.478000,
+            'end_num' => 2500,
+        ],
+        'manoel ribas' => [
+            'canonical_name' => 'Avenida Manoel Ribas',
+            'neighborhood_start' => 'Centro',
+            'neighborhood_end' => 'Bonsucesso',
+            'start_lat' => -25.395500,
+            'start_lng' => -51.464500,
+            'start_num' => 1,
+            'end_lat' => -25.418000,
+            'end_lng' => -51.455000,
+            'end_num' => 3000,
+        ],
+        'moacir julio silvestri' => [
+            'canonical_name' => 'Avenida Moacir Julio Silvestri',
+            'neighborhood_start' => 'Centro',
+            'neighborhood_end' => 'Morro Alto / Cidade dos Lagos',
+            'start_lat' => -25.392000,
+            'start_lng' => -51.468000,
+            'start_num' => 1,
+            'end_lat' => -25.360000,
+            'end_lng' => -51.485000,
+            'end_num' => 3500,
+        ],
+    ];
+
     public function __construct()
     {
         $this->baseUrl = rtrim(env('GEOCODING_BASE_URL', 'https://nominatim.openstreetmap.org'), '/');
@@ -252,6 +307,12 @@ class GeocodingService
             ]];
         }
 
+        // 1. Verifica se a busca contém um eixo viário longo de Guarapuava com numeração predial
+        $thoroughfareMatch = $this->matchLongThoroughfareWithNumber($trimmedQuery);
+        if ($thoroughfareMatch !== null) {
+            return [$thoroughfareMatch];
+        }
+
         $normalizedInput = $this->normalizeText($trimmedQuery);
         $isPoiKeyword = str_contains($normalizedInput, 'utfpr')
             || str_contains($normalizedInput, 'unicentro')
@@ -284,20 +345,48 @@ class GeocodingService
             if ($response->successful()) {
                 $results = $response->json();
                 if (is_array($results) && count($results) > 0) {
-                    return array_map(function ($item) {
-                        $placeName = $item['name'] ?? ($item['address']['amenity'] ?? ($item['address']['building'] ?? null));
-                        return [
-                            'place_name' => $placeName,
-                            'display_name' => $item['display_name'] ?? '',
-                            'street' => $item['address']['road'] ?? ($item['name'] ?? ''),
-                            'neighborhood' => $item['address']['suburb'] ?? ($item['address']['neighbourhood'] ?? ''),
-                            'city' => 'Guarapuava',
-                            'state' => 'PR',
-                            'lat' => (float) ($item['lat'] ?? 0),
-                            'lng' => (float) ($item['lon'] ?? 0),
-                            'source' => 'nominatim',
-                        ];
-                    }, $results);
+                    return $this->formatNominatimResults($results);
+                }
+            }
+
+            // Fallback: Se o usuário digitou rua com número (ex: "Saldanha Marinho, 1200" ou "XV de Novembro 500")
+            // e o Nominatim falhou por causa do número exato, tenta geocodificar apenas o logradouro
+            if (preg_match('/^(.*?)(?:,\s*|\s+)(\d+)(?:\s*-\s*.*)?$/i', $trimmedQuery, $parts)) {
+                $streetOnly = trim($parts[1]);
+                $numberOnly = (int) trim($parts[2]);
+
+                // Verifica novamente com a rua extraída
+                $thoroughfareFallback = $this->matchLongThoroughfareWithNumber("{$streetOnly} {$numberOnly}");
+                if ($thoroughfareFallback !== null) {
+                    return [$thoroughfareFallback];
+                }
+
+                if (mb_strlen($streetOnly) >= 3) {
+                    $fallbackResponse = Http::withHeaders([
+                        'User-Agent' => 'Zarpa-Logistics-Platform/1.0 (zarpa@zarpa.com.br)',
+                    ])->timeout(3)->get("{$this->baseUrl}/search", [
+                        'q' => "{$streetOnly}, Guarapuava, PR, Brasil",
+                        'format' => 'json',
+                        'addressdetails' => 1,
+                        'limit' => 3,
+                        'viewbox' => '-51.58,-25.30,-51.35,-25.48',
+                        'bounded' => 1,
+                    ]);
+
+                    if ($fallbackResponse->successful()) {
+                        $fallbackResults = $fallbackResponse->json();
+                        if (is_array($fallbackResults) && count($fallbackResults) > 0) {
+                            $formatted = $this->formatNominatimResults($fallbackResults);
+                            // Enriquece os resultados com o número especificado pelo usuário
+                            foreach ($formatted as &$fItem) {
+                                if (!empty($fItem['street'])) {
+                                    $fItem['street'] .= ", Nº {$numberOnly}";
+                                }
+                                $fItem['display_name'] = "{$fItem['street']} - {$fItem['neighborhood']}, Guarapuava - PR";
+                            }
+                            return $formatted;
+                        }
+                    }
                 }
             }
         } catch (Exception $e) {
@@ -305,6 +394,27 @@ class GeocodingService
         }
 
         return $this->searchLocalDictionary($trimmedQuery);
+    }
+
+    /**
+     * Formata os resultados brutos retornados pelo Nominatim.
+     */
+    protected function formatNominatimResults(array $results): array
+    {
+        return array_map(function ($item) {
+            $placeName = $item['name'] ?? ($item['address']['amenity'] ?? ($item['address']['building'] ?? null));
+            return [
+                'place_name' => $placeName,
+                'display_name' => $item['display_name'] ?? '',
+                'street' => $item['address']['road'] ?? ($item['name'] ?? ''),
+                'neighborhood' => $item['address']['suburb'] ?? ($item['address']['neighbourhood'] ?? ''),
+                'city' => 'Guarapuava',
+                'state' => 'PR',
+                'lat' => (float) ($item['lat'] ?? 0),
+                'lng' => (float) ($item['lon'] ?? 0),
+                'source' => 'nominatim',
+            ];
+        }, $results);
     }
 
     /**
@@ -339,6 +449,54 @@ class GeocodingService
         }
 
         return array_slice($matches, 0, 5);
+    }
+
+    /**
+     * Identifica se a query é uma via extensa conhecida de Guarapuava acompanhada de número predial
+     * e interpola a coordenada física com alta precisão métrica.
+     */
+    public function matchLongThoroughfareWithNumber(string $query): ?array
+    {
+        $normalized = $this->normalizeText($query);
+
+        // Extrai o número se houver
+        if (!preg_match('/(?:n[oº]?\s*|\s+|^)(\d{1,5})(?:\s+|$|,|\b)/i', $query, $numMatch)) {
+            return null;
+        }
+
+        $number = (int) $numMatch[1];
+        if ($number <= 0) {
+            return null;
+        }
+
+        foreach ($this->longThoroughfaresGuarapuava as $key => $config) {
+            if (str_contains($normalized, $key)) {
+                $maxNum = $config['end_num'];
+                $minNum = $config['start_num'];
+
+                // Proporção de deslocamento do início ao fim da rua
+                $ratio = max(0.0, min(1.0, ($number - $minNum) / ($maxNum - $minNum)));
+
+                $lat = round($config['start_lat'] + ($config['end_lat'] - $config['start_lat']) * $ratio, 6);
+                $lng = round($config['start_lng'] + ($config['end_lng'] - $config['start_lng']) * $ratio, 6);
+
+                $neighborhood = ($ratio < 0.5) ? $config['neighborhood_start'] : $config['neighborhood_end'];
+
+                return [
+                    'place_name' => "{$config['canonical_name']}, {$number}",
+                    'display_name' => "{$config['canonical_name']}, Nº {$number} - {$neighborhood}, Guarapuava - PR",
+                    'street' => "{$config['canonical_name']}, Nº {$number}",
+                    'neighborhood' => $neighborhood,
+                    'city' => 'Guarapuava',
+                    'state' => 'PR',
+                    'lat' => $lat,
+                    'lng' => $lng,
+                    'source' => 'thoroughfare_interpolation',
+                ];
+            }
+        }
+
+        return null;
     }
 
     /**
