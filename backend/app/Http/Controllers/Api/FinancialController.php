@@ -70,6 +70,8 @@ class FinancialController extends Controller
                 'origin_address' => $order->origin_address,
                 'dest_address' => $order->dest_address,
                 'delivery_group_id' => $deliveryGroup?->id,
+                'delivery_code' => $order->delivery_code,
+                'proof_photo_url' => $order->proof_photo_url,
             ];
         }
 

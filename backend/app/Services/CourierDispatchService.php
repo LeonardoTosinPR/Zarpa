@@ -100,11 +100,12 @@ class CourierDispatchService
                 ];
             }
 
-            // Atribuição atômica
+            // Atribuição atômica e geração do código de entrega de 6 dígitos para o lojista
             $order->update([
                 'courier_id' => $courier->id,
                 'status' => 'assigned',
                 'assigned_at' => now(),
+                'delivery_code' => $order->delivery_code ?: Order::generateDeliveryCode(),
             ]);
 
             return [
@@ -213,9 +214,14 @@ class CourierDispatchService
     /**
      * Confirma a entrega final da mercadoria ao destinatário.
      * Transiciona o status de 'picked_up' para 'delivered'.
+     * Exige obrigatoriamente comprovante por foto ou código de 6 dígitos válido do pedido.
      */
-    public function deliver(int $orderId, Courier $courier, ?string $proofPhotoUrl = null): array
-    {
+    public function deliver(
+        int $orderId,
+        Courier $courier,
+        ?string $proofPhotoUrl = null,
+        ?string $deliveryCode = null
+    ): array {
         /** @var Order|null $order */
         $order = Order::find($orderId);
 
@@ -243,15 +249,34 @@ class CourierDispatchService
             ];
         }
 
-        $updateData = [
-            'status' => 'delivered',
-            'delivered_at' => now(),
-        ];
-        if ($proofPhotoUrl) {
-            $updateData['proof_photo_url'] = $proofPhotoUrl;
+        $resolvedProof = null;
+
+        if ($deliveryCode !== null && trim($deliveryCode) !== '') {
+            $cleanCode = trim($deliveryCode);
+            if (empty($order->delivery_code) || $cleanCode !== (string) $order->delivery_code) {
+                return [
+                    'success' => false,
+                    'status' => 422,
+                    'message' => 'Código de confirmação de 6 dígitos inválido. Verifique o código com o destinatário ou lojista.',
+                ];
+            }
+            $resolvedProof = $proofPhotoUrl ?: "CODIGO_VALIDADO:{$cleanCode}";
+        } else {
+            $resolvedProof = $proofPhotoUrl ?: $order->proof_photo_url;
+            if (empty($resolvedProof)) {
+                return [
+                    'success' => false,
+                    'status' => 422,
+                    'message' => 'Comprovante de entrega obrigatório: envie uma foto do comprovante ou digite o código de 6 dígitos do pedido.',
+                ];
+            }
         }
 
-        $order->update($updateData);
+        $order->update([
+            'status' => 'delivered',
+            'delivered_at' => now(),
+            'proof_photo_url' => $resolvedProof,
+        ]);
 
         // Se pertencer a um lote econômico, atualiza a parada de entrega e verifica se o lote terminou
         \App\Models\GroupOrder::where('order_id', $order->id)
@@ -317,6 +342,7 @@ class CourierDispatchService
                 'courier_id' => null,
                 'status' => 'pending',
                 'assigned_at' => null,
+                'delivery_code' => null,
             ]);
             OrderRejection::firstOrCreate([
                 'order_id' => $orderId,

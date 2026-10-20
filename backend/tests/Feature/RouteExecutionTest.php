@@ -377,16 +377,79 @@ test('courier can consult active economic group and complete lifecycle with sequ
     $prematureRes = $this->postJson("/api/courier/delivery-groups/{$group->id}/complete");
     $prematureRes->assertStatus(422);
 
-    // 8. Confirmar entrega da parada 2
-    $deliverRes = $this->postJson("/api/orders/{$order->id}/deliver");
+    // 8. Tentar confirmar entrega sem comprovante (foto ou código de 6 dígitos) deve falhar com 422
+    $noProofRes = $this->postJson("/api/orders/{$order->id}/deliver");
+    $noProofRes->assertStatus(422);
+
+    // 9. Tentar confirmar entrega com código de 6 dígitos incorreto deve falhar com 422
+    $wrongCodeRes = $this->postJson("/api/orders/{$order->id}/deliver", [
+        'delivery_code' => '000000',
+    ]);
+    $wrongCodeRes->assertStatus(422);
+
+    // 10. Confirmar entrega da parada 2 usando o código de 6 dígitos válido do pedido
+    $order->refresh();
+    expect($order->delivery_code)->toHaveLength(6);
+
+    $deliverRes = $this->postJson("/api/orders/{$order->id}/deliver", [
+        'delivery_code' => $order->delivery_code,
+    ]);
     $deliverRes->assertStatus(200);
     expect($stop2->fresh()->status)->toBe('completed');
+    expect($order->fresh()->proof_photo_url)->toBe("CODIGO_VALIDADO:{$order->delivery_code}");
 
-    // 9. Concluir lote com sucesso
+    // 11. Concluir lote com sucesso
     $completeRes = $this->postJson("/api/courier/delivery-groups/{$group->id}/complete");
     $completeRes->assertStatus(200)
         ->assertJson([
             'success' => true,
         ]);
     expect($group->fresh()->status)->toBe('completed');
+});
+
+test('delivery_code is generated on express accept, visible to merchant and hidden from courier before delivery', function () {
+    $order = Order::create([
+        'client_id' => $this->client->id,
+        'package_description' => 'Encomenda com Código Secreto',
+        'package_weight_kg' => 1.0,
+        'shipping_type' => 'express',
+        'status' => 'pending',
+        'individual_freight_price' => 15.00,
+        'distance_km' => 3.0,
+        'origin_address' => 'Centro',
+        'dest_address' => 'Batel',
+        'origin_lat' => -25.3954,
+        'origin_lng' => -51.4641,
+        'dest_lat' => -25.3990,
+        'dest_lng' => -51.4680,
+    ]);
+
+    // Antes de ser aceito, delivery_code é nulo
+    expect($order->fresh()->delivery_code)->toBeNull();
+
+    // Entregador aceita a corrida expressa
+    Sanctum::actingAs($this->courierUser);
+    $acceptRes = $this->postJson("/api/orders/{$order->id}/accept-express");
+    $acceptRes->assertStatus(200);
+
+    // O entregador NÃO recebe o delivery_code na resposta de aceite nem no GET /orders/{id}
+    expect($acceptRes->json('order.delivery_code'))->toBeNull();
+    $courierShowRes = $this->getJson("/api/orders/{$order->id}");
+    $courierShowRes->assertStatus(200);
+    expect($courierShowRes->json('order.delivery_code'))->toBeNull();
+
+    // O banco possui o código de 6 dígitos gerado
+    $codeInDb = $order->fresh()->delivery_code;
+    expect($codeInDb)->not->toBeNull();
+    expect(strlen($codeInDb))->toBe(6);
+
+    // O Lojista dono do pedido recebe o código de 6 dígitos imediatamente em my-orders e tracking
+    Sanctum::actingAs($this->clientUser);
+    $myOrdersRes = $this->getJson('/api/orders/my-orders');
+    $myOrdersRes->assertStatus(200);
+    expect($myOrdersRes->json('data.0.delivery_code'))->toBe($codeInDb);
+
+    $trackingRes = $this->getJson("/api/orders/{$order->id}/tracking");
+    $trackingRes->assertStatus(200);
+    expect($trackingRes->json('delivery_code'))->toBe($codeInDb);
 });

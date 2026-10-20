@@ -49,6 +49,7 @@ const mockOrders: OrderItem[] = [
     origin_lng: -51.4641,
     dest_lat: -25.402,
     dest_lng: -51.461,
+    delivery_code: '654321',
     created_at: '2026-10-19T10:00:00Z',
     courier: {
       id: 2,
@@ -76,6 +77,7 @@ const mockTracking: OrderTrackingResponse = {
     vehicle_plate: 'ZRP-2026',
   },
   proof_photo_url: 'https://zarpa.com.br/proofs/comprovante_501.jpg',
+  delivery_code: '654321',
   timeline: [
     {
       step: 'created',
@@ -121,9 +123,11 @@ describe('Order Tracking Timeline (Sprint 6)', () => {
 
     const { getByTestId, getByText, queryByText } = render(<ClientOrdersScreen />);
 
-    // Espera a listagem carregar
+    // Espera a listagem carregar e exibe o código de 6 dígitos anexado ao pedido para o lojista
     await waitFor(() => {
       expect(getByTestId('order-card-501')).toBeTruthy();
+      expect(getByTestId('order-delivery-code-501')).toBeTruthy();
+      expect(getByText('654321')).toBeTruthy();
       expect(getByTestId('track-order-btn-501')).toBeTruthy();
     });
 

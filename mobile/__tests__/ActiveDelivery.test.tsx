@@ -74,8 +74,41 @@ describe('Active Delivery Screen', () => {
     expect(await findByText('Corrida em Andamento')).toBeTruthy();
     expect(await findByText('Envelope com documentos')).toBeTruthy();
     expect(await findByText('Papelaria Central')).toBeTruthy();
+    expect(await findByTestId('active-delivery-gps-btn')).toBeTruthy();
     expect(await findByTestId('confirm-pickup-btn')).toBeTruthy();
     expect(await findByTestId('cancel-delivery-btn')).toBeTruthy();
+  });
+
+  it('requires mandatory proof (6-digit code or photo) to complete an express delivery', async () => {
+    jest.spyOn(courierService, 'getOrderDetails').mockResolvedValue({
+      order: { ...mockActiveOrder, status: 'picked_up' },
+    });
+
+    const deliverSpy = jest.spyOn(courierService, 'confirmDelivery').mockResolvedValue({
+      message: 'Entrega concluída com sucesso!',
+      order: { ...mockActiveOrder, status: 'delivered', proof_photo_url: 'CODIGO_VALIDADO:482910' },
+    });
+
+    const { findByTestId, findByText } = render(
+      <AuthProvider>
+        <ActiveDeliveryScreen />
+      </AuthProvider>
+    );
+
+    const confirmDeliveryBtn = await findByTestId('confirm-delivery-btn');
+    fireEvent.press(confirmDeliveryBtn);
+
+    expect(await findByText('Comprovante Obrigatório')).toBeTruthy();
+
+    const codeInput = await findByTestId('delivery-code-input');
+    fireEvent.changeText(codeInput, '482910');
+
+    const submitProofBtn = await findByTestId('submit-delivery-proof-btn');
+    fireEvent.press(submitProofBtn);
+
+    await waitFor(() => {
+      expect(deliverSpy).toHaveBeenCalledWith(42, undefined, '482910');
+    });
   });
 
   it('prevents courier from exiting active delivery without canceling', async () => {

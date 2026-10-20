@@ -207,11 +207,18 @@ function RadarOrderCard({
 export default function ExpressRadarScreen() {
   const router = useRouter();
   const insets = useAppInsets();
-  const { user } = useAuth();
+  const { user, updateCourierOnlineStatus } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(user?.courier?.is_online ?? true);
   const [activatingOnline, setActivatingOnline] = useState(false);
+
+  // Mantém o status local sincronizado caso o toggle seja alterado na tela de Início
+  useEffect(() => {
+    if (user?.courier?.is_online !== undefined) {
+      setIsOnline(Boolean(user.courier.is_online));
+    }
+  }, [user?.courier?.is_online]);
   const [radarData, setRadarData] = useState<RadarResponse | null>(null);
   const [orders, setOrders] = useState<ExpressOrder[]>([]);
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
@@ -292,7 +299,11 @@ export default function ExpressRadarScreen() {
       const data = await courierService.getRadar(lat, lng);
       setRadarData(data);
       if (data?.courier) {
-        setIsOnline(Boolean(data.courier.is_online));
+        const serverOnline = Boolean(data.courier.is_online);
+        setIsOnline(serverOnline);
+        if (updateCourierOnlineStatus && user?.courier?.is_online !== serverOnline) {
+          await updateCourierOnlineStatus(serverOnline);
+        }
       }
 
       // Filtra chamados em resfriamento (cooldown de 30s) que expiraram sem recusa explícita
@@ -306,6 +317,9 @@ export default function ExpressRadarScreen() {
     } catch (error: any) {
       if (error.response?.status === 403) {
         setIsOnline(false);
+        if (updateCourierOnlineStatus) {
+          await updateCourierOnlineStatus(false);
+        }
         const errorMsg = error.response?.data?.message || 'Acesso não autorizado. Perfil de entregador exigido.';
         Alert.alert('Radar Indisponível', errorMsg, [
           { text: 'Voltar', onPress: () => router.back() },
@@ -317,7 +331,7 @@ export default function ExpressRadarScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [getDeviceCoordinates, user]);
+  }, [getDeviceCoordinates, user, updateCourierOnlineStatus]);
 
   useEffect(() => {
     if (user && user.role !== 'courier' && user.role !== 'admin') {
@@ -348,6 +362,9 @@ export default function ExpressRadarScreen() {
       setActivatingOnline(true);
       await courierService.updateStatus(true);
       setIsOnline(true);
+      if (updateCourierOnlineStatus) {
+        await updateCourierOnlineStatus(true);
+      }
       await fetchRadar(true);
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível ativar sua disponibilidade no radar.');

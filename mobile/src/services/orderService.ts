@@ -88,6 +88,8 @@ export interface OrderItem {
   origin_lng: number;
   dest_lat: number;
   dest_lng: number;
+  delivery_code?: string | null;
+  proof_photo_url?: string | null;
   created_at: string;
   courier?: {
     id: number;
@@ -187,5 +189,6 @@ export interface OrderTrackingResponse {
     vehicle_plate?: string;
   } | null;
   proof_photo_url?: string | null;
+  delivery_code?: string | null;
   timeline: TimelineStep[];
 }

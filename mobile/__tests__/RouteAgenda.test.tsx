@@ -124,7 +124,8 @@ describe('Route Agenda Screen (Sprint 6)', () => {
       expect(getByTestId('agenda-hero-card')).toBeTruthy();
       expect(getByText('Lote #101')).toBeTruthy();
       expect(getByText('R$ 47.00')).toBeTruthy();
-      expect(getAllByText('+ R$ 6.00').length).toBe(2);
+      expect(getByText('BÔNUS')).toBeTruthy();
+      expect(getByText('+ R$ 12.00')).toBeTruthy();
       expect(getByText('14 km')).toBeTruthy();
     });
 
@@ -212,18 +213,27 @@ describe('Route Agenda Screen (Sprint 6)', () => {
 
     fireEvent.press(getByTestId('confirm-delivery-btn-2'));
 
-    // Verifica modal aberto
+    // Verifica modal aberto com abas de Código (6 dígitos) e Foto de Comprovante
     await waitFor(() => {
       expect(getByText('Confirmar Entrega')).toBeTruthy();
+      expect(getByTestId('proof-tab-code')).toBeTruthy();
+      expect(getByTestId('proof-tab-photo')).toBeTruthy();
       expect(getByTestId('submit-delivery-proof-btn')).toBeTruthy();
     });
+
+    // Alterna para a aba de Foto de Comprovante e preenche o comprovante
+    fireEvent.press(getByTestId('proof-tab-photo'));
+    const proofInput = await waitFor(() => getByTestId('proof-input'));
+    fireEvent.changeText(proofInput, 'https://zarpa.com.br/proofs/comprovante_201.jpg');
 
     fireEvent.press(getByTestId('submit-delivery-proof-btn'));
 
     await waitFor(() => {
       expect(courierService.confirmDelivery).toHaveBeenCalledWith(
         201,
-        expect.stringContaining('comprovante_201')
+        expect.stringContaining('comprovante_201'),
+        undefined,
+        undefined
       );
     });
   });

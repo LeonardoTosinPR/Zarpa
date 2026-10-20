@@ -160,6 +160,7 @@ class BatchClusteringService
                             'status' => $assignedCourier ? 'assigned' : 'pending',
                             'courier_id' => $assignedCourier?->id,
                             'final_freight_price' => $finalPrice,
+                            'delivery_code' => $order->delivery_code ?: Order::generateDeliveryCode(),
                         ]);
                     }
 

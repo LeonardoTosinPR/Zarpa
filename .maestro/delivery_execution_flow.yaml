@@ -18,7 +18,7 @@ appId: com.zarpa.mobile
 
 # Scenario 3: Operational Action - Confirm Pickup and Open GPS Navigation
 - tapOn:
-    id: "nav-gps-btn-1"
+    id: "nav-full-route-gps-btn"
 - assertVisible: "Navegar com GPS Externo"
 - tapOn: "Cancelar"
 - tapOn:

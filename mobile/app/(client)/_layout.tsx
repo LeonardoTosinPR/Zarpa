@@ -79,7 +79,7 @@ export default function ClientLayout() {
         name="admin"
         options={{
           title: 'Admin',
-          href: null, // Hidden for Sprint 4 - will be reactivated in Sprint 6/8
+          href: role === 'admin' ? undefined : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'shield' : 'shield-outline'} size={22} color={color} />
           ),

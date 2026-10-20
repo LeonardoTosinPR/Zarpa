@@ -20,6 +20,7 @@ export interface ExpressOrder {
   dest_lat: number;
   dest_lng: number;
   pickup_distance_km?: number;
+  proof_photo_url?: string | null;
   client?: {
     id: number;
     business_name: string;
@@ -168,12 +169,21 @@ export const courierService = {
   },
 
   /**
-   * Confirma a entrega do pacote ao destinatário final com comprovante opcional.
+   * Confirma a entrega do pacote ao destinatário final exigindo obrigatoriamente comprovante (foto ou código de 6 dígitos).
    */
-  async confirmDelivery(orderId: number, proofPhotoUrl?: string): Promise<{ message: string; order: ExpressOrder }> {
+  async confirmDelivery(
+    orderId: number,
+    proofPhotoUrl?: string,
+    deliveryCode?: string,
+    photoBase64?: string
+  ): Promise<{ message: string; order: ExpressOrder }> {
+    const payload: Record<string, string> = {};
+    if (proofPhotoUrl) payload.proof_photo_url = proofPhotoUrl;
+    if (deliveryCode) payload.delivery_code = deliveryCode;
+    if (photoBase64) payload.photo_base64 = photoBase64;
     const response = await api.post<{ message: string; order: ExpressOrder }>(
       `/orders/${orderId}/deliver`,
-      proofPhotoUrl ? { proof_photo_url: proofPhotoUrl } : {}
+      payload
     );
     return response.data;
   },

@@ -228,6 +228,7 @@ class OrderController extends Controller
         }
 
         $orders = $query->paginate(20);
+        $orders->getCollection()->each->makeVisible('delivery_code');
 
         return response()->json($orders);
     }
@@ -256,6 +257,12 @@ class OrderController extends Controller
             return response()->json([
                 'message' => 'Acesso não autorizado para visualizar este pedido.',
             ], 403);
+        }
+
+        // O entregador NÃO pode ver o código de 6 dígitos antes da entrega ser concluída.
+        // Apenas o lojista dono do pedido (ou admin, ou após entregue) recebe o delivery_code.
+        if (($isOwnerClient && !$isAssignedCourier) || $isAdmin || $order->status === 'delivered') {
+            $order->makeVisible('delivery_code');
         }
 
         return response()->json([
@@ -333,6 +340,9 @@ class OrderController extends Controller
                 'vehicle_plate' => $order->courier->vehicle_plate,
             ] : null,
             'proof_photo_url' => $order->proof_photo_url,
+            'delivery_code' => (($isOwnerClient && !$isAssignedCourier) || $isAdmin || $order->status === 'delivered')
+                ? $order->delivery_code
+                : null,
             'timeline' => $timeline,
         ]);
     }
@@ -358,6 +368,7 @@ class OrderController extends Controller
         $validator = Validator::make($request->all(), [
             'status' => ['required', 'string', Rule::in(['picked_up', 'delivered', 'canceled'])],
             'proof_photo_url' => ['nullable', 'string'],
+            'delivery_code' => ['nullable', 'string'],
         ]);
 
         if ($validator->fails()) {
@@ -399,11 +410,31 @@ class OrderController extends Controller
                 ], 422);
             }
 
-            $proof = $request->input('proof_photo_url') ?? $order->proof_photo_url;
+            $deliveryCode = $request->input('delivery_code');
+            $proofPhotoUrl = $request->input('proof_photo_url');
+            $resolvedProof = null;
+
+            if ($deliveryCode !== null && trim($deliveryCode) !== '') {
+                $cleanCode = trim($deliveryCode);
+                if (empty($order->delivery_code) || $cleanCode !== (string) $order->delivery_code) {
+                    return response()->json([
+                        'message' => 'Código de confirmação de 6 dígitos inválido. Verifique o código com o destinatário ou lojista.',
+                    ], 422);
+                }
+                $resolvedProof = $proofPhotoUrl ?: "CODIGO_VALIDADO:{$cleanCode}";
+            } else {
+                $resolvedProof = $proofPhotoUrl ?: $order->proof_photo_url;
+                if (empty($resolvedProof)) {
+                    return response()->json([
+                        'message' => 'Comprovante de entrega obrigatório: envie uma foto do comprovante ou digite o código de 6 dígitos do pedido.',
+                    ], 422);
+                }
+            }
+
             $order->update([
                 'status' => 'delivered',
                 'delivered_at' => now(),
-                'proof_photo_url' => $proof,
+                'proof_photo_url' => $resolvedProof,
             ]);
 
             \App\Models\GroupOrder::where('order_id', $order->id)

@@ -30,8 +30,8 @@ describe('Authentication Screens', () => {
   });
 
   describe('LoginScreen', () => {
-    it('renders login fields, title and demo shortcut buttons', () => {
-      const { getByText, getByTestId } = render(
+    it('renders login fields and title without demo shortcut buttons', () => {
+      const { getByText, getByTestId, queryByTestId } = render(
         <AuthProvider>
           <LoginScreen />
         </AuthProvider>
@@ -41,9 +41,9 @@ describe('Authentication Screens', () => {
       expect(getByTestId('login-email-input')).toBeTruthy();
       expect(getByTestId('login-password-input')).toBeTruthy();
       expect(getByTestId('login-submit-button')).toBeTruthy();
-      expect(getByTestId('login-quick-admin')).toBeTruthy();
-      expect(getByTestId('login-quick-client')).toBeTruthy();
-      expect(getByTestId('login-quick-courier')).toBeTruthy();
+      expect(queryByTestId('login-quick-admin')).toBeNull();
+      expect(queryByTestId('login-quick-client')).toBeNull();
+      expect(queryByTestId('login-quick-courier')).toBeNull();
     });
 
     it('shows error banner when submitted without email or password', async () => {

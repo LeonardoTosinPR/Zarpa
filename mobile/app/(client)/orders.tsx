@@ -122,7 +122,7 @@ export default function ClientOrdersScreen() {
         {/* Badge do Lote Econômico (Sprint 4) */}
         {isEconomic && (
           <View style={styles.batchNoticeContainer}>
-            {item.status === 'pending' ? (
+            {item.status === 'pending' && !item.delivery_code ? (
               <View style={styles.batchPendingBadge}>
                 <Ionicons name="moon" size={13} color="#D97706" style={{ marginRight: 4 }} />
                 <Text style={styles.batchPendingText}>
@@ -137,6 +137,24 @@ export default function ClientOrdersScreen() {
                 </Text>
               </View>
             )}
+          </View>
+        )}
+
+        {/* Código de 6 Dígitos Anexado ao Pedido para o Lojista (Gerado após aceite expresso ou geração do lote) */}
+        {item.delivery_code && (
+          <View style={styles.deliveryCodeBanner} testID={`order-delivery-code-${item.id}`}>
+            <View style={styles.deliveryCodeLeft}>
+              <View style={styles.deliveryCodeHeaderRow}>
+                <Ionicons name="keypad" size={14} color="#1E40AF" />
+                <Text style={styles.deliveryCodeTitle}>CÓDIGO DE ENTREGA (6 DÍGITOS)</Text>
+              </View>
+              <Text style={styles.deliveryCodeHint}>
+                Informe este código na entrega para validação pelo condutor
+              </Text>
+            </View>
+            <View style={styles.deliveryCodePill}>
+              <Text style={styles.deliveryCodeValue}>{item.delivery_code}</Text>
+            </View>
           </View>
         )}
 
@@ -363,14 +381,43 @@ export default function ClientOrdersScreen() {
                   })}
                 </View>
 
+                {/* Código de Confirmação de 6 Dígitos do Pedido */}
+                {trackingData.delivery_code && (
+                  <View style={styles.deliveryCodeBanner} testID="tracking-delivery-code">
+                    <View style={styles.deliveryCodeLeft}>
+                      <View style={styles.deliveryCodeHeaderRow}>
+                        <Ionicons name="keypad" size={14} color="#1E40AF" />
+                        <Text style={styles.deliveryCodeTitle}>CÓDIGO DE ENTREGA (6 DÍGITOS)</Text>
+                      </View>
+                      <Text style={styles.deliveryCodeHint}>
+                        Código exclusivo gerado para validar o recebimento deste pedido
+                      </Text>
+                    </View>
+                    <View style={styles.deliveryCodePill}>
+                      <Text style={styles.deliveryCodeValue}>{trackingData.delivery_code}</Text>
+                    </View>
+                  </View>
+                )}
+
                 {/* Comprovante de Entrega se disponível */}
                 {trackingData.proof_photo_url && (
                   <View style={styles.proofBox}>
-                    <Ionicons name="image-outline" size={18} color="#059669" style={{ marginRight: 6 }} />
+                    <Ionicons
+                      name={
+                        trackingData.proof_photo_url.startsWith('CODIGO_VALIDADO:')
+                          ? 'shield-checkmark'
+                          : 'image-outline'
+                      }
+                      size={18}
+                      color="#059669"
+                      style={{ marginRight: 6 }}
+                    />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.proofBoxTitle}>Comprovante de Entrega Registrado</Text>
-                      <Text style={styles.proofBoxUrl} numberOfLines={1}>
-                        {trackingData.proof_photo_url}
+                      <Text style={styles.proofBoxUrl} numberOfLines={2}>
+                        {trackingData.proof_photo_url.startsWith('CODIGO_VALIDADO:')
+                          ? `Validado com Código de 6 dígitos (${trackingData.proof_photo_url.replace('CODIGO_VALIDADO:', '')})`
+                          : trackingData.proof_photo_url}
                       </Text>
                     </View>
                   </View>
@@ -832,5 +879,49 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#047857',
     marginTop: 1,
+  },
+  deliveryCodeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: SPACING.sm,
+    gap: 8,
+  },
+  deliveryCodeLeft: {
+    flex: 1,
+  },
+  deliveryCodeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  deliveryCodeTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1E40AF',
+    letterSpacing: 0.4,
+  },
+  deliveryCodeHint: {
+    fontSize: 11,
+    color: '#1D4ED8',
+    marginTop: 2,
+  },
+  deliveryCodePill: {
+    backgroundColor: '#1E40AF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.sm,
+  },
+  deliveryCodeValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 2,
   },
 });

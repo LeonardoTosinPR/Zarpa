@@ -130,7 +130,22 @@ class ExpressDispatchController extends Controller
         }
 
         $proofPhotoUrl = $request->input('proof_photo_url');
-        $result = $this->dispatchService->deliver($id, $courier, $proofPhotoUrl);
+        $deliveryCode = $request->input('delivery_code');
+
+        if ($request->filled('photo_base64') && !$proofPhotoUrl) {
+            $base64 = $request->input('photo_base64');
+            $type = 'jpg';
+            if (preg_match('/^data:image\/(\w+);base64,/', $base64, $matches)) {
+                $base64 = substr($base64, strpos($base64, ',') + 1);
+                $type = strtolower($matches[1]);
+            }
+            $data = base64_decode($base64);
+            $fileName = 'proofs/proof_' . $id . '_' . time() . '.' . $type;
+            \Illuminate\Support\Facades\Storage::disk('public')->put($fileName, $data);
+            $proofPhotoUrl = '/storage/' . $fileName;
+        }
+
+        $result = $this->dispatchService->deliver($id, $courier, $proofPhotoUrl, $deliveryCode);
 
         return response()->json($result, $result['status']);
     }

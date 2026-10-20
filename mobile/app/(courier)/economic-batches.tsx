@@ -262,7 +262,8 @@ export default function EconomicBatchesScreen() {
                     const routeFare = Number(group.total_distance_km || 0) * 2.50;
                     const stopFees = ordersCount * 3.00;
                     const courierBonus = Number(group.courier_bonus || 0);
-                    const totalEarnings = routeFare + stopFees + courierBonus;
+                    const combinedBonus = stopFees + courierBonus;
+                    const totalEarnings = routeFare + combinedBonus;
 
                     return (
                       <View style={styles.metricsGrid}>
@@ -281,16 +282,9 @@ export default function EconomicBatchesScreen() {
                         </View>
                         <View style={styles.metricDivider} />
                         <View style={styles.metricBox}>
-                          <Text style={styles.metricLabel}>TAXA PARADAS ({ordersCount}x R$3)</Text>
-                          <Text style={[styles.metricBonusValue, { color: '#059669' }]}>
-                            + R$ {stopFees.toFixed(2)}
-                          </Text>
-                        </View>
-                        <View style={styles.metricDivider} />
-                        <View style={styles.metricBox}>
-                          <Text style={styles.metricLabel}>BÔNUS LOTE 50%</Text>
-                          <Text style={[styles.metricBonusValue, { color: courierBonus > 0 ? '#059669' : COLORS.textMuted }]}>
-                            + R$ {courierBonus.toFixed(2)}
+                          <Text style={styles.metricLabel}>BÔNUS</Text>
+                          <Text style={[styles.metricBonusValue, { color: combinedBonus > 0 ? '#059669' : COLORS.textMuted }]}>
+                            + R$ {combinedBonus.toFixed(2)}
                           </Text>
                         </View>
                       </View>
@@ -305,10 +299,10 @@ export default function EconomicBatchesScreen() {
                         <Ionicons name="gift-outline" size={18} color="#059669" style={{ marginRight: 8 }} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.bonusNoticeTitle}>
-                            Bônus de Produtividade: R$ {Number(group.courier_bonus || 0).toFixed(2)}
+                            Bônus de Produtividade: R$ {((group.orders ? group.orders.length : (group.group_orders ? group.group_orders.length / 2 : 0)) * 3.00 + Number(group.courier_bonus || 0)).toFixed(2)}
                           </Text>
                           <Text style={styles.bonusNoticeDesc}>
-                            50% da economia bruta de frete gerada pelo compartilhamento da rota!
+                            Soma das taxas de parada e de 50% da economia gerada pelo lote!
                           </Text>
                         </View>
                       </View>
