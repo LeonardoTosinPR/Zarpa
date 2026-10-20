@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppInsets } from '../src/hooks/useAppInsets';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Button } from '../src/components/Button';
@@ -18,6 +18,7 @@ import { api } from '../src/services/api';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const insets = useAppInsets();
   const { user, role, isAuthenticated, isLoading, quickLogin } = useAuth();
   const [quickLoginLoading, setQuickLoginLoading] = React.useState<string | null>(null);
 
@@ -66,9 +67,9 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + SPACING.xl }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Section */}
@@ -183,7 +184,7 @@ export default function WelcomeScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

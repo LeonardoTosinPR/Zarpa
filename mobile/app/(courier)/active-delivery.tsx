@@ -7,8 +7,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAppInsets } from '../../src/hooks/useAppInsets';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { courierService, ExpressOrder } from '../../src/services/courierService';
@@ -17,6 +20,7 @@ import { Button } from '../../src/components/Button';
 
 export default function ActiveDeliveryScreen() {
   const router = useRouter();
+  const insets = useAppInsets();
   const params = useLocalSearchParams<{ orderId: string }>();
   const orderId = params.orderId ? Number(params.orderId) : null;
 
@@ -180,8 +184,8 @@ export default function ActiveDeliveryScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header com interceptação de saída */}
-      <View style={styles.header}>
+      {/* Header com safe area insets e interceptação de saída */}
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.xs }]}>
         <TouchableOpacity
           onPress={handleAttemptExit}
           style={styles.backBtn}
@@ -200,7 +204,7 @@ export default function ActiveDeliveryScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + SPACING.xxl }]} showsVerticalScrollIndicator={false}>
         {/* Mapa Interno do Zarpa com Rota OSRM Traçada */}
         <View style={[styles.mapWrapper, SHADOWS.sm]}>
           <RouteMapPreview

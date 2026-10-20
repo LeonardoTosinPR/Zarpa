@@ -129,7 +129,8 @@ class ExpressDispatchController extends Controller
             ], 403);
         }
 
-        $result = $this->dispatchService->deliver($id, $courier);
+        $proofPhotoUrl = $request->input('proof_photo_url');
+        $result = $this->dispatchService->deliver($id, $courier, $proofPhotoUrl);
 
         return response()->json($result, $result['status']);
     }

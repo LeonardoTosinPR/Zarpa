@@ -10,8 +10,10 @@ import {
   RefreshControl,
   Animated,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAppInsets } from '../../src/hooks/useAppInsets';
 import * as Location from 'expo-location';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
@@ -204,6 +206,7 @@ function RadarOrderCard({
 
 export default function ExpressRadarScreen() {
   const router = useRouter();
+  const insets = useAppInsets();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -436,8 +439,8 @@ export default function ExpressRadarScreen() {
   if (!isOnline) {
     return (
       <View style={styles.container}>
-        {/* Top Navigation Bar */}
-        <View style={styles.navbar}>
+        {/* Top Navigation Bar com safe area */}
+        <View style={[styles.navbar, { paddingTop: insets.top + SPACING.xs }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
@@ -525,8 +528,8 @@ export default function ExpressRadarScreen() {
         />
       </View>
 
-      {/* 2. BARRA SUPERIOR FLUTUANTE ELEGANTE */}
-      <View style={[styles.floatingHeader, SHADOWS.md]}>
+      {/* 2. BARRA SUPERIOR FLUTUANTE ELEGANTE COM SAFE AREA */}
+      <View style={[styles.floatingHeader, { top: insets.top + SPACING.sm }, SHADOWS.md]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.floatingHeaderBtn}
@@ -570,8 +573,8 @@ export default function ExpressRadarScreen() {
         </View>
       </View>
 
-      {/* 3. CARD POPUP FLUTUANTE NA PARTE INFERIOR SOBREPOSTO AO MAPA */}
-      <View style={styles.bottomPopupContainer}>
+      {/* 3. CARD POPUP FLUTUANTE NA PARTE INFERIOR SOBREPOSTO AO MAPA COM SAFE AREA */}
+      <View style={[styles.bottomPopupContainer, { bottom: Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 0, SPACING.md) }]}>
         {loading && orders.length === 0 ? (
           <View style={[styles.statusPopupCard, SHADOWS.md]}>
             <ActivityIndicator size="small" color={COLORS.primary} />
@@ -653,7 +656,6 @@ const styles = StyleSheet.create({
   },
   floatingHeader: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 52 : 24,
     left: SPACING.md,
     right: SPACING.md,
     zIndex: 30,
@@ -698,7 +700,6 @@ const styles = StyleSheet.create({
   },
   bottomPopupContainer: {
     position: 'absolute',
-    bottom: SPACING.md,
     left: SPACING.md,
     right: SPACING.md,
     zIndex: 40,

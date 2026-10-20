@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useAppInsets } from '../hooks/useAppInsets';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'expo-router';
@@ -20,6 +21,7 @@ export function Header({
 }: HeaderProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useAppInsets();
 
   const handleProfilePress = () => {
     if (onProfilePress) {
@@ -36,7 +38,7 @@ export function Header({
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.headerWrapper, { paddingTop: insets.top }]}>
       <View style={styles.container}>
         {/* Left: Menu Icon */}
         <View style={styles.leftContainer}>
@@ -81,14 +83,13 @@ export function Header({
           )}
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  headerWrapper: {
     backgroundColor: COLORS.surface,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     ...SHADOWS.sm,

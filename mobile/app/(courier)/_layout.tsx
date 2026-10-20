@@ -77,6 +77,16 @@ export default function CourierLayout() {
         }}
       />
       <Tabs.Screen
+        name="route-agenda"
+        options={{
+          title: 'Agenda',
+          href: null,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'map' : 'map-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Meu Perfil',

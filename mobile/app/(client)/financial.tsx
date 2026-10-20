@@ -7,9 +7,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useAppInsets } from '../../src/hooks/useAppInsets';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../src/constants/theme';
 import {
   financialService,
@@ -18,6 +18,7 @@ import {
 } from '../../src/services/financialService';
 
 export default function ClientFinancialScreen() {
+  const insets = useAppInsets();
   const [data, setData] = useState<ClientFinancialResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,22 +58,22 @@ export default function ClientFinancialScreen() {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: insets.top }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Carregando extrato financeiro...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const summary = data?.summary;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + SPACING.xxl }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
       >
         {/* Cabeçalho */}
@@ -248,7 +249,7 @@ export default function ClientFinancialScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

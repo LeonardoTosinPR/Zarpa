@@ -7,9 +7,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useAppInsets } from '../../src/hooks/useAppInsets';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../src/constants/theme';
 import {
   financialService,
@@ -19,6 +19,7 @@ import {
 } from '../../src/services/financialService';
 
 export default function CourierFinancialScreen() {
+  const insets = useAppInsets();
   const [data, setData] = useState<CourierFinancialResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,12 +53,12 @@ export default function CourierFinancialScreen() {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: insets.top }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Carregando extrato de ganhos...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -66,10 +67,10 @@ export default function CourierFinancialScreen() {
   const expressOrders = data?.express_orders || [];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + SPACING.xxl }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
       >
         {/* Cabeçalho */}
@@ -254,7 +255,7 @@ export default function CourierFinancialScreen() {
           )
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

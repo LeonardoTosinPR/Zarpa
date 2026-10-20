@@ -27,6 +27,8 @@ class Order extends Model
         'package_volume_m3',
         'shipping_type',
         'status',
+        'assigned_at',
+        'picked_up_at',
         'is_anchor',
         'individual_freight_price',
         'final_freight_price',
@@ -62,6 +64,8 @@ class Order extends Model
             'dest_lat' => 'decimal:8',
             'dest_lng' => 'decimal:8',
             'is_anchor' => 'boolean',
+            'assigned_at' => 'datetime',
+            'picked_up_at' => 'datetime',
             'delivered_at' => 'datetime',
         ];
     }

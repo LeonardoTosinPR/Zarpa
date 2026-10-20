@@ -8,12 +8,14 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Header } from '../../src/components/Header';
-import { orderService, OrderItem } from '../../src/services/orderService';
+import { orderService, OrderItem, OrderTrackingResponse } from '../../src/services/orderService';
 import { courierService } from '../../src/services/courierService';
 
 export default function ClientOrdersScreen() {
@@ -22,6 +24,23 @@ export default function ClientOrdersScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [trackingModalVisible, setTrackingModalVisible] = useState<boolean>(false);
+  const [trackingData, setTrackingData] = useState<OrderTrackingResponse | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState<boolean>(false);
+
+  const handleOpenTracking = async (orderId: number) => {
+    try {
+      setTrackingLoading(true);
+      setTrackingModalVisible(true);
+      const data = await orderService.getTracking(orderId);
+      setTrackingData(data);
+    } catch (err: any) {
+      Alert.alert('Rastreamento', 'Não foi possível carregar os detalhes de rastreamento deste pedido.');
+      setTrackingModalVisible(false);
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
 
   const loadOrders = useCallback(async (filter?: string) => {
     try {
@@ -163,6 +182,17 @@ export default function ClientOrdersScreen() {
             )}
           </View>
         </View>
+
+        {/* Botão de Rastreamento (Timeline) */}
+        <TouchableOpacity
+          style={styles.trackOrderBtn}
+          onPress={() => handleOpenTracking(item.id)}
+          activeOpacity={0.8}
+          testID={`track-order-btn-${item.id}`}
+        >
+          <Ionicons name="analytics-outline" size={15} color={COLORS.primary} style={{ marginRight: 6 }} />
+          <Text style={styles.trackOrderBtnText}>Rastrear Pedido (Linha do Tempo)</Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -236,6 +266,120 @@ export default function ClientOrdersScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Modal de Rastreamento (Timeline) */}
+      <Modal
+        visible={trackingModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTrackingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, SHADOWS.lg]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>
+                  Rastreamento {trackingData ? `#${trackingData.order_id}` : ''}
+                </Text>
+                {trackingData && (
+                  <Text style={styles.modalSubtitle} numberOfLines={1}>
+                    {trackingData.package_description}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={() => setTrackingModalVisible(false)}
+                style={styles.modalCloseBtn}
+                testID="close-tracking-modal-btn"
+              >
+                <Ionicons name="close" size={20} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {trackingLoading ? (
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={{ marginTop: 8, fontSize: 13, color: COLORS.textMuted }}>
+                  Carregando linha do tempo...
+                </Text>
+              </View>
+            ) : trackingData ? (
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+                {/* Dados do Condutor */}
+                {trackingData.courier && (
+                  <View style={styles.courierCard}>
+                    <Ionicons name="bicycle" size={20} color="#1E40AF" style={{ marginRight: 8 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.courierName}>{trackingData.courier.name}</Text>
+                      <Text style={styles.courierVehicle}>
+                        {trackingData.courier.vehicle_type === 'motorcycle' ? 'Motocicleta' : 'Veículo'} • Placa: {trackingData.courier.vehicle_plate || 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Timeline de Eventos */}
+                <View style={styles.timelineWrap}>
+                  {trackingData.timeline.map((step, idx) => {
+                    const isLast = idx === trackingData.timeline.length - 1;
+                    return (
+                      <View key={step.step || idx} style={styles.timelineRow}>
+                        <View style={styles.timelineAxis}>
+                          <View
+                            style={[
+                              styles.timelineDot,
+                              step.completed ? styles.timelineDotCompleted : styles.timelineDotPending,
+                            ]}
+                          >
+                            {step.completed && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                          </View>
+                          {!isLast && (
+                            <View
+                              style={[
+                                styles.timelineLine,
+                                step.completed ? styles.timelineLineCompleted : styles.timelineLinePending,
+                              ]}
+                            />
+                          )}
+                        </View>
+                        <View style={styles.timelineContent}>
+                          <Text
+                            style={[
+                              styles.timelineStepTitle,
+                              step.completed && styles.timelineStepTitleCompleted,
+                            ]}
+                          >
+                            {step.title}
+                          </Text>
+                          <Text style={styles.timelineStepDesc}>{step.description}</Text>
+                          {step.timestamp && (
+                            <Text style={styles.timelineStepTime}>
+                              {new Date(step.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* Comprovante de Entrega se disponível */}
+                {trackingData.proof_photo_url && (
+                  <View style={styles.proofBox}>
+                    <Ionicons name="image-outline" size={18} color="#059669" style={{ marginRight: 6 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.proofBoxTitle}>Comprovante de Entrega Registrado</Text>
+                      <Text style={styles.proofBoxUrl} numberOfLines={1}>
+                        {trackingData.proof_photo_url}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -539,5 +683,154 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#059669', // Verde de economia
+  },
+  trackOrderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: RADIUS.sm,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  trackOrderBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: SPACING.md,
+  },
+  modalCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.lg,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  courierCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: RADIUS.md,
+    padding: 10,
+    marginBottom: 16,
+  },
+  courierName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E40AF',
+  },
+  courierVehicle: {
+    fontSize: 11,
+    color: '#3B82F6',
+    marginTop: 1,
+  },
+  timelineWrap: {
+    paddingLeft: 4,
+    marginBottom: 12,
+  },
+  timelineRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    minHeight: 56,
+  },
+  timelineAxis: {
+    alignItems: 'center',
+    width: 24,
+    marginRight: 10,
+  },
+  timelineDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timelineDotCompleted: {
+    backgroundColor: '#059669',
+  },
+  timelineDotPending: {
+    backgroundColor: '#E2E8F0',
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    marginVertical: 2,
+  },
+  timelineLineCompleted: {
+    backgroundColor: '#059669',
+  },
+  timelineLinePending: {
+    backgroundColor: '#E2E8F0',
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 14,
+  },
+  timelineStepTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+  },
+  timelineStepTitleCompleted: {
+    color: COLORS.text,
+  },
+  timelineStepDesc: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  timelineStepTime: {
+    fontSize: 10,
+    color: '#059669',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  proofBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: RADIUS.sm,
+    padding: 10,
+    marginTop: 8,
+  },
+  proofBoxTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  proofBoxUrl: {
+    fontSize: 11,
+    color: '#047857',
+    marginTop: 1,
   },
 });

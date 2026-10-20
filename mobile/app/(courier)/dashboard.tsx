@@ -22,7 +22,7 @@ import { courierService } from '../../src/services/courierService';
 
 export default function CourierDashboardScreen() {
   const router = useRouter();
-  const { user, logout, role } = useAuth();
+  const { user, role } = useAuth();
 
   const [isOnline, setIsOnline] = useState<boolean>(user?.courier?.is_online ?? true);
   const [deviceLocation, setDeviceLocation] = useState<{ latitude: number; longitude: number }>(() => ({
@@ -158,11 +158,6 @@ export default function CourierDashboardScreen() {
   const cnh = user?.courier?.cnh || 'Não informada';
   const radius = user?.courier?.cluster_radius_km || '5.0';
 
-  async function handleLogout() {
-    await logout();
-    router.replace('/');
-  }
-
   function handleNavigateRadar() {
     if (!isOnline) {
       Alert.alert(
@@ -243,7 +238,24 @@ export default function CourierDashboardScreen() {
           </View>
         </View>
 
-
+        {/* Atalho Rápido para a Agenda de Rotas Operacional */}
+        <TouchableOpacity
+          style={[styles.agendaQuickCard, SHADOWS.sm]}
+          onPress={() => router.push('/(courier)/route-agenda')}
+          activeOpacity={0.8}
+          testID="courier-agenda-quick-btn"
+        >
+          <View style={styles.agendaQuickLeft}>
+            <View style={styles.agendaQuickIconBox}>
+              <Ionicons name="map" size={20} color="#059669" />
+            </View>
+            <View>
+              <Text style={styles.agendaQuickTitle}>Agenda de Rotas Sequenciadas</Text>
+              <Text style={styles.agendaQuickSubtitle}>Itinerário de paradas e execução de entregas</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+        </TouchableOpacity>
 
         {/* Route / Earnings Preview */}
         <View style={[styles.routePreviewCard, SHADOWS.sm]}>
@@ -285,14 +297,7 @@ export default function CourierDashboardScreen() {
           </View>
         )}
 
-        {/* Logout Button */}
-        <Button
-          title="Encerrar Sessão"
-          variant="outline"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          testID="courier-logout-button"
-        />
+
       </ScrollView>
     </View>
   );
@@ -647,10 +652,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#475569',
   },
-  logoutButton: {
-    marginTop: SPACING.md,
-    marginBottom: SPACING.xxl,
-  },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -960,5 +961,39 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
+  },
+  agendaQuickCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: RADIUS.lg,
+    padding: 14,
+    marginBottom: 16,
+  },
+  agendaQuickLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  agendaQuickIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  agendaQuickTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  agendaQuickSubtitle: {
+    fontSize: 11,
+    color: '#166534',
+    marginTop: 1,
   },
 });

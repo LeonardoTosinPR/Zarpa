@@ -16,16 +16,11 @@ import { Button } from '../../src/components/Button';
 
 export default function ClientDashboardScreen() {
   const router = useRouter();
-  const { user, logout, role } = useAuth();
+  const { user, role } = useAuth();
 
   const businessName = user?.client?.business_name || user?.name || 'Comércio Parceiro';
   const cnpj = user?.client?.cnpj_cpf || 'Não cadastrado';
   const address = user?.client?.default_address || 'Guarapuava - PR';
-
-  async function handleLogout() {
-    await logout();
-    router.replace('/');
-  }
 
   return (
     <View style={styles.container}>
@@ -87,14 +82,7 @@ export default function ClientDashboardScreen() {
           </View>
         ) */}
 
-        {/* Logout Button */}
-        <Button
-          title="Encerrar Sessão (Sair)"
-          variant="outline"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          testID="client-logout-button"
-        />
+
       </ScrollView>
     </View>
   );
@@ -266,9 +254,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E293B',
     borderWidth: 1,
     borderColor: '#475569',
-  },
-  logoutButton: {
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.xxl,
   },
 });

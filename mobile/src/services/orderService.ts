@@ -153,4 +153,39 @@ export const orderService = {
     const response = await api.get<{ order: OrderItem }>(`/orders/${id}`);
     return response.data;
   },
+
+  /**
+   * Consulta a linha do tempo de rastreamento do pedido
+   */
+  async getTracking(id: number): Promise<OrderTrackingResponse> {
+    const response = await api.get<OrderTrackingResponse>(`/orders/${id}/tracking`);
+    return response.data;
+  },
 };
+
+export interface TimelineStep {
+  step: 'created' | 'assigned' | 'picked_up' | 'delivered';
+  title: string;
+  description: string;
+  timestamp: string | null;
+  completed: boolean;
+}
+
+export interface OrderTrackingResponse {
+  order_id: number;
+  status: string;
+  shipping_type: 'express' | 'economic';
+  package_description: string;
+  package_weight_kg: number;
+  origin_address: string;
+  dest_address: string;
+  courier?: {
+    id: number;
+    name: string;
+    phone?: string;
+    vehicle_type?: string;
+    vehicle_plate?: string;
+  } | null;
+  proof_photo_url?: string | null;
+  timeline: TimelineStep[];
+}

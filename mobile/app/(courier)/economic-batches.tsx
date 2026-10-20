@@ -15,6 +15,7 @@ import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
 import { courierService } from '../../src/services/courierService';
+import { openMultiStopNavigation, NavigationStopPoint } from '../../src/utils/navigationLauncher';
 
 export default function EconomicBatchesScreen() {
   const router = useRouter();
@@ -74,6 +75,52 @@ export default function EconomicBatchesScreen() {
     } finally {
       setIsProcessingBatch(false);
     }
+  };
+
+  // Transbordamento de GPS externo para todas as paradas do lote selecionado
+  const handleNavigateBatch = (group: any) => {
+    let stops: NavigationStopPoint[] = [];
+
+    if (group.stops && group.stops.length > 0) {
+      stops = group.stops.map((s: any, idx: number) => ({
+        lat: Number(s.lat),
+        lng: Number(s.lng),
+        label: `Parada #${s.stop_sequence || idx + 1}: ${s.address}`,
+        sequence: s.stop_sequence || idx + 1,
+      }));
+    } else if (group.group_orders && group.group_orders.length > 0) {
+      stops = group.group_orders
+        .map((go: any, idx: number) => {
+          const isPickup = go.stop_type === 'pickup';
+          const orderItem = go.order || (group.orders || []).find((o: any) => o.id === go.order_id);
+          const lat = Number(go.lat ?? (isPickup ? orderItem?.origin_lat : orderItem?.dest_lat));
+          const lng = Number(go.lng ?? (isPickup ? orderItem?.origin_lng : orderItem?.dest_lng));
+          const address = go.address ?? (isPickup ? orderItem?.origin_address : orderItem?.dest_address);
+
+          if (!lat || !lng) return null;
+          return {
+            lat,
+            lng,
+            label: `Parada #${go.stop_sequence || idx + 1}: ${address || ''}`,
+            sequence: go.stop_sequence || idx + 1,
+          };
+        })
+        .filter((s: any): s is NavigationStopPoint => s !== null);
+    }
+
+    if (stops.length === 0) {
+      router.push({
+        pathname: '/(courier)/route-agenda',
+        params: { groupId: String(group.id) },
+      });
+      return;
+    }
+
+    openMultiStopNavigation({
+      stops,
+      groupTitle: `Lote #${group.id} (${stops.length} paradas)`,
+      app: 'ask',
+    });
   };
 
   return (
@@ -265,6 +312,53 @@ export default function EconomicBatchesScreen() {
                           </Text>
                         </View>
                       </View>
+
+                      {/* Botão de Atalho para a Agenda de Rotas Operacional */}
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#059669',
+                          paddingVertical: 10,
+                          borderRadius: 8,
+                          marginBottom: 8,
+                        }}
+                        onPress={() => router.push({
+                          pathname: '/(courier)/route-agenda',
+                          params: { groupId: String(group.id) },
+                        })}
+                        activeOpacity={0.8}
+                        testID={`open-route-agenda-btn-${group.id}`}
+                      >
+                        <Ionicons name="map-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+                          Abrir Agenda da Rota Operacional
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Botão Unificado para Navegar no GPS com TODAS as Paradas da Rota */}
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#EFF6FF',
+                          paddingVertical: 10,
+                          borderRadius: 8,
+                          marginBottom: 12,
+                          borderWidth: 1.5,
+                          borderColor: '#BFDBFE',
+                        }}
+                        onPress={() => handleNavigateBatch(group)}
+                        activeOpacity={0.8}
+                        testID={`nav-batch-gps-btn-${group.id}`}
+                      >
+                        <Ionicons name="navigate-outline" size={16} color="#1E40AF" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#1E40AF', fontWeight: '700', fontSize: 13 }}>
+                          Navegar Rota Completa no GPS
+                        </Text>
+                      </TouchableOpacity>
 
                       <Text style={styles.stopsHeaderTitle}>Itinerário de Paradas Sequenciadas:</Text>
 

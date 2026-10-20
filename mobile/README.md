@@ -47,16 +47,17 @@ Este checklist documenta a evolução contínua das funcionalidades nos checkpoi
   - [x] Autocomplete de endereços com priorização de polos locais (UTFPR, Unicentro Santa Cruz, Unicentro CEDETEG, Shopping) exibindo nome do local em destaque e endereço completo.
   - [x] Renderização de mapas com **Expo-Leaflet + OpenStreetMap via WebView** (conforme orientação acadêmica - componente `MyMap` / repositório `pdm-ts-maps-leaflet`): arquitetura padronizada com `expo-leaflet` e `react-native-webview` consumindo a API aberta da OpenStreetMap Foundation (OSM), eliminando totalmente a dependência do SDK pago do Google Maps e incompatibilidades da New Architecture/Fabric no Android, com marcadores customizados, traçado de rota OSRM, raio de cobertura do radar express e suporte cross-platform.
   - [x] Painel de Telemetria GPS em Tempo Real em tela (`(courier)/dashboard.tsx` e `express-radar.tsx`): exibição visual de latitude, longitude, polo (Guarapuava), status de conexão ("GPS Ativo no Dispositivo") e sincronização contínua com a base PostGIS do backend Docker via ADB reverse (`tcp:8000`).
-- [ ] **Agenda de Lotes Econômicos & Execução Operacional (Sprint 4 & 6)**:
-  - [ ] Visualização da agenda de paradas sequenciais de coleta e entrega.
-  - [ ] Transições manuais de status do pedido (*Coletado*, *A caminho*, *Entregue*).
-  - [ ] Transbordamento direto de rota (*Deep Linking*) para Google Maps (`geo:`) e Waze (`waze://`).
-- [ ] **Extratos Financeiros com Rateio Dinâmico 50/50**:
-  - [ ] Painel do Lojista exibindo o desconto obtido e economia acumulada.
-  - [ ] Painel do Entregador detalhando faturamento base e bônus de rateio por lote.
+- [x] **Agenda de Lotes Econômicos & Execução Operacional (Sprint 4 & 6)**:
+  - [x] Visualização da agenda de paradas sequenciais de coleta e entrega (`route-agenda.tsx`).
+  - [x] Transições manuais de status do pedido (*Coletado*, *A caminho*, *Entregue*).
+  - [x] Transbordamento direto de rota (*Deep Linking*) para Google Maps (`geo:`) e Waze (`waze://`).
+  - [x] Captura e upload de foto do comprovante de entrega no app (`expo-image-picker`).
+  - [x] Timeline vertical de rastreamento do pedido com link público do comprovante para o lojista.
+- [x] **Extratos Financeiros com Rateio Dinâmico 50/50 (Sprint 5)**:
+  - [x] Painel do Lojista exibindo o desconto obtido e economia acumulada (`(client)/financial.tsx`).
+  - [x] Painel do Entregador detalhando faturamento base, taxa de parada e bônus de rateio por lote (`(courier)/financial.tsx`).
 
 #### 🔮 Funcionalidades Adicionais (Trabalhos Futuros / Pós-MVP)
-- [ ] Upload e captura de foto/assinatura digital como comprovante de entrega no app.
 - [ ] Notificações Push nativas em tempo real (Firebase Cloud Messaging / Expo Notifications).
 - [ ] Rastreamento contínuo em tempo real com WebSockets / SSE do entregador em trânsito.
 - [ ] Integração com gateway de pagamentos instantâneos (PIX automático).
@@ -233,12 +234,84 @@ O cronograma de desenvolvimento está estruturado em **8 sprints iterativas** ao
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Sprint 0** | 25/08 a 01/09/2026 | 1,1 semana (8 dias) | `sprint/0-setup-monorepo-infra-testes` | RNF 01, RNF 03 | Monorepo, Docker PostgreSQL/PostGIS, Laravel 13, Expo SDK 54, Pest, Jest e Maestro | **✅ Concluída** |
 | **Sprint 1** | 02/09 a 09/09/2026 | 1,1 semana (8 dias) | `sprint/1-auth-perfis-atores` | RF 01, RNF 03 | Autenticação Sanctum, Perfis Lojista/Entregador/Admin, SecureStore, Dashboards e CLI `run.ps1` | **✅ Concluída** |
-| **Sprint 2** | 10/09 a 17/09/2026 | 1,1 semana (8 dias) | `sprint/2-postagem-geocodificacao-pedidos` | RF 02, RF 03, RNF 01 | Postagem de Pedidos, Geocodificação ORS em Guarapuava e Mapa Interativo | **🔄 A Seguir** |
-| **Sprint 3** | 18/09 a 25/09/2026 | 1,1 semana (8 dias) | `sprint/3-fluxo-expresso-concorrencia` | RF 05, RF 07, RF 10, RNF 02 | Radar Expresso On-Demand com timer de 10s e Trava Pessimista anti-conflito (`lockForUpdate`) | **📅 Planejada** |
-| **Sprint 4** | 26/09 a 04/10/2026 | 1,3 semana (9 dias) | `sprint/4-lote-economico-agrupamento` | RF 04, RF 05, RNF 01 | Lote Econômico Noturno (Batch), Clusterização Geoespacial e Rotas Multi-paradas ORS | **📅 Planejada** |
-| **Sprint 5** | 05/10 a 13/10/2026 | 1,3 semana (9 dias) | `sprint/5-rateio-dinamico-extratos` | RF 06, RF 11 | Motor de Rateio Financeiro 50/50 e Painéis de Extrato Transparente para Lojistas e Entregadores | **📅 Planejada** |
-| **Sprint 6** | 14/10 a 22/10/2026 | 1,3 semana (9 dias) | `sprint/6-execucao-rotas-status-navegacao` | RF 08, RF 09, RF 12 | Agenda de Rotas Operacionais, Ciclo de Vida do Pedido e Transbordamento GPS (Google Maps/Waze) | **📅 Planejada** |
-| **Sprint 7** | 23/10 a 31/10/2026 | 1,3 semana (9 dias) | `sprint/7-validacao-cenarios-reais-homologacao` | Todos (RF 01 a 12, RNF 01 a 04) | Validação com Rotas Reais de Guarapuava, Regressão E2E Maestro e Congelamento do MVP | **📅 Planejada** |
+| **Sprint 2** | 10/09 a 17/09/2026 | 1,1 semana (8 dias) | `sprint/2-postagem-geocodificacao-pedidos` | RF 02, RF 03, RNF 01 | Postagem de Pedidos, Geocodificação OSRM em Guarapuava e Mapa Interativo | **✅ Concluída** |
+| **Sprint 3** | 18/09 a 25/09/2026 | 1,1 semana (8 dias) | `sprint/3-fluxo-expresso-concorrencia` | RF 05, RF 07, RF 10, RNF 02 | Radar Expresso On-Demand com timer de 10s e Trava Pessimista anti-conflito (`lockForUpdate`) | **✅ Concluída** |
+| **Sprint 4** | 26/09 a 04/10/2026 | 1,3 semana (9 dias) | `sprint/4-lote-economico-agrupamento` | RF 04, RF 05, RNF 01 | Lote Econômico Noturno (Batch), Clusterização Geoespacial e Rotas Multi-paradas OSRM | **✅ Concluída** |
+| **Sprint 5** | 05/10 a 13/10/2026 | 1,3 semana (9 dias) | `sprint/5-rateio-dinamico-extratos` | RF 06, RF 11 | Motor de Rateio Financeiro 50/50, Extratos Transparentes e Taxa de Parada (R$ 3,00) | **✅ Concluída** |
+| **Sprint 6** | 14/10 a 22/10/2026 | 1,3 semana (9 dias) | `sprint/6-execucao-rotas-status-navegacao` | RF 08, RF 09, RF 12 | Agenda de Rotas Operacionais, Ciclo de Vida do Pedido com Comprovante e Transbordamento GPS | **✅ Concluída** |
+| **Sprint 7** | 23/10 a 31/10/2026 | 1,3 semana (9 dias) | `sprint/7-validacao-cenarios-reais-homologacao` | Todos (RF 01 a 12, RNF 01 a 04) | Validação com Rotas Reais de Guarapuava, Regressão E2E Maestro e Congelamento do MVP | **🔄 Em Andamento** |
+
+---
+
+## Atualizações desde o último checkpoint
+
+Esta seção atende aos requisitos de entrega do **Checkpoint 2 da disciplina de Dispositivos Móveis 2**, consolidando a evolução da arquitetura mobile, os recursos aplicados e as boas práticas de desenvolvimento adotadas:
+
+### 📱 Recursos dos Módulos Anteriores Aplicados na Aplicação
+
+1. **Roteamento Baseado em Arquivos com Expo Router v4 (`expo-router`)**:
+   - Organização em grupos de rotas com layouts aninhados e isolamento de papéis (`app/(client)/_layout.tsx` para lojistas e `app/(courier)/_layout.tsx` para entregadores).
+   - Navegação por abas inferiores (`Tabs`) estilizadas com `Ionicons`, mantendo persistência de estado e animações de transição nativas.
+   - Passagem de parâmetros de rota fortemente tipados via hook `useLocalSearchParams<{ orderId: string }>()`.
+   - Proteção declarativa de rotas e redirecionamento através do `AuthContext`.
+
+2. **Gestão Segura de Insets com Expo Safe Area Context (`react-native-safe-area-context`) e Foco no Android**:
+   - Em conformidade com o feedback do orientador e a documentação oficial da Expo ([Safe Area Context](https://docs.expo.dev/versions/latest/sdk/safe-area-context/)), a aplicação adotou o `<SafeAreaProvider>` na raiz do app (`app/_layout.tsx`).
+   - Implementação do hook centralizado `useAppInsets()` (`src/hooks/useAppInsets.ts`), computando dinamicamente `Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0)` e `insets.bottom` para garantir que a Status Bar do Android e notches nunca sobreponham headers, títulos, cards flutuantes de mapas (`app/(courier)/express-radar.tsx`, `app/(courier)/active-delivery.tsx`) ou barras de navegação globais (`src/components/Header.tsx`).
+
+3. **Design System Centralizado & Custom Skill (`skills/zarpa-design-system/`)**:
+   - Centralização de tokens visuais em `src/constants/theme.ts` (`COLORS`, `FONTS`, `SPACING`, `RADIUS`, `SHADOWS`), eliminando números mágicos e cores hexadecimais dispersas no código.
+   - Criação da **Skill Oficial do Design System** ([`skills/zarpa-design-system/SKILL.md`](../skills/zarpa-design-system/SKILL.md)) para governança de interface e padronização visual.
+
+4. **Higienização Ergonômica de UX (Remoção do Logout das Telas Operacionais)**:
+   - Seguindo a orientação da disciplina, o botão "Encerrar Sessão" foi completamente removido dos Dashboards operacionais (`(courier)/dashboard.tsx` e `(client)/dashboard.tsx`), onde poluía visualmente o fluxo de trabalho.
+   - O logout agora reside exclusivamente nas telas de Perfil (`(courier)/profile.tsx` e `(client)/profile.tsx`), sob a seção de configurações da conta e protegido por confirmação prévia com `Alert.alert`.
+
+5. **Armazenamento Criptografado de Sessão (`expo-secure-store`)**:
+   - Persistência criptografada de tokens de autenticação (Sanctum) e metadados de perfil no hardware do dispositivo (Keychain no iOS e KeyStore no Android), permitindo login persistente seguro.
+
+6. **Telemetria de Localização e Permissões (`expo-location`)**:
+   - Captura contínua de coordenadas geográficas (`watchPositionAsync` / `getCurrentPositionAsync`) para sintonização dinâmica de pedidos no radar espacial.
+
+7. **Mapeamento Geoespacial sem Custos com OpenStreetMap (`expo-leaflet` + `react-native-webview`)**:
+   - Renderização de mapas vetoriais interativos e polylines de rotas sem dependência de APIs proprietárias ou faturamento com cartão de crédito do Google Maps.
+
+---
+
+## Documentação de Módulos e Boas Práticas de Componentes
+
+Todos os componentes customizados da aplicação residem no diretório [`src/components/`](src/components/) e foram concebidos sob os conceitos fundamentais da aula **"Boas práticas para a criação de componentes reutilizáveis"**:
+
+### 🎯 Princípios e Conceitos Aplicados
+
+1. **Princípio da Responsabilidade Única (Single Responsibility Principle - SRP)**:
+   - Cada componente possui um propósito estrito e bem definido. Por exemplo, o componente `Button` é responsável exclusivamente por renderizar o gatilho de ação, gerenciar seu estado de carregamento (`loading`) e fornecer feedback tátil, sem incorporar lógica de negócio ou chamadas de rede.
+
+2. **Componentes Puros de Apresentação (*Presentational / Dumb Components*)**:
+   - Os componentes de `src/components/` são desacoplados do estado global da aplicação e de APIs REST. Todo o comportamento é controlado via `props` (`title`, `value`, `error`, `variant`) e eventos comunicados via callbacks (`onPress`, `onChangeText`, `onMapClicked`), viabilizando reutilização universal e testes unitários determinísticos.
+
+3. **Tipagem Estrita com TypeScript**:
+   - Todas as interfaces de propriedades são exportadas e documentadas (ex: `ButtonProps`, `InputProps`, `HeaderProps`, `RoleSelectorProps`, `MyMapProps`, `RouteMapPreviewProps`), garantindo autocompletion no editor e prevenção de erros em tempo de compilação.
+
+4. **Composição e Extensibilidade (*Children & Slots*)**:
+   - Em vez de criar múltiplos componentes rígidos, adotou-se o padrão de composição. O componente `Input` aceita slots opcionais para `leftIcon` e `rightIcon`, além de herdar nativamente todas as propriedades do `TextInputProps` do React Native.
+
+5. **Acessibilidade e Feedback de Toque**:
+   - Uso consistente de `activeOpacity={0.7}`, `accessibilityRole`, estados de desabilitado visualmente claros (`opacity: 0.5`) e identificadores para testes automatizados (`testID`).
+
+6. **Encapsulamento de Estilos com Design Tokens**:
+   - Uso de `StyleSheet.create` para impedir recriação de objetos de estilo em cada renderização, consumindo exclusivamente constantes de `src/constants/theme.ts`.
+
+### 📋 Catálogo de Componentes em `src/components/`
+
+| Componente | Arquivo | Responsabilidade Principal | Boas Práticas Demonstradas |
+| :--- | :--- | :--- | :--- |
+| **`Button`** | [`Button.tsx`](src/components/Button.tsx) | Botão interativo de ação | Suporte a 4 variantes visuais (`primary`, `secondary`, `outline`, `danger`), feedback tátil, spinner integrado (`ActivityIndicator`) e bloqueio de toques múltiplos em loading. |
+| **`Input`** | [`Input.tsx`](src/components/Input.tsx) | Campo de digitação de formulário | Label integrado, ícones compostos (`leftIcon`/`rightIcon`), feedback de foco com borda reativa (`COLORS.borderFocus`) e renderização condicional de mensagens de erro. |
+| **`Header`** | [`Header.tsx`](src/components/Header.tsx) | Barra superior de navegação | Integração com `useAppInsets` (Safe Area Android/iOS), logotipo institucional, avatar dinâmico com inicial do usuário e indicador de papel colorido. |
+| **`RoleSelector`** | [`RoleSelector.tsx`](src/components/RoleSelector.tsx) | Seletor de perfil (Lojista / Entregador) | Alternância de estado atômico com realce de borda e cores temáticas distintas para cada ator. |
+| **`MyMap`** | [`MyMap.tsx`](src/components/MyMap.tsx) | Mapa base em OpenStreetMap | Componente de mapa livre baseado no modelo do orientador (Prof. Andres), suporte a camadas de azulejos OSM, marcadores SVG dinâmicos e centróide em Guarapuava. |
+| **`RouteMapPreview`** | [`RouteMapPreview.tsx`](src/components/RouteMapPreview.tsx) | Visualizador de rotas e polylines | Renderização de rotas reais com OSRM, marcadores de coleta/entrega, raio circular de cobertura de radar em km e modo sem bordas para tela cheia. |
 
 ---
 
@@ -269,23 +342,31 @@ mobile/
 │   ├── login.tsx                 # Tela de Login com atalhos de teste
 │   ├── register.tsx              # Tela de Cadastro dinâmico (Lojista / Entregador)
 │   ├── (client)/                 # Grupo de rotas protegidas do Lojista
-│   │   ├── _layout.tsx           # Layout da área do Lojista
-│   │   └── dashboard.tsx         # Dashboard e visão geral do comércio
+│   │   ├── _layout.tsx           # Layout com Tabs da área do Lojista
+│   │   ├── dashboard.tsx         # Dashboard e visão geral do comércio
+│   │   ├── create-order.tsx      # Formulário de postagem com mapa e cotação de frete
+│   │   ├── orders.tsx            # Gestão e timeline de rastreamento de pedidos
+│   │   ├── financial.tsx         # Extrato de economia cooperativa 50/50
+│   │   └── profile.tsx           # Perfil e configurações do comércio com logout
 │   └── (courier)/                # Grupo de rotas protegidas do Entregador
-│       ├── _layout.tsx           # Layout com Tabs inferiores (Início, Radar, Meu Perfil)
-│       ├── dashboard.tsx         # Dashboard com switch Online/Offline, mapa GPS real e atalhos
-│       ├── express-radar.tsx     # Radar Expresso On-Demand com mapa borderless, cards popups compactos e cooldown de 30s
-│       ├── profile.tsx           # Perfil do Entregador com ajuste do Raio de Atuação (km), veículo e CNH
-│       └── active-delivery.tsx   # Visualização da rota interna OSRM, controle de status (coleta/entrega) e bloqueio de saída sem cancelamento
+│       ├── _layout.tsx           # Layout com Tabs inferiores
+│       ├── dashboard.tsx         # Dashboard com telemetria GPS e atalhos operacionais
+│       ├── express-radar.tsx     # Radar Expresso On-Demand com mapa borderless e safe area
+│       ├── economic-batches.tsx  # Consulta de lotes econômicos atribuídos
+│       ├── route-agenda.tsx      # Agenda operacional com paradas sequenciadas e GPS externo
+│       ├── active-delivery.tsx   # Visualização da rota interna OSRM e controle de status
+│       ├── financial.tsx         # Extrato de ganhos brutos, bônus de lote e taxa de parada
+│       └── profile.tsx           # Perfil do Entregador, CNH, raio de atuação e logout
 ├── src/
-│   ├── components/               # Componentes UI (Header, Button, Input, MyMap, RouteMapPreview com Expo-Leaflet/OSM)
+│   ├── components/               # Componentes UI (Header, Button, Input, MyMap, RouteMapPreview)
 │   ├── constants/                # Constantes do Design System (theme.ts: cores, fontes, sombras)
 │   ├── context/                  # Contextos globais (AuthContext.tsx)
-│   ├── services/                 # Clientes HTTP (api.ts, orderService.ts, courierService.ts)
-│   ├── types/                    # Contratos de tipos TypeScript (auth.ts)
-│   └── utils/                    # Funções utilitárias (decodePolyline, cálculo geodésico)
+│   ├── hooks/                    # Hooks reutilizáveis (useAppInsets.ts para Safe Area Android/iOS)
+│   ├── services/                 # Clientes HTTP (api, orderService, courierService, financialService)
+│   ├── types/                    # Contratos de tipos TypeScript
+│   └── utils/                    # Funções utilitárias (navigationLauncher, decodePolyline)
 ├── assets/                       # Ícones, splash screens e marcadores de mapa
-├── __tests__/                    # Suíte de testes unitários com Jest e RNTL
+├── __tests__/                    # Suíte de testes unitários com Jest e RNTL (15 suítes / 49 testes)
 ├── app.json                      # Configurações do Expo
 ├── jest.config.js                # Configuração do Jest
 ├── package.json                  # Dependências e scripts npm
@@ -297,12 +378,12 @@ mobile/
 ## ⚡ Guia de Execução e Testes
 
 ### 🚀 Inicialização Rápida via CLI Unificado (Recomendado)
-Na raiz do projeto (`d:\Zarpa`):
+Na raiz do projeto (`/dados/tosin/Zarpa`):
 - **PowerShell**:
   ```powershell
   .\run.ps1 dev
   ```
-- **Bash / WSL**:
+- **Bash / Linux**:
   ```bash
   ./run.sh dev
   ```
@@ -319,22 +400,29 @@ npx expo start
 ### 🧪 Execução dos Testes Automatizados
 ```bash
 cd mobile
-npm test
+npm test -- --runInBand
 ```
 
-Resultados da suíte de testes unitários e de integração:
+Resultados da suíte de testes unitários e de componentes:
 ```text
-PASS __tests__/RoleSelector.test.tsx
-PASS __tests__/Polyline.test.ts
-PASS __tests__/App.test.tsx
-PASS __tests__/AuthScreens.test.tsx
-PASS __tests__/Orders.test.tsx
-PASS __tests__/CourierProfile.test.tsx
+PASS __tests__/EconomicBatch.test.tsx
+PASS __tests__/RouteAgenda.test.tsx
+PASS __tests__/ActiveDelivery.test.tsx
+PASS __tests__/FinancialStatement.test.tsx
 PASS __tests__/ExpressRadar.test.tsx
 PASS __tests__/CreateOrder.test.tsx
-PASS __tests__/ActiveDelivery.test.tsx
+PASS __tests__/CourierProfile.test.tsx
+PASS __tests__/AuthScreens.test.tsx
+PASS __tests__/AdminPanel.test.tsx
+PASS __tests__/OrderTracking.test.tsx
+PASS __tests__/Orders.test.tsx
+PASS __tests__/App.test.tsx
+PASS __tests__/RoleSelector.test.tsx
+PASS __tests__/MyMap.test.tsx
+PASS __tests__/Polyline.test.ts
 
-Test Suites: 9 passed, 9 total
-Tests:       30 passed, 30 total
+Test Suites: 15 passed, 15 total
+Tests:       49 passed, 49 total
 Snapshots:   0 total
+```
 ```
