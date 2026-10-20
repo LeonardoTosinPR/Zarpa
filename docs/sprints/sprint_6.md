@@ -15,11 +15,12 @@
 
 Consolidar a experiência operacional em campo para o **Entregador Parceiro** e o rastreamento transparente em tempo real para o **Lojista**, viabilizando a execução física dos trajetos planejados nas sprints anteriores.
 
-A Sprint 6 integra três pilares essenciais:
-1. **Agenda de Rotas Sequenciadas (`(courier)/route-agenda`)**: Apresenta a jornada de entregas (lote econômico agrupado ou entrega expressa) através de uma lista vertical ordenada cronologicamente (Pickup & Delivery Problem), com destaque dinâmico para a *parada atual em atendimento*, métricas de progresso e estimativa de ganhos consolidados (frete base + taxa de parada R$ 3,00 + bônus de rateio).
-2. **Máquina de Estados Estrita & Comprovante de Entrega**: Garante que as transições de status (`pending` $\rightarrow$ `assigned` $\rightarrow$ `picked_up` $\rightarrow$ `delivered`) respeitem a ordem cronológica, com registro auditável de timestamps (`picked_up_at`, `delivered_at`) e suporte a captura/anexação de foto do comprovante (`proof_photo_url`).
-3. **Transbordamento GPS Nativo (Deep Linking)**: Oferece navegação externa em 1 toque para aplicativos automotivos nativos (**Google Maps** e **Waze**), transmitindo as coordenadas exatas da parada atual.
-4. **Linha do Tempo de Rastreamento do Lojista (`Tracking Timeline`)**: Disponibiliza ao lojista o acompanhamento visual do ciclo de vida da entrega, incluindo dados do condutor responsável e visualização da foto do comprovante anexada na entrega.
+A Sprint 6 integra cinco pilares essenciais:
+1. **Agenda de Rotas Sequenciadas (`(courier)/route-agenda`) & Bônus Unificado**: Apresenta a jornada de entregas (lote econômico agrupado) através de uma lista vertical ordenada cronologicamente (Pickup & Delivery Problem), com destaque dinâmico para a *parada atual em atendimento*, métricas de progresso e estimativa de ganhos consolidados com **Bônus Unificado** (somando a Taxa de Parada de R$ 3,00 por entrega + 50% de Bônus de Rateio).
+2. **Máquina de Estados Estrita & Comprovante Obrigatório (Código de 6 Dígitos ou Foto)**: Garante que as transições de status (`pending` $\rightarrow$ `assigned` $\rightarrow$ `picked_up` $\rightarrow$ `delivered`) respeitem a ordem cronológica, com registro auditável de timestamps (`picked_up_at`, `delivered_at`) e exigência obrigatória de validação na entrega: seja pela digitação do **Código de Entrega de 6 dígitos (`delivery_code`)** — gerado automaticamente no aceite expresso ou na formação do lote econômico, exibido ao lojista e ocultado da API do entregador até a validação — ou pelo envio de **Foto Comprobatória (`proof_photo_url`)**.
+3. **Transbordamento GPS Nativo (Rota Única Multi-Paradas nos Lotes e GPS Expresso)**: Oferece navegação externa em 1 toque para **Google Maps** e **Waze**, incluindo exportação de rota completa com *waypoints* (`openMultiStopNavigation`) para todas as paradas pendentes do lote e botão de navegação externa também nas entregas expressas (`active-delivery.tsx`).
+4. **Linha do Tempo de Rastreamento do Lojista (`Tracking Timeline`)**: Disponibiliza ao lojista o acompanhamento visual do ciclo de vida da entrega, o código de segurança de 6 dígitos (`delivery_code`), dados do condutor responsável e visualização da foto do comprovante anexada na entrega.
+5. **Simplificação de Dashboards & Painel Administrativo Master (`admin.tsx`)**: Remoção dos botões de login rápido das telas de autenticação, simplificação dos dashboards iniciais para foco em KPIs essenciais e reativação do Painel Administrativo Master com disparo manual do Lote Econômico Noturno (`POST /api/batch/process-economic`).
 
 ---
 
@@ -40,19 +41,22 @@ stateDiagram-v2
 ```
 
 ### 2.2 Regras de Validação e Transição Estrita
-- **Transição `pending` $\rightarrow$ `assigned`**: Realizada exclusivamente no despacho concorrente (`acceptExpressOrder`) ou pelo motor de batch noturno (`BatchClusteringService`).
+- **Transição `pending` $\rightarrow$ `assigned`**: Realizada exclusivamente no despacho concorrente (`acceptExpressOrder`) ou pelo motor de batch noturno (`BatchClusteringService`). Gera automaticamente o `delivery_code` numérico de 6 dígitos (`Order::generateDeliveryCode()`).
+- **Sigilo do `delivery_code`**: O atributo `delivery_code` é ocultado dinamicamente nas respostas JSON para o papel `courier`, sendo exibido apenas para o `client` (lojista dono do pedido) e para o `admin`.
 - **Transição `assigned` $\rightarrow$ `picked_up`**: Apenas o condutor atribuído ao pedido (`order.courier_id === courier.id`) pode confirmar a coleta. Registra `picked_up_at = now()`.
-- **Transição `picked_up` $\rightarrow$ `delivered`**: Requer que o pedido esteja obrigatoriamente no status `picked_up`. Não é permitido transicionar direto de `assigned` para `delivered`. Registra `delivered_at = now()` e vincula opcionalmente o `proof_photo_url`.
+- **Transição `picked_up` $\rightarrow$ `delivered`**: Requer que o pedido esteja obrigatoriamente no status `picked_up` (não é permitido transicionar direto de `assigned` para `delivered`) **E** exige comprovação obrigatória: envio de `delivery_code` de 6 dígitos idêntico ao código do pedido **OU** foto comprobatória previamente/simultaneamente anexada (`proof_photo_url`). Registra `delivered_at = now()`.
 - **Sincronização com Lotes Econômicos (`DeliveryGroup`)**:
   - Quando um pedido do lote é coletado ou entregue, o status da parada correspondente em `group_orders` é atualizado.
   - O lote transiciona de `assigned` para `in_progress` na primeira coleta, e para `completed` quando todos os pedidos do grupo forem marcados como `delivered`.
 
 ---
 
-## 3. Transbordamento GPS Nativo (Deep Linking)
+## 3. Transbordamento GPS Nativo (Deep Linking Individual e Multi-Paradas)
 
-Para garantir segurança e aderência às preferências do condutor, o aplicativo mobile oferece acionamento de navegadores externos:
-- **Google Maps**:
+Para garantir segurança e aderência às preferências do condutor tanto nas **Entregas Expressas** quanto nos **Lotes Econômicos**, o aplicativo mobile oferece acionamento de navegadores externos:
+- **Rota Única Multi-Paradas no Google Maps (`openMultiStopNavigation`)**:
+  - Universal URL com *waypoints*: `https://www.google.com/maps/dir/?api=1&destination=destLat,destLng&waypoints=wp1Lat,wp1Lng|wp2Lat,wp2Lng&travelmode=driving`
+- **Google Maps (Parada Única / Entrega Expressa)**:
   - Android (Intent): `geo:lat,lng?q=lat,lng(Label)`
   - Fallback / Universal: `https://www.google.com/maps/dir/?api=1&destination=lat,lng`
 - **Waze**:
@@ -127,11 +131,12 @@ Para garantir segurança e aderência às preferências do condutor, o aplicativ
 
 ---
 
-## 6. Métricas Finais de Validação
+## 6. Métricas Finais de Validação e Auditoria Operacional
 
-- **Backend (Laravel 13 + Pest v3)**: **64 testes aprovados (559 asserções)** cobrindo todos os módulos do sistema.
-- **Mobile (React Native + Jest)**: **15 suítes aprovadas, 49 testes unitários e de componente** sem nenhuma falha.
+- **Backend (Laravel 13 + Pest v3)**: **65 testes aprovados (574 asserções)** cobrindo todos os módulos do sistema, incluindo geração e validação estrita do código de 6 dígitos (`delivery_code`) e comprovante fotográfico.
+- **Mobile (React Native + Jest)**: **15 suítes aprovadas, 52 testes unitários e de componente** sem nenhuma falha.
 - **TypeScript**: **0 erros** de compilação estática (`npx tsc --noEmit`).
-- **Navegação Externa**: Integração completa com Google Maps (`geo:` / web fallback) e Waze (`waze://`).
+- **Navegação Externa**: Integração completa com Google Maps (parada única e rota multi-paradas com *waypoints*) e Waze (`waze://`) nas entregas expressas e econômicas.
 - **Suíte E2E**: Fluxo consolidado em `.maestro/delivery_execution_flow.yaml`.
+- **Relatório Analítico Pós-Sprint 6**: Auditoria operacional e financeira documentada em [`docs/relatorios/analise_lotes_economicos_2026_10_20.md`](../relatorios/analise_lotes_economicos_2026_10_20.md) com **40 lotes econômicos** e **148 pedidos** auditados no banco PostGIS (**30,9% de redução viária**, **R$ 4,27/km** de ganho médio ao entregador e **78,9%** de repasse líquido ao parceiro).
 
