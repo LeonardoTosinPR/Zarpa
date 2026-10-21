@@ -8,14 +8,17 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Modal,
-  TextInput,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { Header } from '../../src/components/Header';
+import {
+  DeliveryProofModal,
+  DeliveryProofPayload,
+} from '../../src/components/DeliveryProofModal';
+import { ExternalGpsButton } from '../../src/components/ExternalGpsButton';
+import { EmptyState } from '../../src/components/EmptyState';
 import {
   courierService,
   ActiveDeliveryGroup,
@@ -36,10 +39,6 @@ export default function RouteAgendaScreen() {
   // Modal de comprovante de entrega obrigatório (Código de 6 dígitos ou Foto)
   const [proofModalVisible, setProofModalVisible] = useState<boolean>(false);
   const [selectedDeliveryStop, setSelectedDeliveryStop] = useState<SequencedStop | null>(null);
-  const [proofMethod, setProofMethod] = useState<'code' | 'photo'>('code');
-  const [deliveryCode, setDeliveryCode] = useState<string>('');
-  const [proofUrl, setProofUrl] = useState<string>('');
-  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
 
   const loadAgenda = useCallback(async () => {
     try {
@@ -138,80 +137,21 @@ export default function RouteAgendaScreen() {
   // Abertura do modal de entrega com comprovante obrigatório
   const handleOpenDeliveryModal = (stop: SequencedStop) => {
     setSelectedDeliveryStop(stop);
-    setProofMethod('code');
-    setDeliveryCode('');
-    setProofUrl('');
-    setPhotoBase64(null);
     setProofModalVisible(true);
   };
 
-  // Captura foto com a câmera do aparelho
-  const handleTakePhoto = async () => {
-    try {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Permissão Necessária', 'Autorize o acesso à câmera para fotografar o comprovante.');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        quality: 0.6,
-        base64: true,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        setProofUrl(asset.uri);
-        if (asset.base64) {
-          setPhotoBase64(`data:image/jpeg;base64,${asset.base64}`);
-        }
-      }
-    } catch (err) {
-      Alert.alert('Câmera Indisponível', 'Não foi possível abrir a câmera neste dispositivo.');
-    }
-  };
-
-  // Seleciona foto da galeria
-  const handlePickPhoto = async () => {
-    try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Permissão Necessária', 'Autorize o acesso à galeria para anexar a foto do comprovante.');
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.6,
-        base64: true,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        setProofUrl(asset.uri);
-        if (asset.base64) {
-          setPhotoBase64(`data:image/jpeg;base64,${asset.base64}`);
-        }
-      }
-    } catch (err) {
-      Alert.alert('Galeria Indisponível', 'Não foi possível abrir a galeria neste dispositivo.');
-    }
-  };
-
   // Confirmação da entrega com comprovante obrigatório (código de 6 dígitos ou foto)
-  const handleConfirmDeliveryWithProof = async () => {
+  const handleConfirmDeliveryWithProof = async (payload: DeliveryProofPayload) => {
     if (!selectedDeliveryStop) return;
 
-    if (proofMethod === 'code') {
-      const cleanCode = deliveryCode.trim();
-      if (!/^\d{6}$/.test(cleanCode)) {
-        Alert.alert(
-          'Código Obrigatório',
-          'Digite o código numérico de 6 dígitos fornecido pelo lojista/destinatário para validar a entrega.'
-        );
-        return;
-      }
-
+    if (payload.method === 'code') {
       try {
         setActionLoading(true);
-        await courierService.confirmDelivery(selectedDeliveryStop.order_id, undefined, cleanCode);
+        await courierService.confirmDelivery(
+          selectedDeliveryStop.order_id,
+          undefined,
+          payload.deliveryCode
+        );
         setProofModalVisible(false);
         Alert.alert(
           'Entrega Concluída!',
@@ -227,22 +167,13 @@ export default function RouteAgendaScreen() {
         setActionLoading(false);
       }
     } else {
-      const cleanUrl = proofUrl.trim();
-      if (!cleanUrl && !photoBase64) {
-        Alert.alert(
-          'Comprovante Obrigatório',
-          'Tire uma foto do comprovante de entrega ou informe o código de 6 dígitos do pedido.'
-        );
-        return;
-      }
-
       try {
         setActionLoading(true);
         await courierService.confirmDelivery(
           selectedDeliveryStop.order_id,
-          cleanUrl || undefined,
+          payload.proofUrl,
           undefined,
-          photoBase64 || undefined
+          payload.photoBase64
         );
         setProofModalVisible(false);
         Alert.alert(
@@ -322,21 +253,15 @@ export default function RouteAgendaScreen() {
             <Text style={styles.loadingText}>Carregando sua agenda sequenciada...</Text>
           </View>
         ) : !group ? (
-          <View style={[styles.emptyBox, SHADOWS.sm]} testID="route-agenda-empty">
-            <Ionicons name="map-outline" size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
-            <Text style={styles.emptyTitle}>Nenhuma Rota Ativa no Momento</Text>
-            <Text style={styles.emptyDesc}>
-              Você não possui nenhum lote econômico atribuído ou em andamento. Acesse a área de Lotes Econômicos ou o Radar Expresso para aceitar novas corridas.
-            </Text>
-            <TouchableOpacity
-              style={styles.primaryActionBtn}
-              onPress={() => router.push('/(courier)/economic-batches')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="albums-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.primaryActionBtnText}>Ver Lotes Disponíveis</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon="map-outline"
+            title="Nenhuma Rota Ativa no Momento"
+            description="Você não possui nenhum lote econômico atribuído ou em andamento. Acesse a área de Lotes Econômicos ou o Radar Expresso para aceitar novas corridas."
+            actionLabel="Ver Lotes Disponíveis"
+            actionIcon="albums-outline"
+            onAction={() => router.push('/(courier)/economic-batches')}
+            testID="route-agenda-empty"
+          />
         ) : (
           <View style={styles.contentWrap}>
             {/* Hero Card de Métricas do Lote */}
@@ -448,28 +373,18 @@ export default function RouteAgendaScreen() {
 
               {/* Botão Unificado para Navegar pelo GPS com TODAS as Paradas da Rota */}
               {group.stops && group.stops.length > 0 && group.status !== 'completed' && (
-                <TouchableOpacity
-                  style={[styles.fullRouteGpsBtn, SHADOWS.sm]}
+                <ExternalGpsButton
+                  title="Navegar pelo GPS (Rota Completa)"
+                  subtitle={(() => {
+                    const pendingCount = group.stops.filter((s) => s.status !== 'completed').length;
+                    return pendingCount === 0
+                      ? `Todas as ${group.stops.length} paradas unificadas no trajeto`
+                      : `Reúne ${pendingCount} parada${pendingCount > 1 ? 's pendentes' : ' pendente'} em uma única rota contínua`;
+                  })()}
                   onPress={handleNavigateFullRoute}
-                  activeOpacity={0.85}
+                  style={{ marginTop: 14 }}
                   testID="nav-full-route-gps-btn"
-                >
-                  <View style={styles.fullRouteGpsIconWrap}>
-                    <Ionicons name="navigate" size={18} color="#FFFFFF" />
-                  </View>
-                  <View style={styles.fullRouteGpsTextBox}>
-                    <Text style={styles.fullRouteGpsBtnTitle}>Navegar pelo GPS (Rota Completa)</Text>
-                    <Text style={styles.fullRouteGpsBtnSubtitle}>
-                      {(() => {
-                        const pendingCount = group.stops.filter((s) => s.status !== 'completed').length;
-                        return pendingCount === 0
-                          ? `Todas as ${group.stops.length} paradas unificadas no trajeto`
-                          : `Reúne ${pendingCount} parada${pendingCount > 1 ? 's pendentes' : ' pendente'} em uma única rota contínua`;
-                      })()}
-                    </Text>
-                  </View>
-                  <Ionicons name="open-outline" size={18} color="#1E40AF" />
-                </TouchableOpacity>
+                />
               )}
             </View>
 
@@ -480,15 +395,12 @@ export default function RouteAgendaScreen() {
                 <Text style={styles.sectionSubtitle}>{group.stops.length} pontos no trajeto</Text>
               </View>
               {group.stops && group.stops.length > 0 && (
-                <TouchableOpacity
-                  style={styles.headerGpsMiniBtn}
+                <ExternalGpsButton
+                  title="Navegar Todas"
+                  variant="compact"
                   onPress={handleNavigateFullRoute}
-                  activeOpacity={0.8}
                   testID="header-nav-gps-btn"
-                >
-                  <Ionicons name="navigate" size={13} color="#1E40AF" style={{ marginRight: 4 }} />
-                  <Text style={styles.headerGpsMiniBtnText}>Navegar Todas</Text>
-                </TouchableOpacity>
+                />
               )}
             </View>
 
@@ -632,169 +544,16 @@ export default function RouteAgendaScreen() {
         )}
       </ScrollView>
 
-      {/* Modal de Confirmação de Entrega com Comprovante */}
-      <Modal
+      {/* Modal de Confirmação de Entrega com Comprovante Reutilizável */}
+      <DeliveryProofModal
         visible={proofModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setProofModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, SHADOWS.lg]}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalIconWrap}>
-                <Ionicons name="checkmark-circle" size={24} color="#059669" />
-              </View>
-              <Text style={styles.modalTitle}>Confirmar Entrega</Text>
-              <TouchableOpacity
-                onPress={() => setProofModalVisible(false)}
-                style={styles.modalCloseBtn}
-              >
-                <Ionicons name="close" size={20} color={COLORS.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalDesc}>
-              Finalize o Pedido #{selectedDeliveryStop?.order_id} enviando o código de 6 dígitos do pedido ou uma foto de comprovante.
-            </Text>
-
-            {/* Seletor de Método de Validação */}
-            <View style={styles.methodTabsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.methodTabBtn,
-                  proofMethod === 'code' && styles.methodTabBtnActive,
-                ]}
-                onPress={() => setProofMethod('code')}
-                activeOpacity={0.8}
-                testID="proof-tab-code"
-              >
-                <Ionicons
-                  name="keypad-outline"
-                  size={15}
-                  color={proofMethod === 'code' ? '#FFFFFF' : COLORS.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.methodTabText,
-                    proofMethod === 'code' && styles.methodTabTextActive,
-                  ]}
-                >
-                  Código (6 dígitos)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.methodTabBtn,
-                  proofMethod === 'photo' && styles.methodTabBtnActive,
-                ]}
-                onPress={() => setProofMethod('photo')}
-                activeOpacity={0.8}
-                testID="proof-tab-photo"
-              >
-                <Ionicons
-                  name="camera-outline"
-                  size={16}
-                  color={proofMethod === 'photo' ? '#FFFFFF' : COLORS.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.methodTabText,
-                    proofMethod === 'photo' && styles.methodTabTextActive,
-                  ]}
-                >
-                  Foto de Comprovante
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {proofMethod === 'code' ? (
-              <View style={styles.proofSection}>
-                <Text style={styles.proofLabel}>Código de Confirmação (6 dígitos):</Text>
-                <TextInput
-                  style={styles.codeDigitInput}
-                  value={deliveryCode}
-                  onChangeText={(txt) => setDeliveryCode(txt.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  placeholderTextColor={COLORS.textMuted}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  testID="delivery-code-input"
-                />
-                <View style={styles.proofInfoRow}>
-                  <Ionicons name="lock-closed-outline" size={14} color="#059669" style={{ marginRight: 4 }} />
-                  <Text style={styles.proofInfoText}>
-                    Solicite o código de 6 dígitos gerado no pedido ao destinatário ou lojista.
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.proofSection}>
-                <Text style={styles.proofLabel}>Comprovante de Entrega (Foto / Link):</Text>
-                <View style={styles.cameraActionsRow}>
-                  <TouchableOpacity
-                    style={styles.cameraActionBtn}
-                    onPress={handleTakePhoto}
-                    activeOpacity={0.8}
-                    testID="take-photo-btn"
-                  >
-                    <Ionicons name="camera" size={16} color={COLORS.primary} />
-                    <Text style={styles.cameraActionBtnText}>Usar Câmera</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cameraActionBtn}
-                    onPress={handlePickPhoto}
-                    activeOpacity={0.8}
-                    testID="pick-photo-btn"
-                  >
-                    <Ionicons name="images-outline" size={16} color={COLORS.primary} />
-                    <Text style={styles.cameraActionBtnText}>Da Galeria</Text>
-                  </TouchableOpacity>
-                </View>
-                <TextInput
-                  style={styles.proofInput}
-                  value={proofUrl}
-                  onChangeText={setProofUrl}
-                  placeholder="Insira URL ou tire uma foto do recibo"
-                  placeholderTextColor={COLORS.textMuted}
-                  autoCapitalize="none"
-                  testID="proof-input"
-                />
-                <View style={styles.proofInfoRow}>
-                  <Ionicons name="shield-checkmark-outline" size={14} color="#059669" style={{ marginRight: 4 }} />
-                  <Text style={styles.proofInfoText}>
-                    A imagem do comprovante será exibida no extrato e rastreamento do lojista.
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setProofModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCancelBtnText}>Voltar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalSubmitBtn, actionLoading && { opacity: 0.7 }]}
-                onPress={handleConfirmDeliveryWithProof}
-                disabled={actionLoading}
-                activeOpacity={0.8}
-                testID="submit-delivery-proof-btn"
-              >
-                <Ionicons name="checkmark" size={18} color="#FFFFFF" style={{ marginRight: 4 }} />
-                <Text style={styles.modalSubmitBtnText}>
-                  {actionLoading ? 'Finalizando...' : 'Confirmar e Finalizar'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        orderId={selectedDeliveryStop?.order_id}
+        title="Confirmar Entrega"
+        submitLabel="Confirmar e Finalizar"
+        loading={actionLoading}
+        onClose={() => setProofModalVisible(false)}
+        onSubmit={handleConfirmDeliveryWithProof}
+      />
     </View>
   );
 }

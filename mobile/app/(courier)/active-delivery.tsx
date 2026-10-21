@@ -7,19 +7,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform,
-  StatusBar,
-  Modal,
-  TextInput,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { useAppInsets } from '../../src/hooks/useAppInsets';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { courierService, ExpressOrder } from '../../src/services/courierService';
 import { RouteMapPreview } from '../../src/components/RouteMapPreview';
 import { Button } from '../../src/components/Button';
+import {
+  DeliveryProofModal,
+  DeliveryProofPayload,
+} from '../../src/components/DeliveryProofModal';
+import { ExternalGpsButton } from '../../src/components/ExternalGpsButton';
 import { openMultiStopNavigation, openExternalNavigation } from '../../src/utils/navigationLauncher';
 
 export default function ActiveDeliveryScreen() {
@@ -35,10 +35,6 @@ export default function ActiveDeliveryScreen() {
 
   // Modal de Comprovante de Entrega Obrigatório (Código de 6 dígitos ou Foto)
   const [proofModalVisible, setProofModalVisible] = useState(false);
-  const [proofMethod, setProofMethod] = useState<'code' | 'photo'>('code');
-  const [deliveryCode, setDeliveryCode] = useState('');
-  const [proofUrl, setProofUrl] = useState('');
-  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadOrder() {
@@ -109,80 +105,21 @@ export default function ActiveDeliveryScreen() {
 
   // Abre o modal obrigatório de comprovante de entrega
   const handleOpenDeliveryProofModal = () => {
-    setProofMethod('code');
-    setDeliveryCode('');
-    setProofUrl('');
-    setPhotoBase64(null);
     setProofModalVisible(true);
   };
 
-  // Captura foto com a câmera do dispositivo
-  const handleTakePhoto = async () => {
-    try {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Permissão Necessária', 'Autorize o acesso à câmera para fotografar o comprovante.');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        quality: 0.6,
-        base64: true,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        setProofUrl(asset.uri);
-        if (asset.base64) {
-          setPhotoBase64(`data:image/jpeg;base64,${asset.base64}`);
-        }
-      }
-    } catch (err) {
-      Alert.alert('Câmera Indisponível', 'Não foi possível abrir a câmera neste dispositivo.');
-    }
-  };
-
-  // Seleciona foto da galeria
-  const handlePickPhoto = async () => {
-    try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Permissão Necessária', 'Autorize o acesso à galeria para anexar a foto do comprovante.');
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.6,
-        base64: true,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        setProofUrl(asset.uri);
-        if (asset.base64) {
-          setPhotoBase64(`data:image/jpeg;base64,${asset.base64}`);
-        }
-      }
-    } catch (err) {
-      Alert.alert('Galeria Indisponível', 'Não foi possível abrir a galeria neste dispositivo.');
-    }
-  };
-
   // Confirmação de entrega final ao cliente com validação de comprovante obrigatório
-  const handleConfirmDelivery = async () => {
+  const handleConfirmDelivery = async (payload: DeliveryProofPayload) => {
     if (!order) return;
 
-    if (proofMethod === 'code') {
-      const cleanCode = deliveryCode.trim();
-      if (!/^\d{6}$/.test(cleanCode)) {
-        Alert.alert(
-          'Código Obrigatório',
-          'Digite o código numérico de 6 dígitos fornecido pelo lojista/destinatário para validar a entrega.'
-        );
-        return;
-      }
-
+    if (payload.method === 'code') {
       try {
         setUpdatingStatus(true);
-        const response = await courierService.confirmDelivery(order.id, undefined, cleanCode);
+        const response = await courierService.confirmDelivery(
+          order.id,
+          undefined,
+          payload.deliveryCode
+        );
         setOrder(response.order);
         setProofModalVisible(false);
         Alert.alert(
@@ -204,22 +141,13 @@ export default function ActiveDeliveryScreen() {
         setUpdatingStatus(false);
       }
     } else {
-      const cleanUrl = proofUrl.trim();
-      if (!cleanUrl && !photoBase64) {
-        Alert.alert(
-          'Comprovante Obrigatório',
-          'Tire uma foto do comprovante de entrega ou informe o código de 6 dígitos do pedido.'
-        );
-        return;
-      }
-
       try {
         setUpdatingStatus(true);
         const response = await courierService.confirmDelivery(
           order.id,
-          cleanUrl || undefined,
+          payload.proofUrl,
           undefined,
-          photoBase64 || undefined
+          payload.photoBase64
         );
         setOrder(response.order);
         setProofModalVisible(false);
@@ -485,25 +413,17 @@ export default function ActiveDeliveryScreen() {
 
           {/* Botão para Navegar por GPS Externo */}
           {!isDelivered && (
-            <TouchableOpacity
-              style={styles.externalGpsBtn}
+            <ExternalGpsButton
+              title="Navegar pelo GPS Externo"
+              subtitle={
+                isAssigned
+                  ? 'Traçar rota completa (Coleta + Entrega) no Google Maps ou Waze'
+                  : 'Traçar rota até o endereço de entrega no Google Maps ou Waze'
+              }
               onPress={handleNavigateExternalGps}
-              activeOpacity={0.85}
+              style={{ marginTop: SPACING.xs }}
               testID="active-delivery-gps-btn"
-            >
-              <View style={styles.externalGpsIconWrap}>
-                <Ionicons name="navigate" size={18} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.externalGpsTitle}>Navegar pelo GPS Externo</Text>
-                <Text style={styles.externalGpsSubtitle}>
-                  {isAssigned
-                    ? 'Traçar rota completa (Coleta + Entrega) no Google Maps ou Waze'
-                    : 'Traçar rota até o endereço de entrega no Google Maps ou Waze'}
-                </Text>
-              </View>
-              <Ionicons name="open-outline" size={18} color="#1E40AF" />
-            </TouchableOpacity>
+            />
           )}
         </View>
 
@@ -590,169 +510,16 @@ export default function ActiveDeliveryScreen() {
         </View>
       </ScrollView>
 
-      {/* Modal Obrigatório de Comprovante de Entrega (Código de 6 Dígitos ou Foto) */}
-      <Modal
+      {/* Modal Obrigatório de Comprovante de Entrega Reutilizável */}
+      <DeliveryProofModal
         visible={proofModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setProofModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, SHADOWS.lg]}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalIconWrap}>
-                <Ionicons name="shield-checkmark" size={22} color="#059669" />
-              </View>
-              <Text style={styles.modalTitle}>Comprovante Obrigatório</Text>
-              <TouchableOpacity
-                onPress={() => setProofModalVisible(false)}
-                style={styles.modalCloseBtn}
-              >
-                <Ionicons name="close" size={20} color={COLORS.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalDesc}>
-              Para concluir o Pedido #{order.id}, valide com o código de 6 dígitos do pedido ou envie uma foto do comprovante.
-            </Text>
-
-            {/* Seletor de Método de Validação */}
-            <View style={styles.methodTabsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.methodTabBtn,
-                  proofMethod === 'code' && styles.methodTabBtnActive,
-                ]}
-                onPress={() => setProofMethod('code')}
-                activeOpacity={0.8}
-                testID="proof-tab-code"
-              >
-                <Ionicons
-                  name="keypad-outline"
-                  size={15}
-                  color={proofMethod === 'code' ? '#FFFFFF' : COLORS.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.methodTabText,
-                    proofMethod === 'code' && styles.methodTabTextActive,
-                  ]}
-                >
-                  Código (6 dígitos)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.methodTabBtn,
-                  proofMethod === 'photo' && styles.methodTabBtnActive,
-                ]}
-                onPress={() => setProofMethod('photo')}
-                activeOpacity={0.8}
-                testID="proof-tab-photo"
-              >
-                <Ionicons
-                  name="camera-outline"
-                  size={16}
-                  color={proofMethod === 'photo' ? '#FFFFFF' : COLORS.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.methodTabText,
-                    proofMethod === 'photo' && styles.methodTabTextActive,
-                  ]}
-                >
-                  Foto de Comprovante
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {proofMethod === 'code' ? (
-              <View style={styles.proofSection}>
-                <Text style={styles.proofLabel}>Código de Confirmação (6 dígitos):</Text>
-                <TextInput
-                  style={styles.codeDigitInput}
-                  value={deliveryCode}
-                  onChangeText={(txt) => setDeliveryCode(txt.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  placeholderTextColor={COLORS.textMuted}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  testID="delivery-code-input"
-                />
-                <View style={styles.proofInfoRow}>
-                  <Ionicons name="lock-closed-outline" size={14} color="#059669" style={{ marginRight: 4 }} />
-                  <Text style={styles.proofInfoText}>
-                    Solicite o código de 6 dígitos que aparece no aplicativo do lojista/destinatário.
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.proofSection}>
-                <Text style={styles.proofLabel}>Fotografar ou Anexar Comprovante:</Text>
-                <View style={styles.cameraActionsRow}>
-                  <TouchableOpacity
-                    style={styles.cameraActionBtn}
-                    onPress={handleTakePhoto}
-                    activeOpacity={0.8}
-                    testID="take-photo-btn"
-                  >
-                    <Ionicons name="camera" size={16} color={COLORS.primary} />
-                    <Text style={styles.cameraActionBtnText}>Usar Câmera</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cameraActionBtn}
-                    onPress={handlePickPhoto}
-                    activeOpacity={0.8}
-                    testID="pick-photo-btn"
-                  >
-                    <Ionicons name="images-outline" size={16} color={COLORS.primary} />
-                    <Text style={styles.cameraActionBtnText}>Da Galeria</Text>
-                  </TouchableOpacity>
-                </View>
-                <TextInput
-                  style={styles.proofInput}
-                  value={proofUrl}
-                  onChangeText={setProofUrl}
-                  placeholder="Ou cole o link / identificador da foto do comprovante"
-                  placeholderTextColor={COLORS.textMuted}
-                  autoCapitalize="none"
-                  testID="proof-input"
-                />
-                <View style={styles.proofInfoRow}>
-                  <Ionicons name="shield-checkmark-outline" size={14} color="#059669" style={{ marginRight: 4 }} />
-                  <Text style={styles.proofInfoText}>
-                    A foto ficará anexada ao pedido para conferência do lojista.
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setProofModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCancelBtnText}>Voltar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalSubmitBtn, updatingStatus && { opacity: 0.7 }]}
-                onPress={handleConfirmDelivery}
-                disabled={updatingStatus}
-                activeOpacity={0.8}
-                testID="submit-delivery-proof-btn"
-              >
-                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 4 }} />
-                <Text style={styles.modalSubmitBtnText}>
-                  {updatingStatus ? 'Validando...' : 'Validar e Concluir'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        orderId={order.id}
+        title="Comprovante Obrigatório"
+        submitLabel="Validar e Concluir"
+        loading={updatingStatus}
+        onClose={() => setProofModalVisible(false)}
+        onSubmit={handleConfirmDelivery}
+      />
     </View>
   );
 }

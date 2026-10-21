@@ -14,6 +14,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
+import { ExternalGpsButton } from '../../src/components/ExternalGpsButton';
+import { EmptyState } from '../../src/components/EmptyState';
 import { courierService } from '../../src/services/courierService';
 import { openMultiStopNavigation, NavigationStopPoint } from '../../src/utils/navigationLauncher';
 
@@ -201,13 +203,12 @@ export default function EconomicBatchesScreen() {
             <Text style={styles.loadingText}>Carregando seus lotes econômicos...</Text>
           </View>
         ) : deliveryGroups.length === 0 ? (
-          <View style={[styles.emptyBox, SHADOWS.sm]} testID="economic-batches-empty">
-            <Ionicons name="cash-outline" size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
-            <Text style={styles.emptyTitle}>Nenhum lote atribuído no momento</Text>
-            <Text style={styles.emptyDesc}>
-              Os pedidos econômicos pendentes são agrupados automaticamente pelo motor de batch todas as noites às 02:00.
-            </Text>
-          </View>
+          <EmptyState
+            icon="cash-outline"
+            title="Nenhum lote atribuído no momento"
+            description="Os pedidos econômicos pendentes são agrupados automaticamente pelo motor de batch todas as noites às 02:00."
+            testID="economic-batches-empty"
+          />
         ) : (
           <View style={styles.groupsList}>
             {deliveryGroups.map((group) => {
@@ -332,27 +333,13 @@ export default function EconomicBatchesScreen() {
                       </TouchableOpacity>
 
                       {/* Botão Unificado para Navegar no GPS com TODAS as Paradas da Rota */}
-                      <TouchableOpacity
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: '#EFF6FF',
-                          paddingVertical: 10,
-                          borderRadius: 8,
-                          marginBottom: 12,
-                          borderWidth: 1.5,
-                          borderColor: '#BFDBFE',
-                        }}
+                      <ExternalGpsButton
+                        title="Navegar Rota Completa no GPS"
+                        variant="secondary"
                         onPress={() => handleNavigateBatch(group)}
-                        activeOpacity={0.8}
+                        style={{ marginBottom: 12 }}
                         testID={`nav-batch-gps-btn-${group.id}`}
-                      >
-                        <Ionicons name="navigate-outline" size={16} color="#1E40AF" style={{ marginRight: 6 }} />
-                        <Text style={{ color: '#1E40AF', fontWeight: '700', fontSize: 13 }}>
-                          Navegar Rota Completa no GPS
-                        </Text>
-                      </TouchableOpacity>
+                      />
 
                       <Text style={styles.stopsHeaderTitle}>Itinerário de Paradas Sequenciadas:</Text>
 

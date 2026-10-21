@@ -315,6 +315,11 @@ Todos os componentes customizados da aplicação residem no diretório [`src/com
 | **`RoleSelector`** | [`RoleSelector.tsx`](src/components/RoleSelector.tsx) | Seletor de perfil (Lojista / Entregador) | Alternância de estado atômico com realce de borda e cores temáticas distintas para cada ator. |
 | **`MyMap`** | [`MyMap.tsx`](src/components/MyMap.tsx) | Mapa base em OpenStreetMap | Componente de mapa livre baseado no modelo do orientador (Prof. Andres), suporte a camadas de azulejos OSM, marcadores SVG dinâmicos e centróide em Guarapuava. |
 | **`RouteMapPreview`** | [`RouteMapPreview.tsx`](src/components/RouteMapPreview.tsx) | Visualizador de rotas e polylines | Renderização de rotas reais com OSRM, marcadores de coleta/entrega, raio circular de cobertura de radar em km e modo sem bordas para tela cheia. |
+| **`DeliveryProofModal`** | [`DeliveryProofModal.tsx`](src/components/DeliveryProofModal.tsx) | Modal obrigatório de comprovação de entrega | Abas para Código de 6 dígitos (`delivery_code`) ou Foto (`expo-image-picker` câmera/galeria), validação de dígitos e callback tipado `onSubmit`. |
+| **`DeliveryCodeBanner`** | [`DeliveryCodeBanner.tsx`](src/components/DeliveryCodeBanner.tsx) | Banner do código de segurança de 6 dígitos | Exibição destacada do `delivery_code` exclusivo gerado no pedido com dica contextual para o lojista e na timeline de rastreamento. |
+| **`ExternalGpsButton`** | [`ExternalGpsButton.tsx`](src/components/ExternalGpsButton.tsx) | Gatilho de transbordamento para GPS externo | Suporte a 3 variantes (`card`, `secondary`, `compact`) para abrir rotas completas ou paradas no Google Maps / Waze. |
+| **`OrderStatusBadge`** | [`OrderStatusBadge.tsx`](src/components/OrderStatusBadge.tsx) | Badges semânticos de status e modalidade | Componentes `OrderStatusBadge` e `OrderModalityBadge` centralizando cores e rótulos de status (`Pendente`, `Atribuído`, `Em Rota`, `Entregue`, `Cancelado`) e tipo (`Expressa` / `Econômica`). |
+| **`EmptyState`** | [`EmptyState.tsx`](src/components/EmptyState.tsx) | Card padronizado de lista vazia | Ícone customizável do `Ionicons`, título, descrição e botão de ação primária opcional (`actionLabel` + `onAction`). |
 
 ---
 

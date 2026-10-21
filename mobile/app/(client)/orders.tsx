@@ -15,8 +15,13 @@ import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Header } from '../../src/components/Header';
+import { DeliveryCodeBanner } from '../../src/components/DeliveryCodeBanner';
+import {
+  OrderStatusBadge,
+  OrderModalityBadge,
+} from '../../src/components/OrderStatusBadge';
+import { EmptyState } from '../../src/components/EmptyState';
 import { orderService, OrderItem, OrderTrackingResponse } from '../../src/services/orderService';
-import { courierService } from '../../src/services/courierService';
 
 export default function ClientOrdersScreen() {
   const router = useRouter();
@@ -65,25 +70,7 @@ export default function ClientOrdersScreen() {
     loadOrders(activeFilter);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return { label: 'Pendente', bg: '#FEF3C7', color: '#92400E' };
-      case 'assigned':
-        return { label: 'Atribuído', bg: '#DBEAFE', color: '#1E40AF' };
-      case 'picked_up':
-        return { label: 'Em Rota', bg: '#EDE9FE', color: '#5B21B6' };
-      case 'delivered':
-        return { label: 'Entregue', bg: '#D1FAE5', color: '#065F46' };
-      case 'canceled':
-        return { label: 'Cancelado', bg: '#FEE2E2', color: '#991B1B' };
-      default:
-        return { label: status, bg: '#F1F5F9', color: '#475569' };
-    }
-  };
-
   const renderOrderItem = ({ item }: { item: OrderItem }) => {
-    const statusInfo = getStatusBadge(item.status);
     const isEconomic = item.shipping_type === 'economic';
 
     return (
@@ -92,28 +79,10 @@ export default function ClientOrdersScreen() {
         <View style={styles.orderTopRow}>
           <View style={styles.idAndModality}>
             <Text style={styles.orderId}>Pedido #{item.id}</Text>
-            <View
-              style={[
-                styles.modalityBadge,
-                isEconomic ? styles.economicBadge : styles.expressBadge,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.modalityBadgeText,
-                  isEconomic ? styles.economicBadgeText : styles.expressBadgeText,
-                ]}
-              >
-                {isEconomic ? 'Econômica' : 'Expressa'}
-              </Text>
-            </View>
+            <OrderModalityBadge shippingType={item.shipping_type} gender="feminine" />
           </View>
 
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
-            <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>
-              {statusInfo.label}
-            </Text>
-          </View>
+          <OrderStatusBadge status={item.status} />
         </View>
 
         {/* Item Description */}
@@ -142,20 +111,11 @@ export default function ClientOrdersScreen() {
 
         {/* Código de 6 Dígitos Anexado ao Pedido para o Lojista (Gerado após aceite expresso ou geração do lote) */}
         {item.delivery_code && (
-          <View style={styles.deliveryCodeBanner} testID={`order-delivery-code-${item.id}`}>
-            <View style={styles.deliveryCodeLeft}>
-              <View style={styles.deliveryCodeHeaderRow}>
-                <Ionicons name="keypad" size={14} color="#1E40AF" />
-                <Text style={styles.deliveryCodeTitle}>CÓDIGO DE ENTREGA (6 DÍGITOS)</Text>
-              </View>
-              <Text style={styles.deliveryCodeHint}>
-                Informe este código na entrega para validação pelo condutor
-              </Text>
-            </View>
-            <View style={styles.deliveryCodePill}>
-              <Text style={styles.deliveryCodeValue}>{item.delivery_code}</Text>
-            </View>
-          </View>
+          <DeliveryCodeBanner
+            code={item.delivery_code}
+            hint="Informe este código na entrega para validação pelo condutor"
+            testID={`order-delivery-code-${item.id}`}
+          />
         )}
 
         {/* Addresses */}
@@ -256,17 +216,13 @@ export default function ClientOrdersScreen() {
         </View>
       ) : orders.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="receipt-outline" size={44} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
-          <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
-          <Text style={styles.emptySubtitle}>
-            Você ainda não possui pedidos com este filtro. Que tal criar um novo envio?
-          </Text>
-          <TouchableOpacity
-            style={[styles.newOrderBtn, SHADOWS.sm]}
-            onPress={() => router.push('/(client)/create-order')}
-          >
-            <Text style={styles.newOrderBtnText}>+ Criar Novo Pedido</Text>
-          </TouchableOpacity>
+          <EmptyState
+            icon="receipt-outline"
+            title="Nenhum pedido encontrado"
+            description="Você ainda não possui pedidos com este filtro. Que tal criar um novo envio?"
+            actionLabel="+ Criar Novo Pedido"
+            onAction={() => router.push('/(client)/create-order')}
+          />
         </View>
       ) : (
         <FlatList
@@ -383,20 +339,11 @@ export default function ClientOrdersScreen() {
 
                 {/* Código de Confirmação de 6 Dígitos do Pedido */}
                 {trackingData.delivery_code && (
-                  <View style={styles.deliveryCodeBanner} testID="tracking-delivery-code">
-                    <View style={styles.deliveryCodeLeft}>
-                      <View style={styles.deliveryCodeHeaderRow}>
-                        <Ionicons name="keypad" size={14} color="#1E40AF" />
-                        <Text style={styles.deliveryCodeTitle}>CÓDIGO DE ENTREGA (6 DÍGITOS)</Text>
-                      </View>
-                      <Text style={styles.deliveryCodeHint}>
-                        Código exclusivo gerado para validar o recebimento deste pedido
-                      </Text>
-                    </View>
-                    <View style={styles.deliveryCodePill}>
-                      <Text style={styles.deliveryCodeValue}>{trackingData.delivery_code}</Text>
-                    </View>
-                  </View>
+                  <DeliveryCodeBanner
+                    code={trackingData.delivery_code}
+                    hint="Código exclusivo gerado para validar o recebimento deste pedido"
+                    testID="tracking-delivery-code"
+                  />
                 )}
 
                 {/* Comprovante de Entrega se disponível */}

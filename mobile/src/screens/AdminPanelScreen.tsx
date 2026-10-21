@@ -18,6 +18,11 @@ import { COLORS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 import { Header } from '../components/Header';
 import { Button } from '../components/Button';
 import {
+  OrderStatusBadge,
+  OrderModalityBadge,
+} from '../components/OrderStatusBadge';
+import { EmptyState } from '../components/EmptyState';
+import {
   adminService,
   AdminUserItem,
   AdminUsersMetrics,
@@ -424,13 +429,12 @@ export function AdminPanelScreen() {
                 <Text style={styles.loadingText}>Carregando usuários cadastrados...</Text>
               </View>
             ) : users.length === 0 ? (
-              <View style={[styles.emptyBox, SHADOWS.sm]} testID="admin-users-empty">
-                <Ionicons name="people-outline" size={44} color={COLORS.textMuted} />
-                <Text style={styles.emptyTitle}>Nenhum usuário encontrado</Text>
-                <Text style={styles.emptyDesc}>
-                  Nenhum registro corresponde aos filtros ou busca informados.
-                </Text>
-              </View>
+              <EmptyState
+                icon="people-outline"
+                title="Nenhum usuário encontrado"
+                description="Nenhum registro corresponde aos filtros ou busca informados."
+                testID="admin-users-empty"
+              />
             ) : (
               <View style={styles.listContainer}>
                 {users.map((item) => {
@@ -694,22 +698,17 @@ export function AdminPanelScreen() {
                 <Text style={styles.loadingText}>Carregando todos os pedidos do app...</Text>
               </View>
             ) : orders.length === 0 ? (
-              <View style={[styles.emptyBox, SHADOWS.sm]} testID="admin-orders-empty">
-                <Ionicons name="receipt-outline" size={44} color={COLORS.textMuted} />
-                <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
-                <Text style={styles.emptyDesc}>
-                  Nenhum pedido atende aos filtros de busca selecionados.
-                </Text>
-              </View>
+              <EmptyState
+                icon="receipt-outline"
+                title="Nenhum pedido encontrado"
+                description="Nenhum pedido atende aos filtros de busca selecionados."
+                testID="admin-orders-empty"
+              />
             ) : (
               <View style={styles.listContainer}>
                 {orders.map((order) => {
                   const isExpress = order.shipping_type === 'express';
                   const isPending = order.status === 'pending';
-                  const isAssigned = order.status === 'assigned';
-                  const isPickedUp = order.status === 'picked_up';
-                  const isDelivered = order.status === 'delivered';
-                  const isCanceled = order.status === 'canceled';
 
                   const individualPrice = Number(order.individual_freight_price || 0);
                   const finalPrice =
@@ -729,58 +728,15 @@ export function AdminPanelScreen() {
                         <View style={styles.orderIdBadge}>
                           <Text style={styles.orderIdText}>#{order.id}</Text>
                         </View>
-                        <View
-                          style={[
-                            styles.typeBadge,
-                            isExpress ? styles.typeExpressBadge : styles.typeEconomicBadge,
-                          ]}
-                        >
-                          <Ionicons
-                            name={isExpress ? 'flash' : 'leaf'}
-                            size={11}
-                            color={isExpress ? COLORS.warning : COLORS.primary}
-                            style={{ marginRight: 3 }}
-                          />
-                          <Text
-                            style={[
-                              styles.typeBadgeText,
-                              isExpress ? styles.typeExpressText : styles.typeEconomicText,
-                            ]}
-                          >
-                            {isExpress ? 'Expresso' : 'Econômico'}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.statusBadge,
-                            isPending && styles.statusPendingBadge,
-                            (isAssigned || isPickedUp) && styles.statusAssignedBadge,
-                            isDelivered && styles.statusDeliveredBadge,
-                            isCanceled && styles.statusCanceledBadge,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.statusBadgeText,
-                              isPending && styles.statusPendingText,
-                              (isAssigned || isPickedUp) && styles.statusAssignedText,
-                              isDelivered && styles.statusDeliveredText,
-                              isCanceled && styles.statusCanceledText,
-                            ]}
-                          >
-                            {isPending
-                              ? 'Pendente'
-                              : isAssigned
-                              ? 'Atribuído'
-                              : isPickedUp
-                              ? 'Em Rota'
-                              : isDelivered
-                              ? 'Entregue'
-                              : isCanceled
-                              ? 'Cancelado'
-                              : order.status}
-                          </Text>
-                        </View>
+                        <OrderModalityBadge
+                          shippingType={order.shipping_type}
+                          gender="masculine"
+                          showIcon
+                        />
+                        <OrderStatusBadge
+                          status={order.status}
+                          style={{ marginLeft: 'auto' }}
+                        />
                       </View>
 
                       {/* Package Description & Freight Price */}
