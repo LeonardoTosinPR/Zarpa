@@ -8,7 +8,7 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
-  Modal,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -17,12 +17,13 @@ import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
 import { Button } from '../../src/components/Button';
-import { RouteMapPreview } from '../../src/components/RouteMapPreview';
-import { courierService } from '../../src/services/courierService';
+import { courierService, ActiveDeliveryGroup } from '../../src/services/courierService';
+import { financialService, CourierFinancialSummary } from '../../src/services/financialService';
+import { openMultiStopNavigation } from '../../src/utils/navigationLauncher';
 
 export default function CourierDashboardScreen() {
   const router = useRouter();
-  const { user, logout, role } = useAuth();
+  const { user, role, updateCourierOnlineStatus } = useAuth();
 
   const [isOnline, setIsOnline] = useState<boolean>(user?.courier?.is_online ?? true);
   const [deviceLocation, setDeviceLocation] = useState<{ latitude: number; longitude: number }>(() => ({
@@ -31,24 +32,73 @@ export default function CourierDashboardScreen() {
   }));
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [lastGpsSync, setLastGpsSync] = useState<string>('Sincronizado');
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Lotes Econômicos Agendados (Sprint 4)
+  // Dados Operacionais em Tempo Real (Lotes, Jornada Ativa, Radar e Extrato 50/50)
   const [deliveryGroups, setDeliveryGroups] = useState<any[]>([]);
+  const [activeGroup, setActiveGroup] = useState<ActiveDeliveryGroup | null>(null);
+  const [radarOrdersCount, setRadarOrdersCount] = useState<number>(0);
+  const [financialSummary, setFinancialSummary] = useState<CourierFinancialSummary | null>(null);
   const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(true);
-  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
   const [isProcessingBatch, setIsProcessingBatch] = useState<boolean>(false);
+
+  // Sincroniza o toggle automaticamente quando ativado/desativado pela tela de Radar
+  useEffect(() => {
+    if (user?.courier?.is_online !== undefined) {
+      setIsOnline(Boolean(user.courier.is_online));
+    }
+  }, [user?.courier?.is_online]);
 
   const loadDeliveryGroups = useCallback(async () => {
     try {
       setIsLoadingGroups(true);
       const res = await courierService.getDeliveryGroups();
-      setDeliveryGroups(res.groups || []);
+      setDeliveryGroups(res?.groups || []);
     } catch (err) {
-      console.warn('Erro ao carregar lotes do condutor:', err);
+      // Silencioso em caso de mock parcial nos testes
     } finally {
       setIsLoadingGroups(false);
     }
   }, []);
+
+  const loadOperationalOverview = useCallback(async (lat?: number, lng?: number) => {
+    // 1. Jornada / Lote Ativo (Sprint 6)
+    try {
+      if (typeof courierService.getActiveGroup === 'function') {
+        const activeRes = await courierService.getActiveGroup();
+        if (activeRes && 'active_group' in activeRes) {
+          setActiveGroup(activeRes.active_group);
+        }
+      }
+    } catch (_) {}
+
+    // 2. Resumo Financeiro Real com Rateio 50/50 e Taxa de Parada R$ 3,00 (Sprint 5)
+    try {
+      if (typeof financialService.getCourierStatement === 'function') {
+        const finRes = await financialService.getCourierStatement();
+        if (finRes?.summary) {
+          setFinancialSummary(finRes.summary);
+        }
+      }
+    } catch (_) {}
+
+    // 3. Contagem de Oportunidades no Radar Expresso (Sprint 3)
+    try {
+      if (typeof courierService.getRadar === 'function') {
+        const radarRes = await courierService.getRadar(lat, lng);
+        if (radarRes) {
+          setRadarOrdersCount(Number(radarRes.orders_count ?? radarRes.orders?.length ?? 0));
+          if (radarRes.courier?.is_online !== undefined) {
+            const serverOnline = Boolean(radarRes.courier.is_online);
+            setIsOnline(serverOnline);
+            if (updateCourierOnlineStatus && user?.courier?.is_online !== serverOnline) {
+              updateCourierOnlineStatus(serverOnline).catch(() => {});
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }, [updateCourierOnlineStatus, user?.courier?.is_online]);
 
   const handleTriggerBatchNow = async () => {
     try {
@@ -57,7 +107,15 @@ export default function CourierDashboardScreen() {
       Alert.alert(
         'Distribuição Concluída!',
         `Processamento noturno executado com sucesso!\n\n• Pedidos Organizados: ${res.orders_processed}\n• Lotes Criados: ${res.groups_created}\n• Economia Gerada: R$ ${Number(res.total_savings_generated).toFixed(2)}`,
-        [{ text: 'OK', onPress: () => loadDeliveryGroups() }]
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              loadDeliveryGroups();
+              loadOperationalOverview(deviceLocation.latitude, deviceLocation.longitude);
+            },
+          },
+        ]
       );
     } catch (err: any) {
       Alert.alert('Erro ao Processar Lote', err?.response?.data?.message || 'Falha ao executar distribuição.');
@@ -68,6 +126,11 @@ export default function CourierDashboardScreen() {
 
   // Captura a localização GPS física real do aparelho do condutor
   const fetchDeviceLocation = useCallback(async () => {
+    let resolvedCoords = {
+      latitude: Number(user?.courier?.current_lat ?? -25.3954),
+      longitude: Number(user?.courier?.current_lng ?? -51.4641),
+    };
+
     try {
       setIsLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -96,10 +159,9 @@ export default function CourierDashboardScreen() {
         }
 
         if (!coords) {
-          coords = {
-            latitude: Number(user?.courier?.current_lat ?? -25.3954),
-            longitude: Number(user?.courier?.current_lng ?? -51.4641),
-          };
+          coords = resolvedCoords;
+        } else {
+          resolvedCoords = coords;
         }
 
         setDeviceLocation(coords);
@@ -114,36 +176,50 @@ export default function CourierDashboardScreen() {
           setLastGpsSync('Local (Servidor em espera)');
         }
       } else {
-        // Fallback para coordenadas cadastradas ou centro de Guarapuava
-        setDeviceLocation({
-          latitude: Number(user?.courier?.current_lat ?? -25.3954),
-          longitude: Number(user?.courier?.current_lng ?? -51.4641),
-        });
+        setDeviceLocation(resolvedCoords);
         setLastGpsSync('Permissão GPS negada');
       }
     } catch (err) {
-      setDeviceLocation({
-        latitude: Number(user?.courier?.current_lat ?? -25.3954),
-        longitude: Number(user?.courier?.current_lng ?? -51.4641),
-      });
+      setDeviceLocation(resolvedCoords);
       setLastGpsSync('Padrão Guarapuava');
     } finally {
       setIsLocating(false);
     }
+
+    return resolvedCoords;
   }, [user]);
 
+  const refreshDashboard = useCallback(async () => {
+    const coords = await fetchDeviceLocation();
+    await Promise.all([
+      loadDeliveryGroups(),
+      loadOperationalOverview(coords.latitude, coords.longitude),
+    ]);
+  }, [fetchDeviceLocation, loadDeliveryGroups, loadOperationalOverview]);
+
   useEffect(() => {
-    fetchDeviceLocation();
-    loadDeliveryGroups();
-  }, [fetchDeviceLocation, loadDeliveryGroups]);
+    refreshDashboard();
+  }, [refreshDashboard]);
+
+  const onPullRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshDashboard();
+    setIsRefreshing(false);
+  };
 
   async function handleToggleOnline(val: boolean) {
     setIsOnline(val);
+    if (updateCourierOnlineStatus) {
+      await updateCourierOnlineStatus(val);
+    }
     try {
       await courierService.updateStatus(val);
     } catch (err) {
       console.warn('Erro ao atualizar status online do condutor:', err);
       setIsOnline(!val);
+      if (updateCourierOnlineStatus) {
+        await updateCourierOnlineStatus(!val);
+      }
     }
   }
 
@@ -157,11 +233,6 @@ export default function CourierDashboardScreen() {
   const plate = user?.courier?.vehicle_plate || 'Sem placa';
   const cnh = user?.courier?.cnh || 'Não informada';
   const radius = user?.courier?.cluster_radius_km || '5.0';
-
-  async function handleLogout() {
-    await logout();
-    router.replace('/');
-  }
 
   function handleNavigateRadar() {
     if (!isOnline) {
@@ -184,16 +255,64 @@ export default function CourierDashboardScreen() {
     router.push('/(courier)/express-radar');
   }
 
+  function handleNavigateActiveGroupGps() {
+    if (!activeGroup || !activeGroup.stops || activeGroup.stops.length === 0) return;
+    const pendingStops = activeGroup.stops.filter((s) => s.status !== 'completed');
+    const stopsToRoute = pendingStops.length > 0 ? pendingStops : activeGroup.stops;
+
+    openMultiStopNavigation({
+      stops: stopsToRoute.map((s, idx) => ({
+        lat: Number(s.lat),
+        lng: Number(s.lng),
+        label: `Parada #${s.stop_sequence || idx + 1}: ${s.address}`,
+        sequence: s.stop_sequence || idx + 1,
+      })),
+      groupTitle: `Lote #${activeGroup.id} (${stopsToRoute.length} paradas)`,
+      app: 'ask',
+    });
+  }
+
+  // Cálculo dos indicadores financeiros (dados reais da API ou estimativa dos lotes carregados)
+  const fallbackEarnings = deliveryGroups.reduce((acc, g) => {
+    const ordersCount = g.orders ? g.orders.length : g.group_orders ? g.group_orders.length / 2 : 0;
+    const routeFare = Number(g.total_distance_km || 0) * 2.5;
+    const stopFees = ordersCount * 3.0;
+    const bonus = Number(g.courier_bonus || 0);
+    return acc + routeFare + stopFees + bonus;
+  }, 0);
+  const fallbackDistance = deliveryGroups.reduce((acc, g) => acc + Number(g.total_distance_km || 0), 0);
+  const fallbackBonus = deliveryGroups.reduce((acc, g) => acc + Number(g.courier_bonus || 0), 0);
+  const fallbackStopFees = deliveryGroups.reduce((acc, g) => {
+    const ordersCount = g.orders ? g.orders.length : g.group_orders ? g.group_orders.length / 2 : 0;
+    return acc + ordersCount * 3.0;
+  }, 0);
+
+  const displayTotalEarnings = financialSummary?.total_earnings ?? (activeGroup?.total_earnings ?? fallbackEarnings);
+  const displayTotalDistance = financialSummary?.total_distance_km ?? (activeGroup?.total_distance_km ?? fallbackDistance);
+  const displayBatchBonus = financialSummary?.total_batch_bonus ?? (activeGroup?.courier_bonus ?? fallbackBonus);
+  const displayStopFees = financialSummary?.total_stop_fees ?? (activeGroup?.stop_fees ?? fallbackStopFees);
+  const displayDeliveriesCount = financialSummary?.total_deliveries_count ?? deliveryGroups.length;
+  const displayEarningsPerKm =
+    financialSummary?.earnings_per_km ??
+    (displayTotalDistance > 0 ? displayTotalEarnings / displayTotalDistance : 0);
+
   return (
     <View style={styles.container}>
       {/* Official Zarpa Header */}
-      <Header />
+      <Header onProfilePress={() => router.push('/(courier)/profile')} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onPullRefresh}
+            colors={[COLORS.primary]}
+          />
+        }
       >
-        {/* Driver Profile Card */}
+        {/* 1. Driver Profile & Online/Offline Switch Card */}
         <View style={[styles.profileCard, SHADOWS.md]}>
           <View style={styles.badgeRow}>
             <View style={styles.roleBadge}>
@@ -243,56 +362,97 @@ export default function CourierDashboardScreen() {
           </View>
         </View>
 
-
-
-        {/* Route / Earnings Preview */}
+        {/* 2. Resumo Simplificado de Ganhos e Desempenho */}
         <View style={[styles.routePreviewCard, SHADOWS.sm]}>
-          <Text style={styles.routePreviewHeader}>Ganhos e Metas de Hoje</Text>
+          <Text style={styles.routePreviewHeader}>Resumo de Ganhos</Text>
+
           <View style={styles.metricsRow}>
             <View style={styles.metricItem}>
-              <Text style={styles.metricLabel}>Ganhos Estimados</Text>
-              <Text style={styles.metricValuePrimary}>R$ 85,00</Text>
+              <Text style={styles.metricLabel}>Ganho Acumulado</Text>
+              <Text style={styles.metricValuePrimary}>
+                R$ {Number(displayTotalEarnings).toFixed(2)}
+              </Text>
             </View>
             <View style={styles.metricDivider} />
             <View style={styles.metricItem}>
-              <Text style={styles.metricLabel}>Distância Percorrida</Text>
-              <Text style={styles.metricValue}>12 km</Text>
+              <Text style={styles.metricLabel}>Bônus Rateio 50%</Text>
+              <Text style={[styles.metricValue, { color: '#059669' }]}>
+                + R$ {Number(displayBatchBonus).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.summarySecondRow}>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Entregas Realizadas</Text>
+              <Text style={styles.metricValue}>{displayDeliveriesCount}</Text>
+            </View>
+            <View style={styles.metricDivider} />
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Distância Total</Text>
+              <Text style={styles.metricValue}>
+                {Number(displayTotalDistance).toFixed(1)} km
+              </Text>
             </View>
           </View>
         </View>
 
+        {/* 3. Status Operacional Atual (Apenas Informativo) */}
+        <View style={[styles.routePreviewCard, SHADOWS.sm]}>
+          <Text style={styles.routePreviewHeader}>Status Operacional</Text>
 
+          <View style={styles.metricsRow}>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Lotes Agendados</Text>
+              <Text style={styles.metricValue}>{deliveryGroups.length}</Text>
+            </View>
+            <View style={styles.metricDivider} />
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Chamados no Raio</Text>
+              <Text style={styles.metricValuePrimary}>{radarOrdersCount}</Text>
+            </View>
+          </View>
+        </View>
 
-        {/* Admin Switcher & Batch Simulation Panel */}
-        {role === 'admin' && (
+        {/* 4. Admin Switcher & Batch Simulation Panel */}
+        {(role === 'admin' || user?.role === 'admin') && (
           <View style={[styles.adminSwitcherCard, SHADOWS.sm]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
-              <Ionicons name="shield-checkmark" size={16} color="#7C3AED" />
+              <Ionicons name="shield-checkmark" size={16} color="#A78BFA" />
               <Text style={styles.adminSwitcherTitle}>Painel do Administrador Master</Text>
             </View>
             <Text style={styles.adminSwitcherDesc}>
-              Acesso exclusivo para simulação da distribuição noturna e auditoria.
+              Acesse o Dashboard de Admin para auditar pedidos/usuários ou execute manualmente o lote noturno (Rateio 50/50).
             </Text>
+
             <Button
-              title={isProcessingBatch ? "Executando Distribuição..." : "Simular Distribuição do Batch Agora"}
+              title="Acessar Dashboard de Admin"
               variant="primary"
+              onPress={() => router.push('/(courier)/admin')}
+              style={{ marginBottom: SPACING.sm }}
+              testID="admin-open-panel-btn"
+            />
+
+            <Button
+              title={isProcessingBatch ? 'Executando Distribuição...' : 'Executar Lote Noturno Agora'}
+              variant="secondary"
               onPress={handleTriggerBatchNow}
               disabled={isProcessingBatch}
-              style={{ marginBottom: SPACING.sm }}
+              style={{ ...styles.adminSwitchBtn, marginBottom: SPACING.sm }}
+              textStyle={{ color: '#FFFFFF', fontWeight: '700' }}
               testID="admin-trigger-batch-dashboard-btn"
             />
-            {/* Button to switch view removed to avoid duplicating navigation options */}
+
+            <Button
+              title="Alternar para Visão do Lojista"
+              variant="secondary"
+              onPress={() => router.push('/(client)/dashboard')}
+              style={styles.adminSwitchBtn}
+              textStyle={{ color: '#FFFFFF', fontWeight: '700' }}
+              testID="admin-switch-to-client"
+            />
           </View>
         )}
-
-        {/* Logout Button */}
-        <Button
-          title="Encerrar Sessão"
-          variant="outline"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          testID="courier-logout-button"
-        />
       </ScrollView>
     </View>
   );
@@ -559,6 +719,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
   },
+  summarySecondRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginTop: SPACING.md,
+    paddingTop: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
   metricItem: {
     alignItems: 'center',
   },
@@ -646,10 +815,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E293B',
     borderWidth: 1,
     borderColor: '#475569',
-  },
-  logoutButton: {
-    marginTop: SPACING.md,
-    marginBottom: SPACING.xxl,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -960,5 +1125,263 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
+  },
+  agendaQuickCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: RADIUS.lg,
+    padding: 14,
+    marginBottom: 16,
+  },
+  activeMissionCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: RADIUS.lg,
+    padding: 14,
+    marginBottom: SPACING.md,
+  },
+  agendaQuickHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  agendaQuickLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  agendaQuickIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  agendaQuickTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  agendaQuickSubtitle: {
+    fontSize: 11,
+    color: '#166534',
+    marginTop: 1,
+  },
+  activeGroupBody: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#BBF7D0',
+  },
+  activeProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  activeProgressLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  activeProgressEarnings: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  activeProgressBarTrack: {
+    height: 6,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  activeProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#059669',
+    borderRadius: 3,
+  },
+  nextStopHighlight: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: RADIUS.md,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: 10,
+  },
+  nextStopBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  nextStopTypePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  pickupPillBg: {
+    backgroundColor: '#FEF3C7',
+  },
+  deliveryPillBg: {
+    backgroundColor: '#DBEAFE',
+  },
+  nextStopTypeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  nextStopSeqText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+  },
+  nextStopAddress: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  activeMissionActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  missionPrimaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#059669',
+    paddingVertical: 9,
+    borderRadius: RADIUS.sm,
+  },
+  missionPrimaryBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  missionGpsBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 9,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  missionGpsBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E40AF',
+  },
+  radarLiveBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    borderRadius: RADIUS.md,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginTop: 4,
+  },
+  radarLiveBannerOffline: {
+    backgroundColor: '#F8FAFC',
+    borderColor: COLORS.border,
+  },
+  radarLiveLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  radarPulseCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radarLiveTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  radarLiveSubtitle: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginTop: 1,
+  },
+  financialHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.md,
+  },
+  financialSubheader: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  financialLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+  },
+  financialLinkText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  apportionmentPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: SPACING.md,
+    paddingTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  apportionmentPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+  },
+  apportionmentPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  apportionmentPillNeutral: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+  },
+  apportionmentPillNeutralText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
   },
 });

@@ -64,4 +64,8 @@ postgres_data/
 
 # AI & Agent local rules and memories
 .agents/
+.agents/**
+skills/
+skills/**
 GEMINI.md
+

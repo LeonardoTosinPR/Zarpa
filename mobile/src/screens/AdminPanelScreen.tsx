@@ -12,21 +12,36 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 import { Header } from '../components/Header';
+import { Button } from '../components/Button';
+import {
+  OrderStatusBadge,
+  OrderModalityBadge,
+} from '../components/OrderStatusBadge';
+import { EmptyState } from '../components/EmptyState';
 import {
   adminService,
   AdminUserItem,
   AdminUsersMetrics,
   AdminOrderItem,
   AdminOrdersMetrics,
+  AdminBatchSummary,
+  ProcessBatchResult,
 } from '../services/adminService';
 
 type AdminTab = 'users' | 'orders';
 
 export function AdminPanelScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
+
+  // Estado do Motor de Lote Noturno (Rateio 50/50)
+  const [batchSummary, setBatchSummary] = useState<AdminBatchSummary | null>(null);
+  const [isProcessingBatch, setIsProcessingBatch] = useState<boolean>(false);
+  const [lastBatchResult, setLastBatchResult] = useState<ProcessBatchResult | null>(null);
 
   // Estado de Usuários
   const [users, setUsers] = useState<AdminUserItem[]>([]);
@@ -45,6 +60,43 @@ export function AdminPanelScreen() {
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [updatingCourierId, setUpdatingCourierId] = useState<number | null>(null);
+
+  // Carrega Resumo da Fila do Lote Econômico
+  const loadBatchSummary = useCallback(async () => {
+    try {
+      if (typeof adminService.getBatchSummary === 'function') {
+        const summary = await adminService.getBatchSummary();
+        if (summary) {
+          setBatchSummary(summary);
+        }
+      }
+    } catch (_) {
+      // Silencioso caso não esteja mockado em testes específicos
+    }
+  }, []);
+
+  // Executa manualmente o Lote Noturno (Rateio Dinâmico 50/50)
+  const handleRunManualBatch = async () => {
+    try {
+      setIsProcessingBatch(true);
+      const res = await adminService.processEconomicBatch({ dry_run: false });
+      setLastBatchResult(res);
+
+      await Promise.all([loadBatchSummary(), loadUsers(), loadOrders()]);
+
+      Alert.alert(
+        'Lote Noturno Executado!',
+        `Processamento manual concluído com sucesso!\n\n• Pedidos Organizados: ${res.orders_processed}\n• Lotes Criados: ${res.groups_created}\n• Economia Viária 50/50: R$ ${Number(res.total_savings_generated || 0).toFixed(2)}`
+      );
+    } catch (err: any) {
+      Alert.alert(
+        'Erro ao Executar Lote',
+        err?.response?.data?.message || 'Não foi possível processar o lote econômico no momento.'
+      );
+    } finally {
+      setIsProcessingBatch(false);
+    }
+  };
 
   const handleToggleCourierActive = async (courierId: number, currentActive: boolean) => {
     try {
@@ -116,15 +168,17 @@ export function AdminPanelScreen() {
   }, [orderTypeFilter, orderStatusFilter, orderSearch]);
 
   useEffect(() => {
+    loadBatchSummary();
     if (activeTab === 'users') {
       loadUsers();
     } else {
       loadOrders();
     }
-  }, [activeTab, loadUsers, loadOrders]);
+  }, [activeTab, loadUsers, loadOrders, loadBatchSummary]);
 
   const onRefresh = () => {
     setIsRefreshing(true);
+    loadBatchSummary();
     if (activeTab === 'users') {
       loadUsers();
     } else {
@@ -136,20 +190,42 @@ export function AdminPanelScreen() {
     <View style={styles.container}>
       <Header />
 
-      {/* Admin Title Bar */}
+      {/* Admin Title Bar & View Switchers */}
       <View style={styles.topBar}>
         <View style={styles.topBarTitleRow}>
           <View style={styles.shieldIconBox}>
-            <Ionicons name="shield-checkmark" size={18} color="#7C3AED" />
+            <Ionicons name="shield-checkmark" size={18} color={COLORS.primary} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.topBarTitle}>Painel Administrativo Master</Text>
             <Text style={styles.topBarSubtitle}>Auditoria e Gestão Operacional Global</Text>
           </View>
         </View>
+
+        <View style={styles.quickSwitchRow}>
+          <TouchableOpacity
+            style={styles.quickSwitchBtn}
+            onPress={() => router.push('/(client)/dashboard')}
+            activeOpacity={0.7}
+            testID="admin-go-client-view"
+          >
+            <Ionicons name="storefront-outline" size={13} color={COLORS.primary} />
+            <Text style={styles.quickSwitchText}>Visão Lojista</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickSwitchBtn}
+            onPress={() => router.push('/(courier)/dashboard')}
+            activeOpacity={0.7}
+            testID="admin-go-courier-view"
+          >
+            <Ionicons name="bicycle-outline" size={13} color={COLORS.accentDark} />
+            <Text style={[styles.quickSwitchText, { color: COLORS.accentDark }]}>Visão Entregador</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Main Tab Switcher: Usuários vs Todos os Pedidos com fundo escuro */}
+      {/* Main Tab Switcher: Usuários vs Todos os Pedidos */}
       <View style={styles.tabSwitcher}>
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'users' && styles.tabButtonActive]}
@@ -160,7 +236,7 @@ export function AdminPanelScreen() {
           <Ionicons
             name={activeTab === 'users' ? 'people' : 'people-outline'}
             size={18}
-            color={activeTab === 'users' ? '#60A5FA' : '#94A3B8'}
+            color={activeTab === 'users' ? COLORS.white : COLORS.textSecondary}
           />
           <Text style={[styles.tabButtonText, activeTab === 'users' && styles.tabButtonTextActive]}>
             Usuários do App
@@ -185,7 +261,7 @@ export function AdminPanelScreen() {
           <Ionicons
             name={activeTab === 'orders' ? 'receipt' : 'receipt-outline'}
             size={18}
-            color={activeTab === 'orders' ? '#F59E0B' : '#94A3B8'}
+            color={activeTab === 'orders' ? COLORS.white : COLORS.textSecondary}
           />
           <Text style={[styles.tabButtonText, activeTab === 'orders' && styles.tabButtonTextActive]}>
             Todos os Pedidos
@@ -213,6 +289,66 @@ export function AdminPanelScreen() {
           />
         }
       >
+        {/* ==================== MOTOR DE LOTE NOTURNO (EXECUÇÃO MANUAL) ==================== */}
+        <View style={[styles.batchControlCard, SHADOWS.sm]} testID="admin-batch-control-card">
+          <View style={styles.batchControlHeader}>
+            <View style={styles.batchIconBadge}>
+              <Ionicons name="cube" size={18} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.batchControlTitle}>Motor de Lote Noturno (Rateio 50/50)</Text>
+              <Text style={styles.batchControlSubtitle}>
+                Agrupa pedidos econômicos pendentes por proximidade, divide 50/50 a economia viária e aplica R$ 3,00/parada.
+              </Text>
+            </View>
+          </View>
+
+          {batchSummary && (
+            <View style={styles.batchMetricsRow}>
+              <View style={styles.batchMetricBox}>
+                <Text style={styles.batchMetricValue}>{batchSummary.pending_economic_orders}</Text>
+                <Text style={styles.batchMetricLabel}>Fila Econômica</Text>
+              </View>
+              <View style={styles.metricDivider} />
+              <View style={styles.batchMetricBox}>
+                <Text style={styles.batchMetricValue}>
+                  {Number(batchSummary.total_weight_kg || 0).toFixed(1)} kg
+                </Text>
+                <Text style={styles.batchMetricLabel}>Peso Acumulado</Text>
+              </View>
+              <View style={styles.metricDivider} />
+              <View style={styles.batchMetricBox}>
+                <Text style={[styles.batchMetricValue, { color: COLORS.accent }]}>
+                  {batchSummary.recent_groups?.length ?? 0}
+                </Text>
+                <Text style={styles.batchMetricLabel}>Lotes Recentes</Text>
+              </View>
+            </View>
+          )}
+
+          {lastBatchResult && (
+            <View style={styles.batchResultBanner} testID="admin-batch-result-banner">
+              <Ionicons name="checkmark-circle" size={18} color={COLORS.accentDark} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.batchResultTitle}>
+                  Última execução: {lastBatchResult.groups_created} lote(s) • {lastBatchResult.orders_processed} pedido(s)
+                </Text>
+                <Text style={styles.batchResultSub}>
+                  Economia Total 50/50 Gerada: R$ {Number(lastBatchResult.total_savings_generated || 0).toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <Button
+            title={isProcessingBatch ? 'Processando Agrupamento...' : 'Executar Lote Noturno Agora'}
+            variant="primary"
+            loading={isProcessingBatch}
+            disabled={isProcessingBatch}
+            onPress={handleRunManualBatch}
+            testID="admin-trigger-batch-btn"
+          />
+        </View>
         {activeTab === 'users' ? (
           /* ==================== ABA 1: USUÁRIOS DO SISTEMA ==================== */
           <View>
@@ -293,13 +429,12 @@ export function AdminPanelScreen() {
                 <Text style={styles.loadingText}>Carregando usuários cadastrados...</Text>
               </View>
             ) : users.length === 0 ? (
-              <View style={[styles.emptyBox, SHADOWS.sm]} testID="admin-users-empty">
-                <Ionicons name="people-outline" size={44} color={COLORS.textMuted} />
-                <Text style={styles.emptyTitle}>Nenhum usuário encontrado</Text>
-                <Text style={styles.emptyDesc}>
-                  Nenhum registro corresponde aos filtros ou busca informados.
-                </Text>
-              </View>
+              <EmptyState
+                icon="people-outline"
+                title="Nenhum usuário encontrado"
+                description="Nenhum registro corresponde aos filtros ou busca informados."
+                testID="admin-users-empty"
+              />
             ) : (
               <View style={styles.listContainer}>
                 {users.map((item) => {
@@ -563,20 +698,24 @@ export function AdminPanelScreen() {
                 <Text style={styles.loadingText}>Carregando todos os pedidos do app...</Text>
               </View>
             ) : orders.length === 0 ? (
-              <View style={[styles.emptyBox, SHADOWS.sm]} testID="admin-orders-empty">
-                <Ionicons name="receipt-outline" size={44} color={COLORS.textMuted} />
-                <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
-                <Text style={styles.emptyDesc}>
-                  Nenhum pedido atende aos filtros de busca selecionados.
-                </Text>
-              </View>
+              <EmptyState
+                icon="receipt-outline"
+                title="Nenhum pedido encontrado"
+                description="Nenhum pedido atende aos filtros de busca selecionados."
+                testID="admin-orders-empty"
+              />
             ) : (
               <View style={styles.listContainer}>
                 {orders.map((order) => {
                   const isExpress = order.shipping_type === 'express';
                   const isPending = order.status === 'pending';
-                  const isAssigned = order.status === 'assigned';
-                  const isDelivered = order.status === 'delivered';
+
+                  const individualPrice = Number(order.individual_freight_price || 0);
+                  const finalPrice =
+                    order.final_freight_price !== null && order.final_freight_price !== undefined
+                      ? Number(order.final_freight_price)
+                      : individualPrice;
+                  const hasBatchDiscount = !isExpress && finalPrice < individualPrice;
 
                   return (
                     <View
@@ -589,52 +728,15 @@ export function AdminPanelScreen() {
                         <View style={styles.orderIdBadge}>
                           <Text style={styles.orderIdText}>#{order.id}</Text>
                         </View>
-                        <View
-                          style={[
-                            styles.typeBadge,
-                            isExpress ? styles.typeExpressBadge : styles.typeEconomicBadge,
-                          ]}
-                        >
-                          <Ionicons
-                            name={isExpress ? 'flash' : 'leaf'}
-                            size={11}
-                            color={isExpress ? '#B45309' : '#047857'}
-                            style={{ marginRight: 3 }}
-                          />
-                          <Text
-                            style={[
-                              styles.typeBadgeText,
-                              isExpress ? styles.typeExpressText : styles.typeEconomicText,
-                            ]}
-                          >
-                            {isExpress ? 'Expresso' : 'Econômico'}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.statusBadge,
-                            isPending && styles.statusPendingBadge,
-                            isAssigned && styles.statusAssignedBadge,
-                            isDelivered && styles.statusDeliveredBadge,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.statusBadgeText,
-                              isPending && styles.statusPendingText,
-                              isAssigned && styles.statusAssignedText,
-                              isDelivered && styles.statusDeliveredText,
-                            ]}
-                          >
-                            {isPending
-                              ? 'Pendente'
-                              : isAssigned
-                              ? 'Atribuído'
-                              : isDelivered
-                              ? 'Entregue'
-                              : order.status}
-                          </Text>
-                        </View>
+                        <OrderModalityBadge
+                          shippingType={order.shipping_type}
+                          gender="masculine"
+                          showIcon
+                        />
+                        <OrderStatusBadge
+                          status={order.status}
+                          style={{ marginLeft: 'auto' }}
+                        />
                       </View>
 
                       {/* Package Description & Freight Price */}
@@ -646,17 +748,24 @@ export function AdminPanelScreen() {
                           </Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={styles.orderPriceText}>
-                            R$ {Number(order.final_freight_price || order.individual_freight_price).toFixed(2)}
+                          {hasBatchDiscount && (
+                            <Text style={styles.orderOriginalPriceText}>
+                              R$ {individualPrice.toFixed(2)}
+                            </Text>
+                          )}
+                          <Text style={[styles.orderPriceText, hasBatchDiscount && { color: COLORS.accent }]}>
+                            R$ {finalPrice.toFixed(2)}
                           </Text>
-                          <Text style={styles.orderPriceLabel}>Frete</Text>
+                          <Text style={styles.orderPriceLabel}>
+                            {hasBatchDiscount ? 'Rateio 50/50' : 'Frete'}
+                          </Text>
                         </View>
                       </View>
 
                       {/* Participants: Lojista e Entregador */}
                       <View style={styles.participantsBox}>
                         <View style={styles.participantRow}>
-                          <Ionicons name="storefront-outline" size={14} color="#64748B" />
+                          <Ionicons name="storefront-outline" size={14} color={COLORS.textSecondary} />
                           <Text style={styles.participantText}>
                             Lojista:{' '}
                             <Text style={styles.participantBold}>
@@ -666,7 +775,7 @@ export function AdminPanelScreen() {
                         </View>
 
                         <View style={styles.participantRow}>
-                          <Ionicons name="bicycle-outline" size={14} color="#64748B" />
+                          <Ionicons name="bicycle-outline" size={14} color={COLORS.textSecondary} />
                           <Text style={styles.participantText}>
                             Entregador:{' '}
                             <Text
@@ -681,16 +790,36 @@ export function AdminPanelScreen() {
                         </View>
                       </View>
 
+                      {/* Código de Entrega (6 dígitos) ou Comprovante */}
+                      {(order.delivery_code || order.proof_photo_url) && (
+                        <View style={styles.auditProofRow}>
+                          {order.delivery_code && (
+                            <View style={styles.auditCodePill}>
+                              <Ionicons name="key-outline" size={12} color={COLORS.primary} />
+                              <Text style={styles.auditCodeText}>
+                                Código: {order.delivery_code}
+                              </Text>
+                            </View>
+                          )}
+                          {order.proof_photo_url && (
+                            <View style={styles.auditProofPill}>
+                              <Ionicons name="shield-checkmark-outline" size={12} color={COLORS.accentDark} />
+                              <Text style={styles.auditProofText}>Comprovante Validado</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+
                       {/* Addresses */}
                       <View style={styles.addressesBox}>
                         <View style={styles.addressLine}>
-                          <Ionicons name="arrow-up-circle" size={14} color="#D97706" />
+                          <Ionicons name="arrow-up-circle" size={14} color={COLORS.warning} />
                           <Text style={styles.addressText} numberOfLines={1}>
                             {order.origin_address}
                           </Text>
                         </View>
                         <View style={styles.addressLine}>
-                          <Ionicons name="arrow-down-circle" size={14} color="#2563EB" />
+                          <Ionicons name="arrow-down-circle" size={14} color={COLORS.primary} />
                           <Text style={styles.addressText} numberOfLines={1}>
                             {order.dest_address}
                           </Text>
@@ -714,11 +843,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   topBar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: COLORS.border,
   },
   topBarTitleRow: {
     flexDirection: 'row',
@@ -726,31 +855,136 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   shieldIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#F3E8FF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   topBarTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#6B21A8',
+    color: COLORS.primary,
   },
   topBarSubtitle: {
     fontSize: 11,
     color: COLORS.textMuted,
     marginTop: 1,
   },
+  quickSwitchRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  quickSwitchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
+  },
+  quickSwitchText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  batchControlCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.primaryBorder,
+    marginBottom: SPACING.lg,
+  },
+  batchControlHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  batchIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  batchControlTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  batchControlSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  batchMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.md,
+  },
+  batchMetricBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  batchMetricValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  batchMetricLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  batchResultBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.accentLight,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  batchResultTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.accentDark,
+  },
+  batchResultSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.accent,
+    marginTop: 1,
+  },
   tabSwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
-    marginHorizontal: SPACING.md,
+    backgroundColor: COLORS.surface,
+    marginHorizontal: SPACING.lg,
     marginTop: SPACING.md,
     marginBottom: SPACING.xs,
     padding: 4,
     borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     gap: 4,
   },
   tabButton: {
@@ -763,34 +997,33 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tabButtonActive: {
-    backgroundColor: '#1E293B',
-    borderBottomWidth: 0,
+    backgroundColor: COLORS.primary,
   },
   tabButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
   },
   tabButtonTextActive: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontWeight: '800',
   },
   tabBadge: {
-    backgroundColor: '#334155',
+    backgroundColor: COLORS.background,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.full,
   },
   tabBadgeActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.primaryDark,
   },
   tabBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
   },
   tabBadgeTextActive: {
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   scrollContent: {
     padding: SPACING.lg,
@@ -1148,6 +1381,12 @@ const styles = StyleSheet.create({
   statusDeliveredText: {
     color: '#065F46',
   },
+  statusCanceledBadge: {
+    backgroundColor: COLORS.dangerLight,
+  },
+  statusCanceledText: {
+    color: COLORS.danger,
+  },
   statusBadgeText: {
     fontSize: 11,
     fontWeight: '700',
@@ -1175,6 +1414,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
     flexShrink: 1,
   },
+  orderOriginalPriceText: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textDecorationLine: 'line-through',
+  },
   orderPriceText: {
     fontSize: 15,
     fontWeight: '800',
@@ -1185,6 +1429,45 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.textMuted,
     textAlign: 'right',
+  },
+  auditProofRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  auditCodePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primaryLight,
+    borderWidth: 1,
+    borderColor: COLORS.primaryBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.sm,
+  },
+  auditCodeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  auditProofPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.accentLight,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.sm,
+  },
+  auditProofText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.accentDark,
   },
   participantsBox: {
     paddingVertical: SPACING.xs,

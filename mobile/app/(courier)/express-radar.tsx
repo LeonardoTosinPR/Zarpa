@@ -10,8 +10,10 @@ import {
   RefreshControl,
   Animated,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAppInsets } from '../../src/hooks/useAppInsets';
 import * as Location from 'expo-location';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
@@ -204,11 +206,19 @@ function RadarOrderCard({
 
 export default function ExpressRadarScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const insets = useAppInsets();
+  const { user, updateCourierOnlineStatus } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(user?.courier?.is_online ?? true);
   const [activatingOnline, setActivatingOnline] = useState(false);
+
+  // Mantém o status local sincronizado caso o toggle seja alterado na tela de Início
+  useEffect(() => {
+    if (user?.courier?.is_online !== undefined) {
+      setIsOnline(Boolean(user.courier.is_online));
+    }
+  }, [user?.courier?.is_online]);
   const [radarData, setRadarData] = useState<RadarResponse | null>(null);
   const [orders, setOrders] = useState<ExpressOrder[]>([]);
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
@@ -289,7 +299,11 @@ export default function ExpressRadarScreen() {
       const data = await courierService.getRadar(lat, lng);
       setRadarData(data);
       if (data?.courier) {
-        setIsOnline(Boolean(data.courier.is_online));
+        const serverOnline = Boolean(data.courier.is_online);
+        setIsOnline(serverOnline);
+        if (updateCourierOnlineStatus && user?.courier?.is_online !== serverOnline) {
+          await updateCourierOnlineStatus(serverOnline);
+        }
       }
 
       // Filtra chamados em resfriamento (cooldown de 30s) que expiraram sem recusa explícita
@@ -303,6 +317,9 @@ export default function ExpressRadarScreen() {
     } catch (error: any) {
       if (error.response?.status === 403) {
         setIsOnline(false);
+        if (updateCourierOnlineStatus) {
+          await updateCourierOnlineStatus(false);
+        }
         const errorMsg = error.response?.data?.message || 'Acesso não autorizado. Perfil de entregador exigido.';
         Alert.alert('Radar Indisponível', errorMsg, [
           { text: 'Voltar', onPress: () => router.back() },
@@ -314,7 +331,7 @@ export default function ExpressRadarScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [getDeviceCoordinates, user]);
+  }, [getDeviceCoordinates, user, updateCourierOnlineStatus]);
 
   useEffect(() => {
     if (user && user.role !== 'courier' && user.role !== 'admin') {
@@ -345,6 +362,9 @@ export default function ExpressRadarScreen() {
       setActivatingOnline(true);
       await courierService.updateStatus(true);
       setIsOnline(true);
+      if (updateCourierOnlineStatus) {
+        await updateCourierOnlineStatus(true);
+      }
       await fetchRadar(true);
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível ativar sua disponibilidade no radar.');
@@ -436,8 +456,8 @@ export default function ExpressRadarScreen() {
   if (!isOnline) {
     return (
       <View style={styles.container}>
-        {/* Top Navigation Bar */}
-        <View style={styles.navbar}>
+        {/* Top Navigation Bar com safe area */}
+        <View style={[styles.navbar, { paddingTop: insets.top + SPACING.xs }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
@@ -525,8 +545,8 @@ export default function ExpressRadarScreen() {
         />
       </View>
 
-      {/* 2. BARRA SUPERIOR FLUTUANTE ELEGANTE */}
-      <View style={[styles.floatingHeader, SHADOWS.md]}>
+      {/* 2. BARRA SUPERIOR FLUTUANTE ELEGANTE COM SAFE AREA */}
+      <View style={[styles.floatingHeader, { top: insets.top + SPACING.sm }, SHADOWS.md]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.floatingHeaderBtn}
@@ -570,8 +590,8 @@ export default function ExpressRadarScreen() {
         </View>
       </View>
 
-      {/* 3. CARD POPUP FLUTUANTE NA PARTE INFERIOR SOBREPOSTO AO MAPA */}
-      <View style={styles.bottomPopupContainer}>
+      {/* 3. CARD POPUP FLUTUANTE NA PARTE INFERIOR SOBREPOSTO AO MAPA COM SAFE AREA */}
+      <View style={[styles.bottomPopupContainer, { bottom: Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 0, SPACING.md) }]}>
         {loading && orders.length === 0 ? (
           <View style={[styles.statusPopupCard, SHADOWS.md]}>
             <ActivityIndicator size="small" color={COLORS.primary} />
@@ -653,7 +673,6 @@ const styles = StyleSheet.create({
   },
   floatingHeader: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 52 : 24,
     left: SPACING.md,
     right: SPACING.md,
     zIndex: 30,
@@ -698,7 +717,6 @@ const styles = StyleSheet.create({
   },
   bottomPopupContainer: {
     position: 'absolute',
-    bottom: SPACING.md,
     left: SPACING.md,
     right: SPACING.md,
     zIndex: 40,

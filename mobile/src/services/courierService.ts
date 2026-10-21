@@ -20,6 +20,7 @@ export interface ExpressOrder {
   dest_lat: number;
   dest_lng: number;
   pickup_distance_km?: number;
+  proof_photo_url?: string | null;
   client?: {
     id: number;
     business_name: string;
@@ -168,11 +169,80 @@ export const courierService = {
   },
 
   /**
-   * Confirma a entrega do pacote ao destinatário final.
+   * Confirma a entrega do pacote ao destinatário final exigindo obrigatoriamente comprovante (foto ou código de 6 dígitos).
    */
-  async confirmDelivery(orderId: number): Promise<{ message: string; order: ExpressOrder }> {
+  async confirmDelivery(
+    orderId: number,
+    proofPhotoUrl?: string,
+    deliveryCode?: string,
+    photoBase64?: string
+  ): Promise<{ message: string; order: ExpressOrder }> {
+    const payload: Record<string, string> = {};
+    if (proofPhotoUrl) payload.proof_photo_url = proofPhotoUrl;
+    if (deliveryCode) payload.delivery_code = deliveryCode;
+    if (photoBase64) payload.photo_base64 = photoBase64;
     const response = await api.post<{ message: string; order: ExpressOrder }>(
-      `/orders/${orderId}/deliver`
+      `/orders/${orderId}/deliver`,
+      payload
+    );
+    return response.data;
+  },
+
+  /**
+   * Atualiza o status do pedido com validação de transição estrita.
+   */
+  async updateOrderStatus(
+    orderId: number,
+    status: 'picked_up' | 'delivered' | 'canceled',
+    proofPhotoUrl?: string
+  ): Promise<{ success: boolean; message: string; order: ExpressOrder }> {
+    const response = await api.patch<{ success: boolean; message: string; order: ExpressOrder }>(
+      `/orders/${orderId}/status`,
+      { status, proof_photo_url: proofPhotoUrl }
+    );
+    return response.data;
+  },
+
+  /**
+   * Envia foto ou URL de comprovante de entrega para o pedido.
+   */
+  async uploadProof(
+    orderId: number,
+    data: { photo_base64?: string; proof_url?: string }
+  ): Promise<{ success: boolean; message: string; proof_photo_url: string; order: ExpressOrder }> {
+    const response = await api.post<{ success: boolean; message: string; proof_photo_url: string; order: ExpressOrder }>(
+      `/orders/${orderId}/proof`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Consulta o lote econômico ativo para o condutor autenticado.
+   */
+  async getActiveGroup(): Promise<{ active_group: ActiveDeliveryGroup | null; message?: string }> {
+    const response = await api.get<{ active_group: ActiveDeliveryGroup | null; message?: string }>(
+      '/courier/active-group'
+    );
+    return response.data;
+  },
+
+  /**
+   * Inicia a jornada de entregas do lote econômico.
+   */
+  async startDeliveryGroup(id: number): Promise<{ success: boolean; message: string; group: ActiveDeliveryGroup }> {
+    const response = await api.post<{ success: boolean; message: string; group: ActiveDeliveryGroup }>(
+      `/courier/delivery-groups/${id}/start`
+    );
+    return response.data;
+  },
+
+  /**
+   * Conclui a jornada do lote econômico após todas as entregas realizadas.
+   */
+  async completeDeliveryGroup(id: number): Promise<{ success: boolean; message: string; group: ActiveDeliveryGroup }> {
+    const response = await api.post<{ success: boolean; message: string; group: ActiveDeliveryGroup }>(
+      `/courier/delivery-groups/${id}/complete`
     );
     return response.data;
   },
@@ -206,7 +276,7 @@ export const courierService = {
   /**
    * Obtém detalhes completos de um lote econômico com a lista de paradas sequenciadas.
    */
-  async getDeliveryGroupDetail(id: number): Promise<any> {
+  async getDeliveryGroupDetail(id: number): Promise<ActiveDeliveryGroup> {
     const response = await api.get(`/courier/delivery-groups/${id}`);
     return response.data;
   },
@@ -223,5 +293,48 @@ export const courierService = {
     return response.data;
   },
 };
+
+export interface SequencedStop {
+  id: number;
+  stop_sequence: number;
+  stop_type: 'pickup' | 'delivery';
+  status: 'pending' | 'completed';
+  completed_at?: string | null;
+  order_id: number;
+  order_status?: string;
+  package_description?: string;
+  package_weight_kg?: number;
+  client_name?: string;
+  client_phone?: string;
+  address: string;
+  lat: number;
+  lng: number;
+  isolated_distance_km: number;
+  shared_distance_km: number;
+  merchant_discount: number;
+  proof_photo_url?: string | null;
+}
+
+export interface ActiveDeliveryGroup {
+  id: number;
+  courier_id: number;
+  courier_name?: string;
+  scheduled_date: string;
+  total_distance_km: number;
+  total_duration_minutes: number;
+  status: 'created' | 'assigned' | 'in_progress' | 'completed' | 'canceled';
+  total_combined_cost: number;
+  total_savings_generated: number;
+  route_fare: number;
+  stop_fees: number;
+  courier_bonus: number;
+  total_earnings: number;
+  route_geometry?: string | null;
+  total_stops: number;
+  completed_stops_count: number;
+  current_stop?: SequencedStop;
+  is_all_completed: boolean;
+  stops: SequencedStop[];
+}
 
 

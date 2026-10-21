@@ -252,16 +252,17 @@ describe('Economic Batch Modules (Sprint 4)', () => {
     expect(getByText('Lotes Econômicos')).toBeTruthy();
     expect(getByText('Itinerários Agendados')).toBeTruthy();
 
-    // Valida lote e métricas (incluindo taxa de R$ 3,00 por parada entregue)
+    // Valida lote e métricas (bônus unificado: taxa de paradas R$ 6,00 + bônus 50% R$ 7,25 = R$ 13,25)
     const loteTitle = await findByText('Lote #1');
     expect(loteTitle).toBeTruthy();
     expect(getByText('SEU GANHO TOTAL')).toBeTruthy();
+    expect(getByText('BÔNUS')).toBeTruthy();
     expect(getByText('R$ 59.50')).toBeTruthy();
-    expect(getByText('+ R$ 7.25')).toBeTruthy();
+    expect(getByText('+ R$ 13.25')).toBeTruthy();
 
     // Valida itinerário sequenciado e bônus exibido
     await waitFor(() => {
-      expect(getByText('Bônus de Produtividade: R$ 7.25')).toBeTruthy();
+      expect(getByText('Bônus de Produtividade: R$ 13.25')).toBeTruthy();
       expect(getAllByText('Coleta no Remetente')).toHaveLength(2);
       expect(getAllByText('Entrega no Destinatário')).toHaveLength(2);
     });

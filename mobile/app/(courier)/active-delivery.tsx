@@ -9,14 +9,22 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAppInsets } from '../../src/hooks/useAppInsets';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { courierService, ExpressOrder } from '../../src/services/courierService';
 import { RouteMapPreview } from '../../src/components/RouteMapPreview';
 import { Button } from '../../src/components/Button';
+import {
+  DeliveryProofModal,
+  DeliveryProofPayload,
+} from '../../src/components/DeliveryProofModal';
+import { ExternalGpsButton } from '../../src/components/ExternalGpsButton';
+import { openMultiStopNavigation, openExternalNavigation } from '../../src/utils/navigationLauncher';
 
 export default function ActiveDeliveryScreen() {
   const router = useRouter();
+  const insets = useAppInsets();
   const params = useLocalSearchParams<{ orderId: string }>();
   const orderId = params.orderId ? Number(params.orderId) : null;
 
@@ -24,6 +32,9 @@ export default function ActiveDeliveryScreen() {
   const [order, setOrder] = useState<ExpressOrder | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [cancelingOrder, setCancelingOrder] = useState(false);
+
+  // Modal de Comprovante de Entrega Obrigatório (Código de 6 dígitos ou Foto)
+  const [proofModalVisible, setProofModalVisible] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -92,31 +103,105 @@ export default function ActiveDeliveryScreen() {
     }
   };
 
-  // Confirmação de entrega final ao cliente
-  const handleConfirmDelivery = async () => {
+  // Abre o modal obrigatório de comprovante de entrega
+  const handleOpenDeliveryProofModal = () => {
+    setProofModalVisible(true);
+  };
+
+  // Confirmação de entrega final ao cliente com validação de comprovante obrigatório
+  const handleConfirmDelivery = async (payload: DeliveryProofPayload) => {
     if (!order) return;
 
-    try {
-      setUpdatingStatus(true);
-      const response = await courierService.confirmDelivery(order.id);
-      setOrder(response.order);
-      Alert.alert(
-        'Entrega Finalizada!',
-        'Parabéns! Você concluiu a entrega com sucesso. O valor do frete foi creditado à sua conta.',
-        [
+    if (payload.method === 'code') {
+      try {
+        setUpdatingStatus(true);
+        const response = await courierService.confirmDelivery(
+          order.id,
+          undefined,
+          payload.deliveryCode
+        );
+        setOrder(response.order);
+        setProofModalVisible(false);
+        Alert.alert(
+          'Entrega Finalizada!',
+          'Parabéns! O código de 6 dígitos foi validado e a entrega foi concluída com sucesso.',
+          [
+            {
+              text: 'Voltar ao Início',
+              onPress: () => router.replace('/(courier)/dashboard'),
+            },
+          ]
+        );
+      } catch (error: any) {
+        Alert.alert(
+          'Erro na Finalização',
+          error.response?.data?.message || 'Código de 6 dígitos inválido ou falha ao concluir a entrega.'
+        );
+      } finally {
+        setUpdatingStatus(false);
+      }
+    } else {
+      try {
+        setUpdatingStatus(true);
+        const response = await courierService.confirmDelivery(
+          order.id,
+          payload.proofUrl,
+          undefined,
+          payload.photoBase64
+        );
+        setOrder(response.order);
+        setProofModalVisible(false);
+        Alert.alert(
+          'Entrega Finalizada!',
+          'Parabéns! O comprovante fotográfico foi registrado e a entrega foi concluída com sucesso.',
+          [
+            {
+              text: 'Voltar ao Início',
+              onPress: () => router.replace('/(courier)/dashboard'),
+            },
+          ]
+        );
+      } catch (error: any) {
+        Alert.alert(
+          'Erro na Finalização',
+          error.response?.data?.message || 'Não foi possível concluir a entrega.'
+        );
+      } finally {
+        setUpdatingStatus(false);
+      }
+    }
+  };
+
+  // Navegação por GPS externo para a entrega expressa
+  const handleNavigateExternalGps = () => {
+    if (!order) return;
+
+    if (order.status === 'assigned') {
+      openMultiStopNavigation({
+        stops: [
           {
-            text: 'Voltar ao Início',
-            onPress: () => router.replace('/(courier)/dashboard'),
+            lat: Number(order.origin_lat),
+            lng: Number(order.origin_lng),
+            label: `Coleta: ${order.origin_address}`,
+            sequence: 1,
           },
-        ]
-      );
-    } catch (error: any) {
-      Alert.alert(
-        'Erro na Finalização',
-        error.response?.data?.message || 'Não foi possível concluir a entrega.'
-      );
-    } finally {
-      setUpdatingStatus(false);
+          {
+            lat: Number(order.dest_lat),
+            lng: Number(order.dest_lng),
+            label: `Entrega: ${order.dest_address}`,
+            sequence: 2,
+          },
+        ],
+        groupTitle: `Corrida Expressa #${order.id}`,
+        app: 'ask',
+      });
+    } else {
+      openExternalNavigation({
+        lat: Number(order.dest_lat),
+        lng: Number(order.dest_lng),
+        label: `Entrega #${order.id}: ${order.dest_address}`,
+        app: 'ask',
+      });
     }
   };
 
@@ -180,8 +265,8 @@ export default function ActiveDeliveryScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header com interceptação de saída */}
-      <View style={styles.header}>
+      {/* Header com safe area insets e interceptação de saída */}
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.xs }]}>
         <TouchableOpacity
           onPress={handleAttemptExit}
           style={styles.backBtn}
@@ -200,7 +285,7 @@ export default function ActiveDeliveryScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + SPACING.xxl }]} showsVerticalScrollIndicator={false}>
         {/* Mapa Interno do Zarpa com Rota OSRM Traçada */}
         <View style={[styles.mapWrapper, SHADOWS.sm]}>
           <RouteMapPreview
@@ -325,6 +410,21 @@ export default function ActiveDeliveryScreen() {
               <Text style={styles.stopAddress}>{order.dest_address}</Text>
             </View>
           </View>
+
+          {/* Botão para Navegar por GPS Externo */}
+          {!isDelivered && (
+            <ExternalGpsButton
+              title="Navegar pelo GPS Externo"
+              subtitle={
+                isAssigned
+                  ? 'Traçar rota completa (Coleta + Entrega) no Google Maps ou Waze'
+                  : 'Traçar rota até o endereço de entrega no Google Maps ou Waze'
+              }
+              onPress={handleNavigateExternalGps}
+              style={{ marginTop: SPACING.xs }}
+              testID="active-delivery-gps-btn"
+            />
+          )}
         </View>
 
         {/* Detalhes da Carga */}
@@ -360,7 +460,7 @@ export default function ActiveDeliveryScreen() {
           {isPickedUp && (
             <TouchableOpacity
               style={[styles.primaryActionBtn, { backgroundColor: COLORS.primary }]}
-              onPress={handleConfirmDelivery}
+              onPress={handleOpenDeliveryProofModal}
               disabled={updatingStatus}
               activeOpacity={0.8}
               testID="confirm-delivery-btn"
@@ -409,6 +509,17 @@ export default function ActiveDeliveryScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Modal Obrigatório de Comprovante de Entrega Reutilizável */}
+      <DeliveryProofModal
+        visible={proofModalVisible}
+        orderId={order.id}
+        title="Comprovante Obrigatório"
+        submitLabel="Validar e Concluir"
+        loading={updatingStatus}
+        onClose={() => setProofModalVisible(false)}
+        onSubmit={handleConfirmDelivery}
+      />
     </View>
   );
 }
@@ -657,5 +768,196 @@ const styles = StyleSheet.create({
   },
   backHomeBtn: {
     width: '100%',
+  },
+  externalGpsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    borderRadius: RADIUS.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: SPACING.xs,
+    gap: 10,
+  },
+  externalGpsIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#2563EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  externalGpsTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E3A8A',
+  },
+  externalGpsSubtitle: {
+    fontSize: 11,
+    color: '#1D4ED8',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    padding: SPACING.md,
+  },
+  modalCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.lg,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  modalIconWrap: {
+    marginRight: 8,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalDesc: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  methodTabsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  methodTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  methodTabBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  methodTabText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  methodTabTextActive: {
+    color: '#FFFFFF',
+  },
+  proofSection: {
+    marginBottom: 18,
+  },
+  proofLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 6,
+  },
+  codeDigitInput: {
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 6,
+    textAlign: 'center',
+    color: COLORS.primary,
+    backgroundColor: '#EFF6FF',
+  },
+  cameraActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  cameraActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  cameraActionBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  proofInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    backgroundColor: '#F8FAFC',
+  },
+  proofInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  proofInfoText: {
+    fontSize: 11,
+    color: '#059669',
+    flex: 1,
+    lineHeight: 15,
+  },
+  modalBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  modalSubmitBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    backgroundColor: '#059669',
+  },
+  modalSubmitBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

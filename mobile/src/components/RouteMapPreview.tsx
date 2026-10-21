@@ -25,6 +25,7 @@ export interface RouteMapPreviewProps {
   mode?: 'route' | 'current_location';
   radiusKm?: number;
   borderless?: boolean;
+  hideOverlays?: boolean;
   additionalMarkers?: RoutePoint[];
 }
 
@@ -60,8 +61,14 @@ export function RouteMapPreview({
   mode,
   radiusKm = 5.0,
   borderless = false,
+  hideOverlays = false,
   additionalMarkers = [],
 }: RouteMapPreviewProps) {
+  // Identifica se os badges e overlays flutuantes internos do mapa devem ser exibidos
+  // No modo borderless (ex: Radar de tela cheia), os overlays internos são suprimidos
+  // para evitar sobreposição com cabeçalhos flutuantes e Safe Area nativa.
+  const shouldShowOverlays = !hideOverlays && !borderless;
+
   // Identifica se o mapa está exibindo exclusivamente a posição do condutor
   const isCurrentLocation =
     mode === 'current_location' || (Boolean(origin) && !destination && !polyline);
@@ -213,7 +220,7 @@ export function RouteMapPreview({
           <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
           <style>
             html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; background: #e5e7eb; }
-            .leaflet-control-attribution { font-size: 9px; opacity: 0.8; }
+            .leaflet-control-attribution { font-size: 9px; opacity: 0.8; ${borderless ? 'display: none !important;' : ''} }
             .custom-pin { display: flex; align-items: center; justify-content: center; }
           </style>
         </head>
@@ -296,28 +303,30 @@ export function RouteMapPreview({
           title="Mapa Guarapuava Zarpa"
         />
 
-        {/* Top Info Banner */}
-        <View style={styles.topInfoOverlay}>
-          <Ionicons
-            name={isCurrentLocation ? 'navigate-circle' : origin && destination ? 'navigate-circle' : 'location'}
-            size={14}
-            color={COLORS.primary}
-          />
-          <Text style={styles.topInfoText}>
-            {isCurrentLocation && origin
-              ? `GPS: ${origin.latitude.toFixed(5)}, ${origin.longitude.toFixed(5)}`
-              : isCurrentLocation
-              ? 'Sua Localização GPS • Guarapuava - PR'
-              : origin && destination
-              ? 'Rota viária traçada em Guarapuava - PR'
-              : origin
-              ? 'Ponto de coleta definido'
-              : 'Mapa interativo • Guarapuava - PR'}
-          </Text>
-        </View>
+        {/* Top Info Banner (somente quando não estiver em modo borderless / sem overlays) */}
+        {shouldShowOverlays && (
+          <View style={styles.topInfoOverlay}>
+            <Ionicons
+              name={isCurrentLocation ? 'navigate-circle' : origin && destination ? 'navigate-circle' : 'location'}
+              size={14}
+              color={COLORS.primary}
+            />
+            <Text style={styles.topInfoText}>
+              {isCurrentLocation && origin
+                ? `GPS: ${origin.latitude.toFixed(5)}, ${origin.longitude.toFixed(5)}`
+                : isCurrentLocation
+                ? 'Sua Localização GPS • Guarapuava - PR'
+                : origin && destination
+                ? 'Rota viária traçada em Guarapuava - PR'
+                : origin
+                ? 'Ponto de coleta definido'
+                : 'Mapa interativo • Guarapuava - PR'}
+            </Text>
+          </View>
+        )}
 
-        {/* Legenda */}
-        {!isCurrentLocation && (origin || destination) && (
+        {/* Legenda (somente quando não estiver em modo borderless / sem overlays) */}
+        {shouldShowOverlays && !isCurrentLocation && (origin || destination) && (
           <View style={styles.mapLegend}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#059669' }]} />
@@ -365,53 +374,59 @@ export function RouteMapPreview({
         zoom={zoom}
       />
 
-      {/* Top Info Banner */}
-      <View style={styles.topInfoOverlay}>
-        <Ionicons
-          name={isCurrentLocation ? 'navigate-circle' : origin && destination ? 'navigate-circle' : 'location'}
-          size={14}
-          color={isCurrentLocation ? COLORS.accentDark : COLORS.primary}
-        />
-        <Text style={styles.topInfoText}>
-          {isCurrentLocation && origin
-            ? `GPS Ativo: ${origin.latitude.toFixed(5)}, ${origin.longitude.toFixed(5)}`
-            : isCurrentLocation
-            ? 'Localização GPS • Guarapuava - PR'
-            : origin && destination
-            ? 'Rota viária traçada em Guarapuava - PR'
-            : origin
-            ? 'Ponto de coleta definido'
-            : destination
-            ? 'Destino definido'
-            : 'Guarapuava - PR • Área de Cobertura'}
-        </Text>
-      </View>
-
-      {/* Legenda ou Status de Radar */}
-      {isCurrentLocation && origin ? (
-        <View style={styles.currentLocBottomBadge}>
-          <Ionicons name="radio-outline" size={13} color={COLORS.accent} />
-          <Text style={styles.currentLocBottomText}>
-            Guarapuava - PR • Raio: {(radiusKm ?? 5.0).toFixed(1)} km
+      {/* Top Info Banner (somente quando não estiver em modo borderless / sem overlays) */}
+      {shouldShowOverlays && (
+        <View style={styles.topInfoOverlay}>
+          <Ionicons
+            name={isCurrentLocation ? 'navigate-circle' : origin && destination ? 'navigate-circle' : 'location'}
+            size={14}
+            color={isCurrentLocation ? COLORS.accentDark : COLORS.primary}
+          />
+          <Text style={styles.topInfoText}>
+            {isCurrentLocation && origin
+              ? `GPS Ativo: ${origin.latitude.toFixed(5)}, ${origin.longitude.toFixed(5)}`
+              : isCurrentLocation
+              ? 'Localização GPS • Guarapuava - PR'
+              : origin && destination
+              ? 'Rota viária traçada em Guarapuava - PR'
+              : origin
+              ? 'Ponto de coleta definido'
+              : destination
+              ? 'Destino definido'
+              : 'Guarapuava - PR • Área de Cobertura'}
           </Text>
         </View>
-      ) : !isCurrentLocation && (origin || destination) ? (
-        <View style={styles.mapLegend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#059669' }]} />
-            <Text style={styles.legendText}>Coleta</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#DC2626' }]} />
-            <Text style={styles.legendText}>Entrega</Text>
-          </View>
-        </View>
-      ) : null}
+      )}
 
-      {/* Tag de Atribuição Cartográfica Oficial OpenStreetMap */}
-      <View style={styles.attributionTag}>
-        <Text style={styles.attributionText}>© OpenStreetMap (Leaflet)</Text>
-      </View>
+      {/* Legenda ou Status de Radar (somente quando não estiver em modo borderless / sem overlays) */}
+      {shouldShowOverlays && (
+        isCurrentLocation && origin ? (
+          <View style={styles.currentLocBottomBadge}>
+            <Ionicons name="radio-outline" size={13} color={COLORS.accent} />
+            <Text style={styles.currentLocBottomText}>
+              Guarapuava - PR • Raio: {(radiusKm ?? 5.0).toFixed(1)} km
+            </Text>
+          </View>
+        ) : !isCurrentLocation && (origin || destination) ? (
+          <View style={styles.mapLegend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#059669' }]} />
+              <Text style={styles.legendText}>Coleta</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#DC2626' }]} />
+              <Text style={styles.legendText}>Entrega</Text>
+            </View>
+          </View>
+        ) : null
+      )}
+
+      {/* Tag de Atribuição Cartográfica Oficial OpenStreetMap (apenas em cards com borda) */}
+      {shouldShowOverlays && (
+        <View style={styles.attributionTag}>
+          <Text style={styles.attributionText}>© OpenStreetMap (Leaflet)</Text>
+        </View>
+      )}
     </View>
   );
 }

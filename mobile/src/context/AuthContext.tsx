@@ -14,6 +14,7 @@ interface AuthContextData {
   logout: () => Promise<void>;
   quickLogin: (role: UserRole) => Promise<User>;
   refreshProfile: () => Promise<void>;
+  updateCourierOnlineStatus: (isOnline: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -129,6 +130,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function updateCourierOnlineStatus(isOnline: boolean): Promise<void> {
+    setUser((prevUser) => {
+      if (!prevUser) return prevUser;
+      const updatedUser: User = {
+        ...prevUser,
+        courier: prevUser.courier
+          ? { ...prevUser.courier, is_online: isOnline }
+          : ({ is_online: isOnline } as any),
+      };
+      saveUser(updatedUser).catch(() => {});
+      return updatedUser;
+    });
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -142,6 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         quickLogin,
         refreshProfile,
+        updateCourierOnlineStatus,
       }}
     >
       {children}

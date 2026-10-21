@@ -7,7 +7,7 @@
 > **Projeto Integrado**: Trabalho de Conclusão de Curso 2 (TCC 2)  
 > **Repositório Público no GitHub**: [https://github.com/LeonardoTosinPR/Zarpa](https://github.com/LeonardoTosinPR/Zarpa)  
 > **Protótipo no Figma**: [zarpa-entregas (UI/UX)](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Branch de Desenvolvimento Ativa**: [`sprint/4-lote-economico-agrupamento`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/4-lote-economico-agrupamento)
+> **Branch de Desenvolvimento Ativa**: [`sprint/6-execucao-rotas-status-navegacao`](https://github.com/LeonardoTosinPR/Zarpa/tree/sprint/6-execucao-rotas-status-navegacao)
 
 ---
 
@@ -62,13 +62,14 @@ Projetar, modelar e implementar uma API RESTful escalável e robusta para interm
 | Módulo | Funcionalidade | Descrição Técnica no Backend |
 | :--- | :--- | :--- |
 | **Auth & Perfis** | Cadastro e Login Multiatriz | Endpoints `/api/auth/register` e `/api/auth/login` gerando tokens de acesso pessoal via Sanctum. Perfis especializados com validação de CNPJ/Razão Social para Lojistas e CNH/Veículo/Placa para Entregadores. |
-| **Geo & Roteamento** | Geocodificação com Autocomplete | Endpoint `GET /api/orders/geocode` consumindo Nominatim com filtro estrito para Guarapuava - PR, suportado por catálogo geográfico local de alta disponibilidade. |
+| **Geo & Roteamento** | Geocodificação com Interpolação Predial | Endpoint `GET /api/orders/geocode` consumindo Nominatim com filtro estrito para Guarapuava - PR, suportado por catálogo geográfico local (`GeocodingService`) e algoritmo de interpolação métrica predial em vias extensas. |
 | **Geo & Roteamento** | Simulação e Cotação de Frete | Endpoint `POST /api/orders/estimate` que consulta o servidor OSRM, extrai a quilometragem viária e calcula tarifa base, custo por km e adicional de peso. |
 | **Gestão de Pedidos** | Postagem de Pedido Geoespacial | Endpoint `POST /api/orders` que persiste coordenadas espaciais `origin_location` e `dest_location` com trigger automática PostGIS `ST_SetSRID(ST_MakePoint(), 4326)`. |
-| **Radar Expresso** | Despacho Concorrente On-Demand | Endpoint transacional para aceite de corridas expressas com `lockForUpdate()`, garantindo que apenas um entregador assuma o pedido mesmo em requisições simultâneas. |
-| **Lote Econômico** | Clusterização Noturna de Pacotes | Agrupamento heurístico de pedidos marcados como `economic` dentro de buffers geográficos, gerando a entidade `DeliveryBatch` com sequência otimizada de paradas. |
-| **Financeiro** | Rateio Dinâmico 50/50 | Cálculo determinístico da economia de rota ($D_{isolada} - D_{conjunta}$), distribuindo 50% em descontos ponderados aos comércios e 50% em bonificação ao entregador. |
-| **Auditoria & Status** | Ciclo de Vida da Entrega | Transição controlada de status (`pending` $\rightarrow$ `assigned` $\rightarrow$ `picked_up` $\rightarrow$ `delivered`), com upload de foto de comprovante e timestamp auditado. |
+| **Radar Expresso** | Despacho Concorrente On-Demand | Endpoint transacional para aceite de corridas expressas com `lockForUpdate()`, garantindo que apenas um entregador assuma o pedido mesmo em requisições simultâneas e gerando o `delivery_code` de 6 dígitos. |
+| **Lote Econômico** | Clusterização Noturna & PDP OSRM | Agrupamento espacial (`BatchClusteringService`) de pedidos `economic` via PostGIS (`ST_DWithin`), gerando a entidade `DeliveryGroup` com sequência otimizada de paradas (`GroupOrder`) e códigos de segurança de 6 dígitos. |
+| **Financeiro** | Rateio Dinâmico 50/50 & Taxa de Parada | Cálculo determinístico da economia de rota ($D_{isolada} - D_{conjunta}$), distribuindo 50% em descontos ponderados aos comércios e 50% em bonificação ao entregador + Taxa de Parada Concluída de R$ 3,00 (`DynamicApportionmentService`). |
+| **Auditoria & Status** | Ciclo de Vida & Comprovante Obrigatório | Transição estrita de status (`pending` $\rightarrow$ `assigned` $\rightarrow$ `picked_up` $\rightarrow$ `delivered`), exigindo comprovação obrigatória por código de 6 dígitos (`delivery_code`) ou upload de foto (`proof_photo_url`). |
+| **Admin Master** | Governança e Execução Manual de Lotes | Endpoints administrativos (`/api/admin/*` e `POST /api/batch/process-economic`) para auditoria de métricas, gestão de usuários/pedidos e disparo manual de lotes noturnos. |
 
 ---
 
@@ -84,9 +85,9 @@ erDiagram
     USERS ||--o| COURIERS : "possui perfil (1:1)"
     CLIENTS ||--o{ ORDERS : "emite pedidos (1:N)"
     COURIERS ||--o{ ORDERS : "atende avulso (1:N)"
-    COURIERS ||--o{ DELIVERY_BATCHES : "assume lote (1:N)"
-    DELIVERY_BATCHES ||--o{ BATCH_ORDERS : "contém entregas (1:N)"
-    ORDERS ||--o| BATCH_ORDERS : "agrupado em (1:1)"
+    COURIERS ||--o{ DELIVERY_GROUPS : "assume lote (1:N)"
+    DELIVERY_GROUPS ||--o{ GROUP_ORDERS : "contém paradas (1:N)"
+    ORDERS ||--o{ GROUP_ORDERS : "agrupado em (1:N)"
 
     USERS {
         bigint id PK
@@ -144,12 +145,14 @@ erDiagram
         decimal dest_lng "Longitude de entrega (-51.x)"
         geometry origin_location "Point(SRID 4326) GiST"
         geometry dest_location "Point(SRID 4326) GiST"
-        string proof_photo_url "Comprovante de entrega"
+        string delivery_code "Código de 6 dígitos para comprovação"
+        string proof_photo_url "Comprovante fotográfico de entrega"
+        timestamp picked_up_at "Horário da coleta"
         timestamp delivered_at "Horário da entrega"
         timestamp created_at
     }
 
-    DELIVERY_BATCHES {
+    DELIVERY_GROUPS {
         bigint id PK
         bigint courier_id FK "Condutor designado"
         date scheduled_date "Data do lote"
@@ -163,13 +166,14 @@ erDiagram
         timestamp created_at
     }
 
-    BATCH_ORDERS {
+    GROUP_ORDERS {
         bigint id PK
-        bigint delivery_batch_id FK "Referência delivery_batches.id"
+        bigint delivery_group_id FK "Referência delivery_groups.id"
         bigint order_id FK "Referência orders.id"
         int stop_sequence "Ordem sequencial na rota"
         string stop_type "pickup | delivery"
         decimal isolated_distance_km "Km original do pedido"
+        decimal shared_distance_km "Km compartilhado no lote"
         decimal allocated_cost "Custo rateado com desconto"
         decimal merchant_discount "50% da economia repassada"
     }
@@ -376,12 +380,12 @@ O desenvolvimento foi organizado em 8 sprints de entrega contínua com versionam
 | :--- | :--- | :--- | :--- | :---: |
 | **Sprint 0** | 25/08 a 01/09/2026 | `sprint/0-setup-monorepo-infra-testes` | Infraestrutura Docker (PostGIS 16 + PHP 8.3), pipelines de teste (Pest/Jest), CLI unificado `run.sh`/`run.ps1`. | ✅ Concluída |
 | **Sprint 1** | 02/09 a 09/09/2026 | `sprint/1-auth-perfis-atores` | Autenticação Sanctum, especialização de atores (`client`, `courier`, `admin`), seeders determinísticos de teste. | ✅ Concluída |
-| **Sprint 2** | 10/09 a 17/09/2026 | `sprint/2-postagem-geocodificacao-pedidos` | Schema PostGIS `orders`, integração OSRM com Basic Auth, autocomplete geográfico, cálculo de frete e tela móvel de criação de pedido com Google Maps. | ✅ Concluída |
-| **Sprint 3** | 18/09 a 25/09/2026 | `sprint/3-fluxo-expresso-concorrencia` | Motor de Radar Expresso, bloqueio pessimista `lockForUpdate()`, contagem regressiva de aceite e prevenção de conflitos. | 🔄 Em Execução |
-| **Sprint 4** | 26/09 a 04/10/2026 | `sprint/4-lote-economico-agrupamento` | Algoritmo de roteamento multi-pontos OSRM, clusterização noturna e formação automatizada de lotes. | 📅 Planejada |
-| **Sprint 5** | 05/10 a 13/10/2026 | `sprint/5-rateio-dinamico-extratos` | Módulo matemático de Rateio 50/50, persistência contábil e extratos de economia e bônus. | 📅 Planejada |
-| **Sprint 6** | 14/10 a 22/10/2026 | `sprint/6-execucao-rotas-status-navegacao` | Agenda operacional do entregador, transição de status, upload de comprovante e deep links GPS. | 📅 Planejada |
-| **Sprint 7** | 23/10 a 31/10/2026 | `sprint/7-validacao-cenarios-reais-homologacao` | Homologação integrada com malha urbana de Guarapuava, regressão completa e encerramento. | 📅 Planejada |
+| **Sprint 2** | 10/09 a 17/09/2026 | `sprint/2-postagem-geocodificacao-pedidos` | Schema PostGIS `orders`, integração OSRM com Basic Auth, autocomplete geográfico, cálculo de frete e tela móvel de criação de pedido. | ✅ Concluída |
+| **Sprint 3** | 18/09 a 25/09/2026 | `sprint/3-fluxo-expresso-concorrencia` | Motor de Radar Expresso, bloqueio pessimista `lockForUpdate()`, contagem regressiva de aceite e prevenção de conflitos. | ✅ Concluída |
+| **Sprint 4** | 26/09 a 04/10/2026 | `sprint/4-lote-economico-agrupamento` | Algoritmo de roteamento multi-pontos OSRM, clusterização noturna PostGIS e formação automatizada de lotes. | ✅ Concluída |
+| **Sprint 5** | 05/10 a 13/10/2026 | `sprint/5-rateio-dinamico-extratos` | Módulo matemático de Rateio 50/50, Taxa de Parada (R$ 3,00), interpolação métrica predial e extratos de economia e bônus. | ✅ Concluída |
+| **Sprint 6** | 14/10 a 22/10/2026 | `sprint/6-execucao-rotas-status-navegacao` | Agenda operacional do entregador, validação de comprovante por código de 6 dígitos ou foto, bônus unificado e deep links GPS. | ✅ Concluída |
+| **Sprint 7** | 23/10 a 31/10/2026 | `sprint/7-validacao-cenarios-reais-homologacao` | Homologação integrada com malha urbana de Guarapuava, regressão completa e encerramento. | 🔄 Em Andamento |
 
 ---
 
@@ -462,59 +466,94 @@ O backend possui suíte completa de testes automatizados com banco de dados dedi
 ```
 
 ### Resultados da Execução dos Testes:
-```
+```text
+   PASS  Tests\Unit\BatchClusteringServiceTest
+  ✓ groups nearby economic orders into a single delivery group with PDP sequence
+  ✓ isolates distant economic orders into separate groups when exceeding radius
+  ✓ returns zero groups when there are no pending economic orders
+
    PASS  Tests\Unit\CourierDispatchServiceTest
   ✓ getAvailableExpressOrders returns empty collection when courier is offline
   ✓ acceptExpressOrder returns 404 when order does not exist
   ✓ acceptExpressOrder returns 409 when order is economic instead of express
 
+   PASS  Tests\Unit\DynamicApportionmentServiceTest
+  ✓ calculates 50/50 savings apportionment and stop fees accurately
+  ✓ handles zero savings gracefully when combined cost equals or exceeds isolated cost
+  ✓ preserves strict cent conservation across multiple asymmetrical orders
+  ✓ throws exception when orders collection is empty
+
    PASS  Tests\Unit\ExampleTest
-  ✓ basic unit test                                                      0.01s  
+  ✓ basic unit test
 
    PASS  Tests\Unit\FreightCalculatorServiceTest
   ✓ calculates freight accurately for standard package without overweight
   ✓ calculates freight with overweight fee when package exceeds 5kg
 
    PASS  Tests\Unit\GeocodingServiceTest
-  ✓ resolves address using Nominatim API when available                  0.01s  
+  ✓ resolves address using Nominatim API when available
   ✓ uses local Guarapuava dictionary fallback when Nominatim fails
+  ✓ interpolates street coordinates accurately for numbered addresses on long avenues
 
    PASS  Tests\Unit\OsrmRoutingServiceTest
   ✓ calculates route with successful OSRM HTTP response
-  ✓ falls back to haversine calculation when OSRM server is unreachable  0.01s  
+  ✓ falls back to haversine calculation when OSRM server is unreachable
+  ✓ calculates multi-waypoint route accurately
+
+   PASS  Tests\Feature\AdminManagementTest
+  ✓ admin can view system stats and list all users and orders
+  ✓ non-admin is forbidden from accessing admin management endpoints
 
    PASS  Tests\Feature\AuthTest
-  ✓ can register a new client with merchant profile and coordinates      0.05s  
-  ✓ can register a new courier with vehicle and driver license           0.03s  
-  ✓ registration validates required fields according to role             0.03s  
-  ✓ user can login successfully with seeded test credentials             0.03s  
-  ✓ admin can login successfully and has full access                     0.03s  
-  ✓ login fails with invalid password                                    0.02s  
-  ✓ authenticated user can fetch me profile and logout                   0.03s  
-  ✓ role middleware isolates client and courier access properly          0.04s  
+  ✓ can register a new client with merchant profile and coordinates
+  ✓ can register a new courier with vehicle and driver license
+  ✓ registration validates required fields according to role
+  ✓ user can login successfully with seeded test credentials
+  ✓ admin can login successfully and has full access
+  ✓ login fails with invalid password
+  ✓ authenticated user can fetch me profile and logout
+  ✓ role middleware isolates client and courier access properly
+
+   PASS  Tests\Feature\EconomicBatchTest
+  ✓ processes pending economic orders into batches via POST /api/batch/process-economic
+  ✓ courier can list assigned economic batches and view stops sequence
 
    PASS  Tests\Feature\ExpressDispatchTest
-  ✓ courier can update online status toggle via PATCH /api/courier/status 0.04s  
-  ✓ courier can update GPS coordinates and sync PostGIS current_location 0.04s  
-  ✓ courier can view express orders within radar radius via GET /api/courier/radar 0.04s  
-  ✓ courier can successfully accept an express order changing status to assigned 0.03s  
-  ✓ pessimistic lock prevents race condition returning 409 Conflict to competing courier 0.03s  
-  ✓ client is forbidden from accessing courier radar or accepting express orders 0.03s  
-  ✓ courier can reject an express order and it disappears from their radar 0.05s  
-  ✓ courier can view and update profile including cluster_radius_km via GET and PATCH /api/courier/profile 0.03s  
+  ✓ courier can update online status toggle via PATCH /api/courier/status
+  ✓ courier can update GPS coordinates and sync PostGIS current_location
+  ✓ courier can view express orders within radar radius via GET /api/courier/radar
+  ✓ courier can successfully accept an express order changing status to assigned
+  ✓ pessimistic lock prevents race condition returning 409 Conflict to competing courier
+  ✓ client is forbidden from accessing courier radar or accepting express orders
+  ✓ courier can reject an express order and it disappears from their radar
+  ✓ courier can view and update profile including cluster_radius_km via GET and PATCH /api/courier/profile
+
+   PASS  Tests\Feature\FinancialStatementTest
+  ✓ client can retrieve financial statement with 50/50 batch discounts and savings summary
+  ✓ courier can retrieve financial statement with base earnings, batch bonus and stop fees
 
    PASS  Tests\Feature\HealthTest
-  ✓ healthcheck endpoint returns successful structure                    0.02s  
+  ✓ healthcheck endpoint returns successful structure
 
    PASS  Tests\Feature\OrderTest
-  ✓ authenticated user can query geocoding endpoint for address autocomplete 0.10s  
-  ✓ user can estimate route and freight pricing without creating order   0.03s  
-  ✓ client can create an order successfully with PostGIS spatial persistence 0.04s  
-  ✓ courier is forbidden from creating client delivery orders            0.03s  
-  ✓ client can list their own orders with status filtering               0.03s  
+  ✓ authenticated user can query geocoding endpoint for address autocomplete
+  ✓ user can estimate route and freight pricing without creating order
+  ✓ client can create an order successfully with PostGIS spatial persistence
+  ✓ courier is forbidden from creating client delivery orders
+  ✓ client can list their own orders with status filtering
 
-  Tests:    32 passed (191 assertions)
-  Duration: 1.87s
+   PASS  Tests\Feature\OrderTrackingTest
+  ✓ client can view order tracking timeline and courier info
+  ✓ other clients cannot view tracking of orders they do not own
+
+   PASS  Tests\Feature\RouteExecutionTest
+  ✓ courier can fetch active delivery group with ordered stops and financial summary
+  ✓ courier can start and complete a delivery group lifecycle
+  ✓ courier can transition order status from assigned to picked_up and delivered with valid 6-digit delivery_code or proof photo
+  ✓ rejects invalid status transitions or missing/wrong delivery proof
+
+  Tests:    65 passed (574 assertions)
+  Duration: 2.34s
 ```
 
 ---

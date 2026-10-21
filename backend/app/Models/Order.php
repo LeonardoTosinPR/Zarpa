@@ -27,6 +27,8 @@ class Order extends Model
         'package_volume_m3',
         'shipping_type',
         'status',
+        'assigned_at',
+        'picked_up_at',
         'is_anchor',
         'individual_freight_price',
         'final_freight_price',
@@ -34,6 +36,7 @@ class Order extends Model
         'estimated_duration_minutes',
         'route_geometry',
         'proof_photo_url',
+        'delivery_code',
         'delivered_at',
         'origin_address',
         'dest_address',
@@ -42,6 +45,24 @@ class Order extends Model
         'dest_lat',
         'dest_lng',
     ];
+
+    /**
+     * Oculta o código de confirmação de 6 dígitos por padrão para que o entregador
+     * nunca tenha acesso ao código antes de realizar a entrega.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'delivery_code',
+    ];
+
+    /**
+     * Gera um código numérico aleatório de 6 dígitos para validação da entrega.
+     */
+    public static function generateDeliveryCode(): string
+    {
+        return str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+    }
 
     /**
      * The attributes that should be cast.
@@ -62,6 +83,8 @@ class Order extends Model
             'dest_lat' => 'decimal:8',
             'dest_lng' => 'decimal:8',
             'is_anchor' => 'boolean',
+            'assigned_at' => 'datetime',
+            'picked_up_at' => 'datetime',
             'delivered_at' => 'datetime',
         ];
     }
@@ -71,6 +94,12 @@ class Order extends Model
      */
     protected static function booted(): void
     {
+        static::saving(function (Order $order) {
+            if (in_array($order->status, ['assigned', 'picked_up', 'delivered'], true) && empty($order->delivery_code)) {
+                $order->delivery_code = self::generateDeliveryCode();
+            }
+        });
+
         static::saved(function (Order $order) {
             // Sincroniza colunas espaciais PostGIS origin_location e dest_location
             if ($order->origin_lat && $order->origin_lng && $order->dest_lat && $order->dest_lng) {

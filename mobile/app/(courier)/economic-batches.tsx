@@ -14,7 +14,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Header } from '../../src/components/Header';
+import { ExternalGpsButton } from '../../src/components/ExternalGpsButton';
+import { EmptyState } from '../../src/components/EmptyState';
 import { courierService } from '../../src/services/courierService';
+import { openMultiStopNavigation, NavigationStopPoint } from '../../src/utils/navigationLauncher';
 
 export default function EconomicBatchesScreen() {
   const router = useRouter();
@@ -74,6 +77,52 @@ export default function EconomicBatchesScreen() {
     } finally {
       setIsProcessingBatch(false);
     }
+  };
+
+  // Transbordamento de GPS externo para todas as paradas do lote selecionado
+  const handleNavigateBatch = (group: any) => {
+    let stops: NavigationStopPoint[] = [];
+
+    if (group.stops && group.stops.length > 0) {
+      stops = group.stops.map((s: any, idx: number) => ({
+        lat: Number(s.lat),
+        lng: Number(s.lng),
+        label: `Parada #${s.stop_sequence || idx + 1}: ${s.address}`,
+        sequence: s.stop_sequence || idx + 1,
+      }));
+    } else if (group.group_orders && group.group_orders.length > 0) {
+      stops = group.group_orders
+        .map((go: any, idx: number) => {
+          const isPickup = go.stop_type === 'pickup';
+          const orderItem = go.order || (group.orders || []).find((o: any) => o.id === go.order_id);
+          const lat = Number(go.lat ?? (isPickup ? orderItem?.origin_lat : orderItem?.dest_lat));
+          const lng = Number(go.lng ?? (isPickup ? orderItem?.origin_lng : orderItem?.dest_lng));
+          const address = go.address ?? (isPickup ? orderItem?.origin_address : orderItem?.dest_address);
+
+          if (!lat || !lng) return null;
+          return {
+            lat,
+            lng,
+            label: `Parada #${go.stop_sequence || idx + 1}: ${address || ''}`,
+            sequence: go.stop_sequence || idx + 1,
+          };
+        })
+        .filter((s: any): s is NavigationStopPoint => s !== null);
+    }
+
+    if (stops.length === 0) {
+      router.push({
+        pathname: '/(courier)/route-agenda',
+        params: { groupId: String(group.id) },
+      });
+      return;
+    }
+
+    openMultiStopNavigation({
+      stops,
+      groupTitle: `Lote #${group.id} (${stops.length} paradas)`,
+      app: 'ask',
+    });
   };
 
   return (
@@ -154,13 +203,12 @@ export default function EconomicBatchesScreen() {
             <Text style={styles.loadingText}>Carregando seus lotes econômicos...</Text>
           </View>
         ) : deliveryGroups.length === 0 ? (
-          <View style={[styles.emptyBox, SHADOWS.sm]} testID="economic-batches-empty">
-            <Ionicons name="cash-outline" size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
-            <Text style={styles.emptyTitle}>Nenhum lote atribuído no momento</Text>
-            <Text style={styles.emptyDesc}>
-              Os pedidos econômicos pendentes são agrupados automaticamente pelo motor de batch todas as noites às 02:00.
-            </Text>
-          </View>
+          <EmptyState
+            icon="cash-outline"
+            title="Nenhum lote atribuído no momento"
+            description="Os pedidos econômicos pendentes são agrupados automaticamente pelo motor de batch todas as noites às 02:00."
+            testID="economic-batches-empty"
+          />
         ) : (
           <View style={styles.groupsList}>
             {deliveryGroups.map((group) => {
@@ -215,7 +263,8 @@ export default function EconomicBatchesScreen() {
                     const routeFare = Number(group.total_distance_km || 0) * 2.50;
                     const stopFees = ordersCount * 3.00;
                     const courierBonus = Number(group.courier_bonus || 0);
-                    const totalEarnings = routeFare + stopFees + courierBonus;
+                    const combinedBonus = stopFees + courierBonus;
+                    const totalEarnings = routeFare + combinedBonus;
 
                     return (
                       <View style={styles.metricsGrid}>
@@ -234,16 +283,9 @@ export default function EconomicBatchesScreen() {
                         </View>
                         <View style={styles.metricDivider} />
                         <View style={styles.metricBox}>
-                          <Text style={styles.metricLabel}>TAXA PARADAS ({ordersCount}x R$3)</Text>
-                          <Text style={[styles.metricBonusValue, { color: '#059669' }]}>
-                            + R$ {stopFees.toFixed(2)}
-                          </Text>
-                        </View>
-                        <View style={styles.metricDivider} />
-                        <View style={styles.metricBox}>
-                          <Text style={styles.metricLabel}>BÔNUS LOTE 50%</Text>
-                          <Text style={[styles.metricBonusValue, { color: courierBonus > 0 ? '#059669' : COLORS.textMuted }]}>
-                            + R$ {courierBonus.toFixed(2)}
+                          <Text style={styles.metricLabel}>BÔNUS</Text>
+                          <Text style={[styles.metricBonusValue, { color: combinedBonus > 0 ? '#059669' : COLORS.textMuted }]}>
+                            + R$ {combinedBonus.toFixed(2)}
                           </Text>
                         </View>
                       </View>
@@ -258,13 +300,46 @@ export default function EconomicBatchesScreen() {
                         <Ionicons name="gift-outline" size={18} color="#059669" style={{ marginRight: 8 }} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.bonusNoticeTitle}>
-                            Bônus de Produtividade: R$ {Number(group.courier_bonus || 0).toFixed(2)}
+                            Bônus de Produtividade: R$ {((group.orders ? group.orders.length : (group.group_orders ? group.group_orders.length / 2 : 0)) * 3.00 + Number(group.courier_bonus || 0)).toFixed(2)}
                           </Text>
                           <Text style={styles.bonusNoticeDesc}>
-                            50% da economia bruta de frete gerada pelo compartilhamento da rota!
+                            Soma das taxas de parada e de 50% da economia gerada pelo lote!
                           </Text>
                         </View>
                       </View>
+
+                      {/* Botão de Atalho para a Agenda de Rotas Operacional */}
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#059669',
+                          paddingVertical: 10,
+                          borderRadius: 8,
+                          marginBottom: 8,
+                        }}
+                        onPress={() => router.push({
+                          pathname: '/(courier)/route-agenda',
+                          params: { groupId: String(group.id) },
+                        })}
+                        activeOpacity={0.8}
+                        testID={`open-route-agenda-btn-${group.id}`}
+                      >
+                        <Ionicons name="map-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+                          Abrir Agenda da Rota Operacional
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Botão Unificado para Navegar no GPS com TODAS as Paradas da Rota */}
+                      <ExternalGpsButton
+                        title="Navegar Rota Completa no GPS"
+                        variant="secondary"
+                        onPress={() => handleNavigateBatch(group)}
+                        style={{ marginBottom: 12 }}
+                        testID={`nav-batch-gps-btn-${group.id}`}
+                      />
 
                       <Text style={styles.stopsHeaderTitle}>Itinerário de Paradas Sequenciadas:</Text>
 

@@ -20,6 +20,8 @@ class GroupOrder extends Model
         'order_id',
         'stop_sequence',
         'stop_type',
+        'status',
+        'completed_at',
         'isolated_distance_km',
         'shared_distance_km',
         'allocated_cost',
@@ -37,6 +39,7 @@ class GroupOrder extends Model
         'shared_distance_km' => 'decimal:2',
         'allocated_cost' => 'decimal:2',
         'merchant_discount' => 'decimal:2',
+        'completed_at' => 'datetime',
     ];
 
     /**

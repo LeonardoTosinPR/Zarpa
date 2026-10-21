@@ -228,6 +228,7 @@ class OrderController extends Controller
         }
 
         $orders = $query->paginate(20);
+        $orders->getCollection()->each->makeVisible('delivery_code');
 
         return response()->json($orders);
     }
@@ -258,8 +259,266 @@ class OrderController extends Controller
             ], 403);
         }
 
+        // O entregador NÃO pode ver o código de 6 dígitos antes da entrega ser concluída.
+        // Apenas o lojista dono do pedido (ou admin, ou após entregue) recebe o delivery_code.
+        if (($isOwnerClient && !$isAssignedCourier) || $isAdmin || $order->status === 'delivered') {
+            $order->makeVisible('delivery_code');
+        }
+
         return response()->json([
             'order' => $order,
+        ]);
+    }
+
+    /**
+     * Rastreamento com linha do tempo de eventos do pedido.
+     * GET /api/orders/{id}/tracking
+     */
+    public function tracking(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $order = Order::with(['client.user', 'courier.user', 'groupOrders.deliveryGroup'])->find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Pedido não encontrado.'], 404);
+        }
+
+        $isOwnerClient = $user->client && $user->client->id === $order->client_id;
+        $isAssignedCourier = $user->courier && $user->courier->id === $order->courier_id;
+        $isAdmin = $user->hasFullAccess();
+
+        if (!$isOwnerClient && !$isAssignedCourier && !$isAdmin) {
+            return response()->json(['message' => 'Acesso não autorizado para rastrear este pedido.'], 403);
+        }
+
+        $timeline = [
+            [
+                'step' => 'created',
+                'title' => 'Pedido Criado',
+                'description' => 'Solicitação registrada na plataforma.',
+                'timestamp' => $order->created_at?->toIso8601String(),
+                'completed' => true,
+            ],
+            [
+                'step' => 'assigned',
+                'title' => 'Condutor Atribuído',
+                'description' => $order->courier
+                    ? "Atribuído ao condutor {$order->courier->user?->name}."
+                    : 'Aguardando condutor disponível ou fechamento do lote econômico.',
+                'timestamp' => $order->assigned_at?->toIso8601String() ?? ($order->status !== 'pending' ? $order->updated_at?->toIso8601String() : null),
+                'completed' => in_array($order->status, ['assigned', 'picked_up', 'delivered']),
+            ],
+            [
+                'step' => 'picked_up',
+                'title' => 'Mercadoria Coletada',
+                'description' => 'Pacote em trânsito com o condutor a caminho do destino.',
+                'timestamp' => $order->picked_up_at?->toIso8601String(),
+                'completed' => in_array($order->status, ['picked_up', 'delivered']),
+            ],
+            [
+                'step' => 'delivered',
+                'title' => 'Entrega Concluída',
+                'description' => 'Mercadoria entregue com sucesso.',
+                'timestamp' => $order->delivered_at?->toIso8601String(),
+                'completed' => $order->status === 'delivered',
+            ],
+        ];
+
+        return response()->json([
+            'order_id' => $order->id,
+            'status' => $order->status,
+            'shipping_type' => $order->shipping_type,
+            'package_description' => $order->package_description,
+            'package_weight_kg' => (float) $order->package_weight_kg,
+            'origin_address' => $order->origin_address,
+            'dest_address' => $order->dest_address,
+            'courier' => $order->courier ? [
+                'id' => $order->courier->id,
+                'name' => $order->courier->user?->name,
+                'phone' => $order->courier->user?->phone,
+                'vehicle_type' => $order->courier->vehicle_type,
+                'vehicle_plate' => $order->courier->vehicle_plate,
+            ] : null,
+            'proof_photo_url' => $order->proof_photo_url,
+            'delivery_code' => (($isOwnerClient && !$isAssignedCourier) || $isAdmin || $order->status === 'delivered')
+                ? $order->delivery_code
+                : null,
+            'timeline' => $timeline,
+        ]);
+    }
+
+    /**
+     * Atualização manual de status do ciclo de vida com validações estritas.
+     * PATCH /api/orders/{id}/status
+     */
+    public function updateStatus(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $courier = $user->courier;
+
+        $order = Order::find($id);
+        if (!$order) {
+            return response()->json(['message' => 'Pedido não encontrado.'], 404);
+        }
+
+        if (!$user->hasFullAccess() && (!$courier || $order->courier_id !== $courier->id)) {
+            return response()->json(['message' => 'Acesso negado: você não tem permissão para atualizar este pedido.'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => ['required', 'string', Rule::in(['picked_up', 'delivered', 'canceled'])],
+            'proof_photo_url' => ['nullable', 'string'],
+            'delivery_code' => ['nullable', 'string'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Parâmetros de status inválidos.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $targetStatus = $request->input('status');
+
+        if ($targetStatus === 'picked_up') {
+            if ($order->status !== 'assigned') {
+                return response()->json([
+                    'message' => "Transição inválida: o pedido deve estar no status 'assigned' para ser coletado. Status atual: {$order->status}.",
+                ], 422);
+            }
+
+            $order->update([
+                'status' => 'picked_up',
+                'picked_up_at' => now(),
+            ]);
+
+            \App\Models\GroupOrder::where('order_id', $order->id)
+                ->where('stop_type', 'pickup')
+                ->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                ]);
+
+            $group = $order->currentDeliveryGroup();
+            if ($group && $group->status === 'assigned') {
+                $group->update(['status' => 'in_progress']);
+            }
+        } elseif ($targetStatus === 'delivered') {
+            if ($order->status !== 'picked_up') {
+                return response()->json([
+                    'message' => "Transição inválida: o pedido deve ser marcado como 'picked_up' antes de ser finalizado. Status atual: {$order->status}.",
+                ], 422);
+            }
+
+            $deliveryCode = $request->input('delivery_code');
+            $proofPhotoUrl = $request->input('proof_photo_url');
+            $resolvedProof = null;
+
+            if ($deliveryCode !== null && trim($deliveryCode) !== '') {
+                $cleanCode = trim($deliveryCode);
+                if (empty($order->delivery_code) || $cleanCode !== (string) $order->delivery_code) {
+                    return response()->json([
+                        'message' => 'Código de confirmação de 6 dígitos inválido. Verifique o código com o destinatário ou lojista.',
+                    ], 422);
+                }
+                $resolvedProof = $proofPhotoUrl ?: "CODIGO_VALIDADO:{$cleanCode}";
+            } else {
+                $resolvedProof = $proofPhotoUrl ?: $order->proof_photo_url;
+                if (empty($resolvedProof)) {
+                    return response()->json([
+                        'message' => 'Comprovante de entrega obrigatório: envie uma foto do comprovante ou digite o código de 6 dígitos do pedido.',
+                    ], 422);
+                }
+            }
+
+            $order->update([
+                'status' => 'delivered',
+                'delivered_at' => now(),
+                'proof_photo_url' => $resolvedProof,
+            ]);
+
+            \App\Models\GroupOrder::where('order_id', $order->id)
+                ->where('stop_type', 'delivery')
+                ->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                ]);
+
+            $group = $order->currentDeliveryGroup();
+            if ($group) {
+                $pending = \App\Models\GroupOrder::where('delivery_group_id', $group->id)
+                    ->where('status', '!=', 'completed')
+                    ->count();
+                if ($pending === 0) {
+                    $group->update(['status' => 'completed']);
+                }
+            }
+        } elseif ($targetStatus === 'canceled') {
+            $order->update(['status' => 'canceled']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Status atualizado com sucesso para '{$order->status}'.",
+            'order' => $order->fresh(['client.user', 'courier.user']),
+        ]);
+    }
+
+    /**
+     * Upload de foto como comprovante de entrega.
+     * POST /api/orders/{id}/proof
+     */
+    public function uploadProof(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $courier = $user->courier;
+
+        $order = Order::find($id);
+        if (!$order) {
+            return response()->json(['message' => 'Pedido não encontrado.'], 404);
+        }
+
+        if (!$user->hasFullAccess() && (!$courier || $order->courier_id !== $courier->id)) {
+            return response()->json(['message' => 'Acesso negado: você não tem permissão para anexar comprovante a este pedido.'], 403);
+        }
+
+        $photoUrl = null;
+
+        if ($request->hasFile('photo')) {
+            $validator = Validator::make($request->all(), [
+                'photo' => ['image', 'max:10240'],
+            ]);
+            if ($validator->fails()) {
+                return response()->json(['message' => 'Arquivo inválido.', 'errors' => $validator->errors()], 422);
+            }
+            $path = $request->file('photo')->store('proofs', 'public');
+            $photoUrl = '/storage/' . $path;
+        } elseif ($request->filled('photo_base64')) {
+            $base64 = $request->input('photo_base64');
+            $type = 'jpg';
+            if (preg_match('/^data:image\/(\w+);base64,/', $base64, $matches)) {
+                $base64 = substr($base64, strpos($base64, ',') + 1);
+                $type = strtolower($matches[1]);
+            }
+            $data = base64_decode($base64);
+            $fileName = 'proofs/proof_' . $order->id . '_' . time() . '.' . $type;
+            \Illuminate\Support\Facades\Storage::disk('public')->put($fileName, $data);
+            $photoUrl = '/storage/' . $fileName;
+        } elseif ($request->filled('proof_url')) {
+            $photoUrl = $request->input('proof_url');
+        } else {
+            return response()->json(['message' => 'Nenhuma imagem ou URL de comprovante fornecida.'], 422);
+        }
+
+        $order->update([
+            'proof_photo_url' => $photoUrl,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Comprovante anexado com sucesso!',
+            'proof_photo_url' => $photoUrl,
+            'order' => $order->fresh(),
         ]);
     }
 }

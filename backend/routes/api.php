@@ -76,8 +76,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/cancel', [OrderController::class, 'cancel']);
     });
 
-    // Detalhes do Pedido (acessível por Lojista dono, Entregador atribuído ou Admin)
+    // Detalhes e Rastreamento do Pedido (acessível por Lojista dono, Entregador atribuído ou Admin)
     Route::get('/orders/{id}', [OrderController::class, 'show']);
+    Route::get('/orders/{id}/tracking', [OrderController::class, 'tracking']);
+    Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+    Route::post('/orders/{id}/proof', [OrderController::class, 'uploadProof']);
 
     // Courier protected zone (Sprint 3: Radar Expresso e Concorrência)
     Route::middleware('role.courier')->group(function () {
@@ -100,6 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/status', [ExpressDispatchController::class, 'updateStatus']);
             Route::post('/location', [ExpressDispatchController::class, 'updateLocation']);
             Route::get('/financial-statement', [FinancialController::class, 'getCourierStatement']);
+            Route::get('/active-group', [DeliveryGroupController::class, 'activeGroup']);
         });
 
         // Ciclo de vida da entrega expressa sob demanda
@@ -109,9 +113,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders/{id}/deliver', [ExpressDispatchController::class, 'deliver']);
         Route::post('/orders/{id}/cancel-delivery', [ExpressDispatchController::class, 'cancelDelivery']);
 
-        // Lotes Econômicos do Entregador (Sprint 4)
+        // Lotes Econômicos do Entregador (Sprint 4 & Sprint 6)
         Route::get('/courier/delivery-groups', [DeliveryGroupController::class, 'courierGroups']);
         Route::get('/courier/delivery-groups/{id}', [DeliveryGroupController::class, 'show']);
+        Route::post('/courier/delivery-groups/{id}/start', [DeliveryGroupController::class, 'startGroup']);
+        Route::post('/courier/delivery-groups/{id}/complete', [DeliveryGroupController::class, 'completeGroup']);
     });
 
     // Módulo de Agrupamento e Lote Econômico (Sprint 4: Execução sob demanda para testes manuais e admin)

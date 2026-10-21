@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppInsets } from '../src/hooks/useAppInsets';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Input } from '../src/components/Input';
@@ -19,7 +19,8 @@ import { api } from '../src/services/api';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, quickLogin, isLoading } = useAuth();
+  const insets = useAppInsets();
+  const { login, isLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,7 +42,9 @@ export default function LoginScreen() {
     try {
       const user = await login({ email: email.trim(), password });
       
-      if (user.role === 'client' || user.role === 'admin') {
+      if (user.role === 'admin') {
+        router.replace('/(client)/admin');
+      } else if (user.role === 'client') {
         router.replace('/(client)/dashboard');
       } else if (user.role === 'courier') {
         router.replace('/(courier)/dashboard');
@@ -55,32 +58,14 @@ export default function LoginScreen() {
     }
   }
 
-  async function handleQuickLogin(targetRole: 'admin' | 'client' | 'courier') {
-    setErrorMessage(null);
-    try {
-      const user = await quickLogin(targetRole);
-      if (user.role === 'client' || user.role === 'admin') {
-        router.replace('/(client)/dashboard');
-      } else if (user.role === 'courier') {
-        router.replace('/(courier)/dashboard');
-      }
-    } catch (error: any) {
-      console.warn('Erro quick login:', error);
-      const isNetError = error.message?.includes('Network Error') || !error.response;
-      const msg = error.response?.data?.message || 
-        (isNetError ? `Erro de rede ao conectar em ${api.defaults.baseURL}` : 'Não foi possível realizar o login automático de teste.');
-      setErrorMessage(msg);
-    }
-  }
-
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + SPACING.xl }]}
           showsVerticalScrollIndicator={false}
         >
           {/* Header Back Button */}
@@ -146,42 +131,6 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Test Users Quick Logins */}
-          <View style={[styles.demoContainer, SHADOWS.sm]}>
-            <View style={styles.demoHeaderRow}>
-              <Ionicons name="flash-outline" size={14} color={COLORS.accent} />
-              <Text style={styles.demoTitle}>Acesso Rápido (Sprint 2)</Text>
-            </View>
-            <View style={styles.demoRow}>
-              <TouchableOpacity
-                style={[styles.demoBtn, styles.demoAdminBtn]}
-                onPress={() => handleQuickLogin('admin')}
-                testID="login-quick-admin"
-              >
-                <Ionicons name="shield-checkmark-outline" size={13} color="#D97706" style={{ marginRight: 4 }} />
-                <Text style={styles.demoBtnText}>Admin</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.demoBtn, styles.demoClientBtn]}
-                onPress={() => handleQuickLogin('client')}
-                testID="login-quick-client"
-              >
-                <Ionicons name="storefront-outline" size={13} color="#2563EB" style={{ marginRight: 4 }} />
-                <Text style={styles.demoBtnText}>Lojista</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.demoBtn, styles.demoCourierBtn]}
-                onPress={() => handleQuickLogin('courier')}
-                testID="login-quick-courier"
-              >
-                <Ionicons name="bicycle-outline" size={13} color="#059669" style={{ marginRight: 4 }} />
-                <Text style={styles.demoBtnText}>Entregador</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {/* Footer Register Link */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>Ainda não tem uma conta? </Text>
@@ -191,7 +140,7 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

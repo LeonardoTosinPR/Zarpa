@@ -1,0 +1,53 @@
+appId: com.zarpa.mobile
+---
+# Scenario 1: Launch App and Login as Courier (Entregador)
+- launchApp:
+    clearState: true
+- assertVisible: "Zarpa"
+- assertVisible: "Acessar Minha Conta"
+- tapOn: "Acessar Minha Conta"
+- tapOn: "🛵 Entregador"
+- assertVisible: "Entregador Parceiro"
+
+# Scenario 2: Access Route Agenda from Dashboard or Batches
+- tapOn: "Agenda de Rotas Sequenciadas"
+- assertVisible: "Agenda de Rotas"
+- assertVisible: "Progresso das Paradas"
+- assertVisible: "SEU GANHO TOTAL"
+- takeScreenshot: courier_route_agenda_overview
+
+# Scenario 3: Operational Action - Confirm Pickup and Open GPS Navigation
+- tapOn:
+    id: "nav-full-route-gps-btn"
+- assertVisible: "Navegar com GPS Externo"
+- tapOn: "Cancelar"
+- tapOn:
+    id: "confirm-pickup-btn-1"
+- takeScreenshot: courier_pickup_confirmed
+
+# Scenario 4: Operational Action - Confirm Delivery with Proof Photo
+- tapOn:
+    id: "confirm-delivery-btn-2"
+- assertVisible: "Confirmar Entrega"
+- assertVisible: "Comprovante de Entrega (Foto / Link):"
+- tapOn: "Confirmar e Finalizar"
+- takeScreenshot: courier_delivery_completed
+
+# Scenario 5: Logout and Login as Merchant (Lojista)
+- tapOn: "Voltar"
+- tapOn: "Meu Perfil"
+- scroll
+- tapOn: "Encerrar Sessão"
+- assertVisible: "Acessar Minha Conta"
+- tapOn: "Acessar Minha Conta"
+- tapOn: "🏪 Lojista"
+
+# Scenario 6: Merchant Tracks Order Lifecycle Timeline & Proof
+- tapOn: "Pedidos"
+- assertVisible: "Meus Pedidos"
+- tapOn: "Rastrear Pedido (Linha do Tempo)"
+- assertVisible: "Linha do Tempo"
+- assertVisible: "Mercadoria Coletada"
+- assertVisible: "Entrega Concluída"
+- takeScreenshot: merchant_tracking_timeline_success
+

@@ -135,8 +135,153 @@ class DeliveryGroupController extends Controller
             return response()->json(['message' => 'Lote econômico não encontrado.'], 404);
         }
 
-        // Formata as paradas de forma amigável para o app mobile
-        $formattedStops = $group->groupOrders->map(function ($go) {
+        return response()->json($this->formatGroupDetails($group));
+    }
+
+    /**
+     * Retorna o lote econômico ativo para o condutor autenticado.
+     * GET /api/courier/active-group
+     */
+    public function activeGroup(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $courier = Courier::where('user_id', $user->id)->first();
+
+        if (!$courier && !$user->hasFullAccess()) {
+            return response()->json(['message' => 'Perfil de condutor não localizado.'], 403);
+        }
+
+        $courierId = $courier?->id;
+
+        $query = DeliveryGroup::with([
+            'courier.user',
+            'groupOrders.order.client.user',
+            'orders.client.user',
+        ])->has('orders');
+
+        if ($courierId) {
+            $query->where(function ($q) use ($courierId) {
+                $q->where('courier_id', $courierId)
+                  ->orWhereNull('courier_id');
+            });
+        }
+
+        // Prioridade 1: lote 'in_progress'
+        $group = (clone $query)->where('status', 'in_progress')->first();
+
+        // Prioridade 2: lote 'assigned'
+        if (!$group) {
+            $group = (clone $query)->where('status', 'assigned')->latest('scheduled_date')->first();
+        }
+
+        if (!$group) {
+            return response()->json([
+                'active_group' => null,
+                'message' => 'Nenhum lote econômico ativo no momento.',
+            ], 200);
+        }
+
+        return response()->json([
+            'active_group' => $this->formatGroupDetails($group),
+        ]);
+    }
+
+    /**
+     * Inicia a jornada de execução do lote pelo condutor.
+     * POST /api/courier/delivery-groups/{id}/start
+     */
+    public function startGroup(Request $request, int $id): JsonResponse
+    {
+        $user = Auth::user();
+        $courier = Courier::where('user_id', $user->id)->first();
+
+        $group = DeliveryGroup::find($id);
+        if (!$group) {
+            return response()->json(['message' => 'Lote econômico não encontrado.'], 404);
+        }
+
+        if ($courier && $group->courier_id && $group->courier_id !== $courier->id && !$user->hasFullAccess()) {
+            return response()->json(['message' => 'Acesso negado: este lote pertence a outro condutor.'], 403);
+        }
+
+        // Se o lote ainda não tinha courier atribuído, atribui a este condutor
+        if ($courier && !$group->courier_id) {
+            $group->courier_id = $courier->id;
+        }
+
+        if ($group->status === 'completed' || $group->status === 'canceled') {
+            return response()->json([
+                'message' => "Lote econômico não pode ser iniciado porque já está com status '{$group->status}'.",
+            ], 422);
+        }
+
+        $group->status = 'in_progress';
+        $group->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Jornada do lote econômico iniciada com sucesso! Boa rota.',
+            'group' => $this->formatGroupDetails($group->fresh([
+                'courier.user',
+                'groupOrders.order.client.user',
+                'orders.client.user',
+            ])),
+        ]);
+    }
+
+    /**
+     * Conclui a execução do lote econômico.
+     * POST /api/courier/delivery-groups/{id}/complete
+     */
+    public function completeGroup(Request $request, int $id): JsonResponse
+    {
+        $user = Auth::user();
+        $courier = Courier::where('user_id', $user->id)->first();
+
+        $group = DeliveryGroup::find($id);
+        if (!$group) {
+            return response()->json(['message' => 'Lote econômico não encontrado.'], 404);
+        }
+
+        if ($courier && $group->courier_id !== $courier->id && !$user->hasFullAccess()) {
+            return response()->json(['message' => 'Acesso negado: este lote pertence a outro condutor.'], 403);
+        }
+
+        // Verifica se existem pedidos não entregues
+        $pendingOrders = $group->orders()->where('orders.status', '!=', 'delivered')->count();
+        if ($pendingOrders > 0) {
+            return response()->json([
+                'message' => "Não é possível concluir o lote: ainda restam {$pendingOrders} entregas pendentes.",
+            ], 422);
+        }
+
+        $group->status = 'completed';
+        $group->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Parabéns! Todas as entregas do lote econômico foram concluídas.',
+            'group' => $this->formatGroupDetails($group->fresh([
+                'courier.user',
+                'groupOrders.order.client.user',
+                'orders.client.user',
+            ])),
+        ]);
+    }
+
+    /**
+     * Formata os dados consolidados do lote e suas paradas ordenadas cronologicamente.
+     */
+    protected function formatGroupDetails(DeliveryGroup $group): array
+    {
+        $deliveriesCount = $group->groupOrders->where('stop_type', 'delivery')->count();
+        $ordersCount = $deliveriesCount > 0 ? $deliveriesCount : $group->orders->pluck('id')->unique()->count();
+        $routeFare = round((float) $group->total_distance_km * 2.50, 2);
+        $stopFees = round($ordersCount * 3.00, 2); // Regra Zarpa: R$ 3,00 por entrega atendida
+        $courierBonus = (float) $group->courier_bonus;
+        $totalEarnings = round($routeFare + $stopFees + $courierBonus, 2);
+
+        $formattedStops = $group->groupOrders->sortBy('stop_sequence')->values()->map(function ($go) {
             $order = $go->order;
             $isPickup = $go->stop_type === 'pickup';
 
@@ -144,20 +289,29 @@ class DeliveryGroupController extends Controller
                 'id' => $go->id,
                 'stop_sequence' => $go->stop_sequence,
                 'stop_type' => $go->stop_type,
+                'status' => $go->status ?? ($isPickup && in_array($order?->status, ['picked_up', 'delivered']) ? 'completed' : ($order?->status === 'delivered' ? 'completed' : 'pending')),
+                'completed_at' => $go->completed_at?->toIso8601String(),
                 'order_id' => $go->order_id,
                 'order_status' => $order?->status,
                 'package_description' => $order?->package_description,
+                'package_weight_kg' => (float) ($order?->package_weight_kg ?? 1.0),
                 'client_name' => $order?->client?->business_name ?? $order?->client?->user?->name,
+                'client_phone' => $order?->client?->user?->phone,
                 'address' => $isPickup ? $order?->origin_address : $order?->dest_address,
                 'lat' => (float) ($isPickup ? $order?->origin_lat : $order?->dest_lat),
                 'lng' => (float) ($isPickup ? $order?->origin_lng : $order?->dest_lng),
                 'isolated_distance_km' => (float) $go->isolated_distance_km,
                 'shared_distance_km' => (float) $go->shared_distance_km,
                 'merchant_discount' => (float) $go->merchant_discount,
+                'proof_photo_url' => $order?->proof_photo_url,
             ];
         });
 
-        return response()->json([
+        $totalStops = $formattedStops->count();
+        $completedStops = $formattedStops->where('status', 'completed')->count();
+        $currentStop = $formattedStops->firstWhere('status', '!=', 'completed') ?? $formattedStops->last();
+
+        return [
             'id' => $group->id,
             'courier_id' => $group->courier_id,
             'courier_name' => $group->courier?->user?->name,
@@ -167,10 +321,16 @@ class DeliveryGroupController extends Controller
             'status' => $group->status,
             'total_combined_cost' => (float) $group->total_combined_cost,
             'total_savings_generated' => (float) $group->total_savings_generated,
-            'courier_bonus' => (float) $group->courier_bonus,
+            'route_fare' => $routeFare,
+            'stop_fees' => $stopFees,
+            'courier_bonus' => $courierBonus,
+            'total_earnings' => $totalEarnings,
             'route_geometry' => $group->route_geometry,
-            'total_stops' => $formattedStops->count(),
+            'total_stops' => $totalStops,
+            'completed_stops_count' => $completedStops,
+            'current_stop' => $currentStop,
+            'is_all_completed' => $totalStops > 0 && $completedStops === $totalStops,
             'stops' => $formattedStops,
-        ]);
+        ];
     }
 }

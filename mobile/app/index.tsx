@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppInsets } from '../src/hooks/useAppInsets';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../src/constants/theme';
 import { useAuth } from '../src/context/AuthContext';
 import { Button } from '../src/components/Button';
@@ -18,8 +18,8 @@ import { api } from '../src/services/api';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { user, role, isAuthenticated, isLoading, quickLogin } = useAuth();
-  const [quickLoginLoading, setQuickLoginLoading] = React.useState<string | null>(null);
+  const insets = useAppInsets();
+  const { role, isAuthenticated, isLoading } = useAuth();
 
   // Automatic routing if already authenticated
   useEffect(() => {
@@ -29,32 +29,10 @@ export default function WelcomeScreen() {
       } else if (role === 'courier') {
         router.replace('/(courier)/dashboard');
       } else if (role === 'admin') {
-        router.replace('/(client)/dashboard');
+        router.replace('/(client)/admin');
       }
     }
   }, [isLoading, isAuthenticated, role]);
-
-  const handleQuickLogin = async (targetRole: 'admin' | 'client' | 'courier') => {
-    try {
-      setQuickLoginLoading(targetRole);
-      const loggedUser = await quickLogin(targetRole);
-      if (loggedUser.role === 'courier') {
-        router.replace('/(courier)/dashboard');
-      } else {
-        router.replace('/(client)/dashboard');
-      }
-    } catch (err: any) {
-      const isNetError = err.message?.includes('Network Error') || !err.response;
-      Alert.alert(
-        'Erro ao Conectar ao Backend',
-        isNetError
-          ? `Não foi possível alcançar o servidor em:\n\n${api.defaults.baseURL}\n\nVerifique se o backend está acessível e se o celular está na mesma rede.`
-          : (err.response?.data?.message || 'Falha ao autenticar.')
-      );
-    } finally {
-      setQuickLoginLoading(null);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -66,9 +44,9 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + SPACING.xl }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Section */}
@@ -131,59 +109,8 @@ export default function WelcomeScreen() {
             testID="welcome-register-button"
           />
         </View>
-
-        {/* Quick Demo Credentials for Fast Testing */}
-        <View style={styles.demoSection}>
-          <View style={styles.demoHeaderRow}>
-            <Ionicons name="flash-outline" size={15} color={COLORS.accent} />
-            <Text style={styles.demoTitle}>Acesso Rápido (Sprint 2)</Text>
-          </View>
-          <View style={styles.demoButtonsRow}>
-            <TouchableOpacity
-              style={[styles.demoPill, styles.demoAdmin]}
-              onPress={() => handleQuickLogin('admin')}
-              disabled={!!quickLoginLoading}
-              testID="quick-login-admin"
-            >
-              {quickLoginLoading === 'admin' ? (
-                <ActivityIndicator size="small" color="#D97706" style={{ marginRight: 4 }} />
-              ) : (
-                <Ionicons name="shield-checkmark-outline" size={14} color="#D97706" style={{ marginRight: 4 }} />
-              )}
-              <Text style={styles.demoPillText}>Admin</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.demoPill, styles.demoClient]}
-              onPress={() => handleQuickLogin('client')}
-              disabled={!!quickLoginLoading}
-              testID="quick-login-client"
-            >
-              {quickLoginLoading === 'client' ? (
-                <ActivityIndicator size="small" color="#2563EB" style={{ marginRight: 4 }} />
-              ) : (
-                <Ionicons name="storefront-outline" size={14} color="#2563EB" style={{ marginRight: 4 }} />
-              )}
-              <Text style={styles.demoPillText}>Lojista</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.demoPill, styles.demoCourier]}
-              onPress={() => handleQuickLogin('courier')}
-              disabled={!!quickLoginLoading}
-              testID="quick-login-courier"
-            >
-              {quickLoginLoading === 'courier' ? (
-                <ActivityIndicator size="small" color="#059669" style={{ marginRight: 4 }} />
-              ) : (
-                <Ionicons name="bicycle-outline" size={14} color="#059669" style={{ marginRight: 4 }} />
-              )}
-              <Text style={styles.demoPillText}>Entregador</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -54,6 +54,8 @@ export interface AdminOrderItem {
   dest_address: string;
   origin_lat: number;
   dest_lat: number;
+  delivery_code?: string | null;
+  proof_photo_url?: string | null;
   created_at: string;
   client?: {
     id: number;
@@ -84,6 +86,43 @@ export interface AdminOrdersMetrics {
   delivered: number;
   canceled: number;
   total_freight_value: number;
+}
+
+export interface AdminBatchGroupItem {
+  id: number;
+  courier_id: number | null;
+  scheduled_date: string;
+  total_distance_km: number;
+  total_duration_minutes: number;
+  status: string;
+  total_combined_cost: number;
+  total_savings_generated: number;
+  courier_bonus: number;
+  courier?: {
+    id: number;
+    user?: {
+      name: string;
+    };
+  } | null;
+  orders?: Array<{ id: number }>;
+}
+
+export interface AdminBatchSummary {
+  pending_economic_orders: number;
+  total_weight_kg: number;
+  next_batch_scheduled: string;
+  recent_groups: AdminBatchGroupItem[];
+}
+
+export interface ProcessBatchResult {
+  success: boolean;
+  message: string;
+  scheduled_date?: string;
+  orders_processed: number;
+  groups_created: number;
+  unassigned_orders?: number;
+  total_savings_generated: number;
+  groups?: any[];
 }
 
 export const adminService = {
@@ -122,6 +161,26 @@ export const adminService = {
   }> {
     const payload = isActive !== undefined ? { is_active: isActive } : {};
     const res = await api.patch(`/admin/couriers/${courierId}/status`, payload);
+    return res.data;
+  },
+
+  /**
+   * Consulta o resumo da fila de pedidos econômicos pendentes e lotes recentes
+   */
+  async getBatchSummary(): Promise<AdminBatchSummary> {
+    const res = await api.get('/batch/summary');
+    return res.data;
+  },
+
+  /**
+   * Dispara manualmente o processamento do lote econômico noturno (Rateio 50/50)
+   */
+  async processEconomicBatch(params?: {
+    scheduled_date?: string;
+    radius?: number;
+    dry_run?: boolean;
+  }): Promise<ProcessBatchResult> {
+    const res = await api.post('/batch/process-economic', params || {});
     return res.data;
   },
 };

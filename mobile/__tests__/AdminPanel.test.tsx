@@ -241,4 +241,61 @@ describe('Admin Panel Modules (Gestão Global do App)', () => {
     expect(getByText('Lucas Motoboy Guarapuava')).toBeTruthy();
     expect(getByText('Aguardando atribuição')).toBeTruthy();
   });
+
+  it('allows admin to manually execute the night batch (Rateio 50/50) and displays results', async () => {
+    jest.spyOn(adminService, 'getUsers').mockResolvedValue({
+      users: mockUsers,
+      metrics: {
+        total: 3,
+        clients: 1,
+        couriers: 1,
+        admins: 1,
+        online_couriers: 1,
+      },
+    });
+    jest.spyOn(adminService, 'getOrders').mockResolvedValue({
+      orders: mockOrders,
+      metrics: {
+        total: 2,
+        express: 1,
+        economic: 1,
+        pending: 1,
+        in_progress: 1,
+        delivered: 0,
+        canceled: 0,
+        total_freight_value: 33.0,
+      },
+    });
+    jest.spyOn(adminService, 'getBatchSummary').mockResolvedValue({
+      pending_economic_orders: 5,
+      total_weight_kg: 12.5,
+      next_batch_scheduled: '2026-10-21 02:00',
+      recent_groups: [],
+    });
+    const processSpy = jest.spyOn(adminService, 'processEconomicBatch').mockResolvedValue({
+      success: true,
+      message: 'Processamento concluído.',
+      orders_processed: 5,
+      groups_created: 1,
+      total_savings_generated: 18.4,
+    });
+
+    const { getByTestId, findByTestId, getByText } = render(
+      <AuthProvider>
+        <AdminPanelScreen />
+      </AuthProvider>
+    );
+
+    const runBatchBtn = getByTestId('admin-trigger-batch-btn');
+    expect(runBatchBtn).toBeTruthy();
+    fireEvent.press(runBatchBtn);
+
+    await waitFor(() => {
+      expect(processSpy).toHaveBeenCalledWith({ dry_run: false });
+    });
+
+    const resultBanner = await findByTestId('admin-batch-result-banner');
+    expect(resultBanner).toBeTruthy();
+    expect(getByText(/Economia Total 50\/50 Gerada: R\$ 18\.40/)).toBeTruthy();
+  });
 });
