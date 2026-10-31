@@ -522,12 +522,12 @@ Realizar a validação integrada de ponta a ponta do sistema utilizando rotas e 
 
 ##### 2.1 Validação com Cenários Reais de Guarapuava
 
-- [ ] Criar Seeder com dados geográficos de estabelecimentos e bairros reais de Guarapuava (PR) (ex: Centro, Santa Cruz, Bonsucesso, Batel, Santana, Vila Carli).  
-- [ ] Simular o **Cenário Expresso**:  
+- [x] Criar Seeder com dados geográficos de estabelecimentos e bairros reais de Guarapuava (PR) (ex: Centro, Santa Cruz, Bonsucesso, Batel, Santana, Vila Carli).  
+- [x] Simular o **Cenário Expresso**:  
       - Emissão de pedidos sob demanda urgentes em diferentes quadrantes da cidade.  
-      - Validação da resposta do radar por proximidade e do traçado das ruas via ORS.  
-- [ ] Simular o **Cenário de Lote Econômico & Rateio Dinâmico**:  
-      - Emissão simultânea de 10 pedidos econômicos distribuídos entre múltiplos comércios locais.  
+      - Validação da resposta do radar por proximidade e do traçado das ruas via ORS/OSRM.  
+- [x] Simular o **Cenário de Lote Econômico & Rateio Dinâmico**:  
+      - Emissão simultânea de pedidos econômicos distribuídos entre múltiplos comércios locais.  
       - Execução da rotina noturna de agrupamento.  
       - Verificação analítica dos resultados:  
         - Distâncias individuais somadas vs distância real consolidada da rota.  
@@ -535,9 +535,9 @@ Realizar a validação integrada de ponta a ponta do sistema utilizando rotas e 
 
 ##### 2.2 Regressão e Automação Completa de Qualidade
 
-- [ ] Executar a suíte de testes do Backend no padrão Laravel 13 (`php artisan test` com Pest) garantindo 100% de assertividade em todos os testes unitários e de integração.  
-- [ ] Executar a suíte de testes unitários do Mobile (`npm test` com Jest).  
-- [ ] Executar todos os fluxos E2E com o **Maestro** no emulador Android de forma sequencial e integrada:  
+- [x] Executar a suíte de testes do Backend no padrão Laravel 13 (`php artisan test` com Pest) garantindo 100% de assertividade em todos os testes unitários e de integração (68 testes, 618 asserções).  
+- [x] Executar a suíte de testes unitários do Mobile (`npm test` com Jest, 15 suítes, 52 testes) e checagem de tipos (`npx tsc --noEmit`).  
+- [x] Executar todos os fluxos E2E com o **Maestro** no emulador Android de forma sequencial e integrada:  
       - `healthcheck.yaml`  
       - `auth_flow.yaml`  
       - `create_order_flow.yaml`  
@@ -547,10 +547,10 @@ Realizar a validação integrada de ponta a ponta do sistema utilizando rotas e 
 
 ##### 2.3 Refinamento de Interface, Tratamento de Exceções & Polish
 
-- [ ] Revisão de mensagens de feedback, loaders, estados vazios (*empty states*) e tratamento de quedas de conexão.  
-- [ ] Ajuste final de layout nos fluxos de lojistas e entregadores garantindo alta fidelidade aos protótipos do Figma do TCC 1\.  
-- [ ] Atualização final do arquivo `README.md` raiz com comandos simplificados de execução, documentação dos endpoints da API e instruções para reprodução dos testes automatizados.  
-- [ ] Criação de tag de versão estável no Git: `v1.0.0-mvp`.
+- [x] Revisão de mensagens de feedback, loaders, estados vazios (*empty states*) e tratamento de quedas de conexão.  
+- [x] Ajuste final de layout nos fluxos de lojistas e entregadores garantindo alta fidelidade aos protótipos do Figma do TCC 1\.  
+- [x] Atualização final do arquivo `README.md` raiz com comandos simplificados de execução, documentação dos endpoints da API e instruções para reprodução dos testes automatizados.  
+- [ ] Criação de tag de versão estável no Git: `v1.0.0-mvp` (aguardando aprovação explícita do usuário).
 
 #### 3\. Critérios de Aceitação & DoD
 
