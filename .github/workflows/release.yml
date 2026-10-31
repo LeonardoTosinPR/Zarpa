@@ -1,0 +1,98 @@
+name: Build Android APK and Publish GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag de versão para a release (ex: v1.0.0-mvp)'
+        required: false
+        default: 'v1.0.0-mvp'
+
+jobs:
+  build-apk:
+    name: Build Android APK (Expo SDK 54)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install Mobile Dependencies
+        run: npm ci
+
+      - name: Run TypeScript Typecheck
+        run: npx tsc --noEmit
+
+      - name: Run Unit Tests
+        run: npm test -- --ci --maxWorkers=2
+
+      - name: Prebuild Native Android Project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
+
+      - name: Build Android Release APK
+        run: |
+          cd android
+          # Compila o APK Android diretamente
+          ./gradlew assembleRelease || ./gradlew assembleDebug
+
+      - name: Locate and Rename APK
+        id: apk-prep
+        run: |
+          # Procura o APK gerado no diretório de build
+          APK_PATH=$(find android/app/build/outputs/apk/ -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "Nenhum APK encontrado!"
+            exit 1
+          fi
+          echo "APK encontrado em: $APK_PATH"
+          cp "$APK_PATH" ./zarpa-app-v1.0.0-mvp.apk
+          echo "apk_path=mobile/zarpa-app-v1.0.0-mvp.apk" >> $GITHUB_OUTPUT
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zarpa-android-apk
+          path: mobile/zarpa-app-v1.0.0-mvp.apk
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          name: "Release ${{ github.ref_name || inputs.tag_name }} — Zarpa MVP"
+          tag_name: ${{ github.ref_name || inputs.tag_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            mobile/zarpa-app-v1.0.0-mvp.apk
+            docs/relatorios/homologacao_final_mvp_tcc2.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

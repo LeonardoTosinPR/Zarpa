@@ -4,7 +4,7 @@
 > **Autor**: Leonardo Tosin | **Orientador**: Prof. Dr. Andres Jessé Porfirio  
 > **Período de Execução**: 25/08/2026 a 31/10/2026  
 > **Figma UI/UX**: [Protótipo no Figma (zarpa-entregas)](https://www.figma.com/design/TIzcx26iKkfJtdGsidStqD/zarpa-entregas?node-id=4-2&p=f)  
-> **Status do Repositório**: 🏁 **Sprint 6 Concluída** (`sprint/6-execucao-rotas-status-navegacao`)
+> **Status do Repositório**: 🏁 **Sprint 7 Concluída e MVP Homologado** (`sprint/7-validacao-cenarios-reais-homologacao`)
 
 ---
 
@@ -18,12 +18,14 @@ Navegue diretamente pelos módulos de engenharia e especificações do monorepo:
 | 📱 **Mobile (App)** | App React Native com Expo SDK 54, Expo Router, Leaflet/OSM, Design System e Jest | 👉 [**Acessar README Mobile**](mobile/README.md) |
 | 📐 **Arquitetura** | Arquitetura em camadas, diagramas de sequência, segurança e DER Geoespacial | 👉 [**Acessar ARQUITETURA.md**](docs/ARQUITETURA.md) |
 | 📅 **Plano de Sprints** | Cronograma consolidado, matriz MoSCoW/RICE e planejamento detalhado (TCC 2) | 👉 [**Acessar PLANO_SPRINTS_TCC2_ZARPA.md**](docs/PLANO_SPRINTS_TCC2_ZARPA.md) |
+| 🏆 **Relatório de Homologação Final** | Auditoria empírica de 43 lotes, 156 pedidos e conformidade de requisitos do MVP | 👉 [**Acessar Relatório de Homologação Final**](docs/relatorios/homologacao_final_mvp_tcc2.md) |
 
 ### 🏁 Histórico e Detalhamento das Sprints
 
 | Sprint | Tema Central da Sprint | Documento de Especificação |
 | :--- | :--- | :--- |
-| 🗺️ **Sprint 6 (Atual)** | Execução Operacional de Rotas, Comprovante por Código (6 dígitos) ou Foto, Bônus Unificado e GPS Externo | 👉 [**docs/sprints/sprint_6.md**](docs/sprints/sprint_6.md) |
+| 🏆 **Sprint 7 (Final / Homologada)** | Validação em Cenários Reais de Guarapuava, Regressão E2E e Homologação Final do MVP | 👉 [**docs/sprints/sprint_7.md**](docs/sprints/sprint_7.md) |
+| 🗺️ **Sprint 6** | Execução Operacional de Rotas, Comprovante por Código (6 dígitos) ou Foto, Bônus Unificado e GPS Externo | 👉 [**docs/sprints/sprint_6.md**](docs/sprints/sprint_6.md) |
 | 💰 **Sprint 5** | Motor de Rateio Dinâmico 50/50, Extratos Financeiros, Taxa de Parada e Interpolação Métrica Predial | 👉 [**docs/sprints/sprint_5.md**](docs/sprints/sprint_5.md) |
 | 📦 **Sprint 4** | Lotes Econômicos, Agrupamento Espacial Assíncrono (PostGIS) e Sequenciamento PDP OSRM | 👉 [**docs/sprints/sprint_4.md**](docs/sprints/sprint_4.md) |
 | ⚡ **Sprint 3** | Fluxo Expresso, Radar de Proximidade, Bloqueio Pessimista (`lockForUpdate`) e Telemetria GPS | 👉 [**docs/sprints/sprint_3.md**](docs/sprints/sprint_3.md) |
