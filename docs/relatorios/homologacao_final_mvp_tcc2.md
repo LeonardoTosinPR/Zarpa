@@ -46,7 +46,7 @@ A homologação final processou e auditou a totalidade dos dados gerados no banc
 | **Quilometragem Se Fossem Rotas Isoladas** | **330,80 km** | Distância que seria percorrida em entregas individuais ponto a ponto |
 | **Quilometragem Real nos Lotes OSRM** | **258,45 km** | Distância consolidada percorrida nos 43 lotes com algoritmo 2-Opt |
 | **Redução Viária Líquida Gerada** | **-72,35 km (21,9% a 30,9%)** | Alívio no tráfego urbano de Guarapuava e redução de emissões |
-| **Economia Viária Bruta Gerada** | **R$ 214,04** | Tarifa base viária economizada ($\Delta\text{km} \times \text{R\$ } 2,50$) |
+| **Economia Viária Bruta Gerada** | **R$ 214,04** | Tarifa base viária economizada (Δkm × R$ 2,50) |
 | **Desconto Repassado aos Lojistas (50%)** | **R$ 107,02** | Desconto proporcional direto aos comerciantes parceiros |
 | **Bônus de Produtividade ao Motoboy (50%)**| **R$ 107,02** | Bônus creditado ao condutor pelo compartilhamento de trajeto |
 | **Taxa de Parada Concluída (R$ 3,00/entrega)**| **R$ 339,00** | Adicional obrigatório por ponto de entrega atendido |
@@ -60,8 +60,8 @@ A auditoria matemática de conciliação entre a receita faturada e as despesas 
 | Componente Contábil da Plataforma | Valor em R$ | Participação Percentual (%) | Descrição e Origem |
 | :--- | :---: | :---: | :--- |
 | **Receita Efetiva Paga pelos Lojistas** | **R$ 1.747,17** | **100,00%** | Faturamento bruto arrecadado com as entregas já descontado o rateio 50% |
-| **(-) Frete Base de Rota aos Entregadores** | **- R$ 646,24** | **36,99%** | Remuneração quilométrica viária base ($258,45\text{ km} \times \text{R\$ } 2,50\text{/km}$) |
-| **(-) Taxas de Paradas Concluídas** | **- R$ 339,00** | **19,40%** | Incentivo de R$ 3,00 pago por ponto de entrega atendido ($113 \times \text{R\$ } 3,00$) |
+| **(-) Frete Base de Rota aos Entregadores** | **- R$ 646,24** | **36,99%** | Remuneração quilométrica viária base (258,45 km × R$ 2,50/km) |
+| **(-) Taxas de Paradas Concluídas** | **- R$ 339,00** | **19,40%** | Incentivo de R$ 3,00 pago por ponto de entrega atendido (113 paradas × R$ 3,00) |
 | **(-) Bônus de Eficiência (Rateio 50%)** | **- R$ 107,09** | **6,13%** | Repasse da metade da economia viária gerada pelo agrupamento em lote |
 | **(=) Repasse Total aos Condutores Parceiros**| **R$ 1.092,33** | **62,52%** | Custo direto de prestação de serviço repassado aos entregadores |
 | **(=) LUCRO LÍQUIDO DA PLATAFORMA ZARPA** | **R$ 654,84** | **37,48%** | **Margem operacional líquida retida pela plataforma para si** |
